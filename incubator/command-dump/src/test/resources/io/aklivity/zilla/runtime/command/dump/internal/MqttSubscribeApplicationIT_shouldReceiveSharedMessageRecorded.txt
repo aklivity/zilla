@@ -517,10 +517,10 @@ Zilla Frame
     Budget ID: 0x0000000000000000
     Reserved: 0
 
-Frame 13: 333 bytes on wire (2664 bits), 333 bytes captured (2664 bits)
+Frame 13: 337 bytes on wire (2696 bits), 337 bytes captured (2696 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 259
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 1, Ack: 1, Len: 263
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
@@ -595,18 +595,20 @@ Zilla Frame
             Metadata
                 Length: 8
                 Metadata: 6f66667365742d37
+        Outbound
+            Length: -1
 
 Frame 14: 222 bytes on wire (1776 bits), 222 bytes captured (1776 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 260, Len: 148
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 1, Ack: 264, Len: 148
 Zilla Frame
     Frame Type ID: 0x00000001
     Frame Type: BEGIN
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000650
+    Offset: 0x00000658
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -635,14 +637,14 @@ Zilla Frame
 Frame 15: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 260, Ack: 149, Len: 141
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 264, Ack: 149, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000006b8
+    Offset: 0x000006c0
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -674,14 +676,14 @@ Zilla Frame
 Frame 16: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 149, Ack: 401, Len: 141
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 149, Ack: 405, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000720
+    Offset: 0x00000728
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -713,14 +715,14 @@ Zilla Frame
 Frame 17: 297 bytes on wire (2376 bits), 297 bytes captured (2376 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 290, Ack: 401, Len: 223
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 290, Ack: 405, Len: 223
 Zilla Frame
     Frame Type ID: 0x00000002
     Frame Type: DATA
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000788
+    Offset: 0x00000790
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -792,14 +794,14 @@ Zilla Frame
 Frame 18: 215 bytes on wire (1720 bits), 215 bytes captured (1720 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 513, Ack: 401, Len: 141
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 513, Ack: 405, Len: 141
 Zilla Frame
     Frame Type ID: 0x40000002
     Frame Type: WINDOW
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000840
+    Offset: 0x00000848
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -828,17 +830,17 @@ Zilla Frame
     Progress: 0
     Progress/Maximum: 0/8192
 
-Frame 19: 236 bytes on wire (1888 bits), 236 bytes captured (1888 bits)
+Frame 19: 240 bytes on wire (1920 bits), 240 bytes captured (1920 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 401, Ack: 654, Len: 162
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 405, Ack: 654, Len: 166
 Zilla Frame
     Frame Type ID: 0x00000005
     Frame Type: FLUSH
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x000008a8
+    Offset: 0x000008b0
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -873,18 +875,20 @@ Zilla Frame
         Topic Filters (0 items)
             Length: 4
             Size: 0
+        Outbound
+            Length: -1
 
 Frame 20: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:4, Dst: fe80::3f3f:0:0:5
-Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 563, Ack: 654, Len: 136
+Transmission Control Protocol, Src Port: 37114, Dst Port: 7114, Seq: 571, Ack: 654, Len: 136
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000920
+    Offset: 0x00000930
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
@@ -912,14 +916,14 @@ Zilla Frame
 Frame 21: 210 bytes on wire (1680 bits), 210 bytes captured (1680 bits)
 Ethernet II, Src: Send_00 (20:53:45:4e:44:00), Dst: Receive_00 (20:52:45:43:56:00)
 Internet Protocol Version 6, Src: fe80::3f3f:0:0:5, Dst: fe80::3f3f:0:0:4
-Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 654, Ack: 699, Len: 136
+Transmission Control Protocol, Src Port: 7114, Dst Port: 37114, Seq: 654, Ack: 707, Len: 136
 Zilla Frame
     Frame Type ID: 0x00000003
     Frame Type: END
     Protocol Type ID: 0x00000000
     Protocol Type: 
     Worker: 0
-    Offset: 0x00000980
+    Offset: 0x00000990
     Origin ID: 0x0000000100000002
     Origin Namespace: test
     Origin Binding: app0
