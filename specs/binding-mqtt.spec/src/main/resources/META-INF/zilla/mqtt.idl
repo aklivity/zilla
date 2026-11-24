@@ -380,7 +380,8 @@ scope mqtt
         {
             COMPLETE(0),
             INCOMPLETE(1),
-            RECORDED(2)
+            RECORDED(2),
+            ABANDONED(3)
         }
     }
 
