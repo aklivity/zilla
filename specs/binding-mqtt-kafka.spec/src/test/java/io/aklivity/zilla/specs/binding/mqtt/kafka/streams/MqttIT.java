@@ -1316,15 +1316,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.capabilities.shared.unavailable.without.store/client",
-        "${mqtt}/session.capabilities.shared.unavailable.without.store/server"})
-    public void shouldSessionCapabilitiesSharedUnavailableWithoutStore() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.publish.qos.max.0/client",
         "${mqtt}/session.publish.qos.max.0/server"})
     public void shouldAdvertisePublishQosMax0() throws Exception
@@ -1627,6 +1618,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.metadata/client",
+        "${mqtt}/subscribe.shared.reject.unreadable.metadata/server"})
+    public void shouldSubscribeSharedRejectUnreadableMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.reject.unsupported.version/client",
         "${mqtt}/subscribe.shared.reject.unsupported.version/server"})
     public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
@@ -1870,27 +1870,9 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client",
-        "${mqtt}/subscribe.shared.reject.unreadable.tickets/server"})
-    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.unsubscribe.shared/client",
         "${mqtt}/session.unsubscribe.shared/server"})
     public void shouldUnsubscribeSharedAndLeave() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.unsubscribe.shared.state.write.reset/client",
-        "${mqtt}/session.unsubscribe.shared.state.write.reset/server"})
-    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
     {
         k3po.finish();
     }

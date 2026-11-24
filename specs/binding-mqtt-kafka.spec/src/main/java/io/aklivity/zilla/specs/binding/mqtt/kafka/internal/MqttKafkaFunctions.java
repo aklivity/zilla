@@ -32,6 +32,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetsFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSharedRecordFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSharedRecordVersion;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV1FW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV2FW;
@@ -49,6 +51,12 @@ public final class MqttKafkaFunctions
     public static MqttPublishOffsetMetadataBuilder publishMetadata()
     {
         return new MqttPublishOffsetMetadataBuilder();
+    }
+
+    @Function
+    public static MqttSharedRecordBuilder sharedRecord()
+    {
+        return new MqttSharedRecordBuilder();
     }
 
     @Function
@@ -178,6 +186,49 @@ public final class MqttKafkaFunctions
         {
             final MqttPublishOffsetMetadataFW offsetMetadata = offsetMetadataRW.build();
             return BitUtil.toHex(offsetMetadata.buffer().byteArray(), offsetMetadata.offset(), offsetMetadata.limit());
+        }
+    }
+
+    public static final class MqttSharedRecordBuilder
+    {
+        private final MqttSharedRecordFW.Builder sharedRecordRW = new MqttSharedRecordFW.Builder();
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[1024]);
+
+        private String topic;
+        private int partitionId;
+        private long partitionOffset;
+
+        private MqttSharedRecordBuilder()
+        {
+        }
+
+        public MqttSharedRecordBuilder topic(
+            String topic)
+        {
+            this.topic = topic;
+            return this;
+        }
+
+        public MqttSharedRecordBuilder partition(
+            int partitionId,
+            long partitionOffset)
+        {
+            this.partitionId = partitionId;
+            this.partitionOffset = partitionOffset;
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttSharedRecordFW sharedRecord = sharedRecordRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .kind(MqttSharedRecordVersion.V1)
+                .recordV1(v1 -> v1
+                    .topic(topic)
+                    .partitionId(partitionId)
+                    .partitionOffset(partitionOffset))
+                .build();
+
+            return Arrays.copyOfRange(sharedRecord.buffer().byteArray(), sharedRecord.offset(), sharedRecord.limit());
         }
     }
 
