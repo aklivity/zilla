@@ -145,4 +145,74 @@ public class MemoryStoreHandlerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("store.touch.yaml")
+    @Specification({
+        "${net}/store.touch/client",
+        "${app}/store.touch/server"})
+    public void shouldKeepEntryReadablePastOriginalTtlWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.touch.absent.yaml")
+    @Specification({
+        "${net}/store.touch.absent/client",
+        "${app}/store.touch.absent/server"})
+    public void shouldNotFindAbsentEntryWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.touch.watch.yaml")
+    @Specification({
+        "${net}/store.touch.watch/client",
+        "${app}/store.touch.watch/server"})
+    public void shouldNotNotifyWatchWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.touch.expire.yaml")
+    @Specification({
+        "${net}/store.touch.expire/client",
+        "${app}/store.touch.expire/server"})
+    public void shouldExpireEntryAtNewDeadlineWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.touch.expired.yaml")
+    @Specification({
+        "${net}/store.touch.expired/client",
+        "${app}/store.touch.expired/server"})
+    public void shouldReportExpiryAndNotFindExpiredEntryWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.touch.shorter.yaml")
+    @Specification({
+        "${net}/store.touch.shorter/client",
+        "${app}/store.touch.shorter/server"})
+    public void shouldShortenCountdownWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.touch.persistent.yaml")
+    @Specification({
+        "${net}/store.touch.persistent/client",
+        "${app}/store.touch.persistent/server"})
+    public void shouldGiveTimeToLiveToEntryWithoutOneWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
 }

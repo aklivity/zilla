@@ -547,6 +547,147 @@ public class TestStoreHandlerTest
         assertEquals(List.of("key=value"), expired);
     }
 
+    @Test
+    public void shouldKeepTouchedEntryPastOriginalExpiryAndExpireAtNewExpiry()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+
+        handler.touch("key", Duration.ofSeconds(5), touched::add);
+        assertEquals(List.of(), touched);
+        tasks.forEach(Runnable::run);
+        tasks.clear();
+        assertEquals(List.of(true), touched);
+
+        advance(2_000L);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", live(handler, "key"));
+
+        advance(4_000L);
+
+        assertEquals(List.of("key=value"), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldShortenCountdownWhenTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofHours(1), v -> {});
+
+        handler.touch("key", Duration.ofSeconds(1), v -> {});
+        advance(1_002L);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldGiveTimeToLiveToEntryWithoutOneWhenTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", null, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(1), v -> {});
+        advance(1_002L);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldRemoveTimeToLiveWhenTouchedWithoutOne()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key));
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+
+        handler.touch("key", null, v -> {});
+        advance(1_000_000L);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotFindAbsentEntryWhenTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        List<Boolean> touched = new ArrayList<>();
+
+        handler.touch("key", Duration.ofSeconds(1), touched::add);
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(false), touched);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotNotifyWatchersWhenTouched()
+    {
+        ConcurrentMap<String, List<TestWatcher>> listeners = new ConcurrentHashMap<>();
+        TestStoreHandler handler = new TestStoreHandler(null, tasks::add, () -> now, (time, task) -> {}, entries, listeners,
+            expirers, new ConcurrentHashMap<>(), null);
+        List<String> changed = new ArrayList<>();
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        handler.watch("key", (key, value) -> changed.add(key + "=" + value));
+        tasks.forEach(Runnable::run);
+        tasks.clear();
+
+        handler.touch("key", Duration.ofSeconds(5), v -> {});
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), changed);
+    }
+
+    @Test
+    public void shouldReportExpiryAndNotFindExpiredEntryWhenTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+
+        now += 1_001L;
+        handler.touch("key", Duration.ofSeconds(5), touched::add);
+        tasks.forEach(Runnable::run);
+        tasks.clear();
+
+        assertEquals(List.of(false), touched);
+        assertEquals(List.of("key=value"), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldAcceptTouchMatchingAssertion()
+    {
+        entries.put("key", new TestEntry("value", Long.MAX_VALUE));
+        TestStoreHandler handler = newHandler(new ConcurrentLinkedQueue<>(List.of(
+            new Assertion("touch", "key", null, Duration.ofMinutes(1)))));
+        List<Boolean> touched = new ArrayList<>();
+
+        handler.touch("key", Duration.ofMinutes(1), touched::add);
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(true), touched);
+    }
+
+    @Test
+    public void shouldRejectTouchWithUnexpectedTimeToLive()
+    {
+        TestStoreHandler handler = newHandler(new ConcurrentLinkedQueue<>(List.of(
+            new Assertion("touch", "key", null, Duration.ofMinutes(1)))));
+
+        AssertionError error = assertThrows(AssertionError.class,
+            () -> handler.touch("key", Duration.ofMinutes(2), v -> {}));
+
+        assertEquals("expected store operation touch key value=null ttl=PT1M, " +
+            "was touch key value=null ttl=PT2M", error.getMessage());
+    }
+
     private TestStoreHandler newExpiringHandler()
     {
         return new TestStoreHandler(null, tasks::add, () -> now, (time, task) ->

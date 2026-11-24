@@ -59,7 +59,8 @@
                                                 "delete",
                                                 "getAndDelete",
                                                 "increment",
-                                                "replace"
+                                                "replace",
+                                                "touch"
                                             ]
                                         },
                                         "key":

@@ -166,6 +166,42 @@ public interface StoreHandler
         Consumer<Boolean> completion);
 
     /**
+     * Restarts the time-to-live of the entry stored under the given key without rewriting its value.
+     * <p>
+     * The entry expires {@code ttl} after the call, replacing its previous expiry instant whether
+     * that was earlier or later. The value is unchanged. An entry that was written without a
+     * time-to-live is given one, consistent with {@link #put}, where {@code null} means no expiry:
+     * a {@code null} {@code ttl} leaves the entry with no expiry, so that it never expires.
+     * Lock leases are not entries and are unaffected.
+     * </p>
+     * <p>
+     * A touch is not a write for any other purpose: it does not notify {@link #watch}
+     * registrations, because the value did not change.
+     * </p>
+     * <p>
+     * A touch composes with {@link #expire}. The countdown restarts, so no expiry is reported for
+     * the previous expiry instant, and the store keeps any retained copy of the value and any
+     * index it owns in step with the new expiry instant. An entry found already expired but not
+     * yet swept reports its expiry first, as a write does, and the touch then completes as not
+     * found.
+     * </p>
+     * <p>
+     * The completion fires <em>strictly later</em> than the call returns, on the caller's I/O
+     * thread, following the same async contract as the other {@code StoreHandler} operations.
+     * </p>
+     *
+     * @param key        the key of the entry to touch
+     * @param ttl        the time-to-live counted from now, or {@code null} for no expiry
+     * @param completion a callback that receives {@code true} if the entry was present and
+     *                   unexpired and its time-to-live was restarted, or {@code false} if the
+     *                   key is absent or expired, in which case nothing changed
+     */
+    void touch(
+        String key,
+        Duration ttl,
+        Consumer<Boolean> completion);
+
+    /**
      * Atomically retrieves and removes the entry for the given key.
      *
      * @param key        the key to retrieve and remove
