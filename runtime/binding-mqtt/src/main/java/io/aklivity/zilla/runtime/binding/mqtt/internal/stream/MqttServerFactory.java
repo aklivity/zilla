@@ -3847,11 +3847,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final List<MqttMembershipRecord> memberships = discard ? clientState.discard() : List.of();
             final Runnable stored = () -> leaveShared(memberships, () -> onClientStateReady(traceId));
 
-            if (ready && (sessionExpiry > 0 || storedSubscriptions()))
-            {
-                clientState.hold(ownerNonce(), stored);
-            }
-            else if (discard)
+            if (discard)
             {
                 clientState.write(stored);
             }
@@ -7913,6 +7909,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final PrimitiveIterator.OfInt packetIds = mqttSessionBeginEx.packetIds();
 
                     sessionExpiry = mqttSessionBeginEx.expiry();
+
+                    if (owns && (sessionExpiry > 0 || storedSubscriptions()) && clientState.ready())
+                    {
+                        clientState.hold(ownerNonce(), () -> {});
+                    }
+
                     capabilities = mqttSessionBeginEx.capabilities();
                     publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
                     subscribeQosMax = Math.min(subscribeQosMaxDefault, mqttSessionBeginEx.subscribeQosMax());
