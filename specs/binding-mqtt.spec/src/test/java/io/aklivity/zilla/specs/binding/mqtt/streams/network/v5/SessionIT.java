@@ -95,6 +95,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${net}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.client.takeover.after.lease/client",
         "${net}/session.client.takeover.after.lease/server"})
     public void shouldTakeOverSessionAfterLease() throws Exception

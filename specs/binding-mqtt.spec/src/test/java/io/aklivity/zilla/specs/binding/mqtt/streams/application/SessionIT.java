@@ -266,6 +266,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
