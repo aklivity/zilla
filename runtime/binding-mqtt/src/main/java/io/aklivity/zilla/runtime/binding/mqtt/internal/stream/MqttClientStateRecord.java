@@ -23,16 +23,19 @@ final class MqttClientStateRecord
     final List<MqttPacketRecord> packets;
     final String holder;
     byte[] subscriptions;
+    byte[] outbound;
 
     MqttClientStateRecord(
         List<MqttMembershipRecord> memberships,
         List<MqttPacketRecord> packets,
         String holder,
-        byte[] subscriptions)
+        byte[] subscriptions,
+        byte[] outbound)
     {
         this.memberships = memberships;
         this.packets = packets;
         this.holder = holder;
         this.subscriptions = subscriptions;
+        this.outbound = outbound;
     }
 }

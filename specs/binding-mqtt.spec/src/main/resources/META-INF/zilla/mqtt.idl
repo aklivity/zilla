@@ -172,6 +172,7 @@ scope mqtt
         MqttPacket[] packets;
         string16 holder = null;
         MqttBinary subscriptions;
+        MqttBinary outbound;
     }
 
     union MqttClientState switch (MqttClientStateVersion)

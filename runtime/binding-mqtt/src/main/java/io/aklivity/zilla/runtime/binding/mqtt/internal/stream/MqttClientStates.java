@@ -35,6 +35,8 @@ final class MqttClientStates
 {
     private static final byte[] NO_METADATA = new byte[0];
     private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
+    private static final byte[] NO_OUTBOUND = new byte[0];
+    private static final int OUTBOUND_FIXED_SIZE = 8;
     private static final int SUBSCRIPTIONS_FIXED_SIZE = 8;
     private static final int HEADER_SIZE = 16;
     private static final int HOLDER_FIXED_SIZE = 8;
@@ -53,9 +55,10 @@ final class MqttClientStates
         List<MqttMembershipRecord> memberships,
         List<MqttPacketRecord> packets,
         String holder,
-        byte[] subscriptions)
+        byte[] subscriptions,
+        byte[] outbound)
     {
-        final int capacity = capacity(memberships, packets, holder, subscriptions);
+        final int capacity = capacity(memberships, packets, holder, subscriptions, outbound);
 
         if (encodeBuffer.capacity() < capacity)
         {
@@ -63,12 +66,12 @@ final class MqttClientStates
         }
 
         final MqttClientStateFW.Builder builder = clientStateRW.wrap(encodeBuffer, 0, encodeBuffer.capacity());
-        final MqttClientStateFW encoded = subscriptions.length == 0
+        final MqttClientStateFW encoded = subscriptions.length == 0 && outbound.length == 0
             ? builder.kind(MqttClientStateVersion.V2)
                 .clientStateV2(v2 -> encodeV2(v2, memberships, packets, holder))
                 .build()
             : builder.kind(MqttClientStateVersion.V3)
-                .clientStateV3(v3 -> encodeV3(v3, memberships, packets, holder, subscriptions))
+                .clientStateV3(v3 -> encodeV3(v3, memberships, packets, holder, subscriptions, outbound))
                 .build();
 
         final byte[] bytes = new byte[encoded.sizeof()];
@@ -84,6 +87,7 @@ final class MqttClientStates
         final List<MqttPacketRecord> packets = new ArrayList<>();
         String holder = null;
         byte[] subscriptions = NO_SUBSCRIPTIONS;
+        byte[] outbound = NO_OUTBOUND;
         boolean decodable = true;
 
         if (value != null)
@@ -111,7 +115,8 @@ final class MqttClientStates
                 v3.memberships().forEach(m -> memberships.add(newMembership(m)));
                 v3.packets().forEach(p -> packets.add(newPacket(p)));
                 holder = v3.holder().asString();
-                subscriptions = newSubscriptions(v3.subscriptions().bytes());
+                subscriptions = newBinary(v3.subscriptions().bytes());
+                outbound = newBinary(v3.outbound().bytes());
             }
             else if (decodable)
             {
@@ -122,7 +127,7 @@ final class MqttClientStates
             }
         }
 
-        return decodable ? new MqttClientStateRecord(memberships, packets, holder, subscriptions) : null;
+        return decodable ? new MqttClientStateRecord(memberships, packets, holder, subscriptions, outbound) : null;
     }
 
     private static void encodeV3(
@@ -130,7 +135,8 @@ final class MqttClientStates
         List<MqttMembershipRecord> memberships,
         List<MqttPacketRecord> packets,
         String holder,
-        byte[] subscriptions)
+        byte[] subscriptions,
+        byte[] outbound)
     {
         memberships.forEach(m -> v3.membershipsItem(i -> i
             .shareName(m.shareName)
@@ -144,6 +150,7 @@ final class MqttClientStates
             .metadata(m -> m.bytes(b -> b.set(p.metadata)))));
         v3.holder(holder);
         v3.subscriptions(s -> s.bytes(b -> b.set(subscriptions)));
+        v3.outbound(o -> o.bytes(b -> b.set(outbound)));
     }
 
     private static void encodeV2(
@@ -165,17 +172,17 @@ final class MqttClientStates
         v2.holder(holder);
     }
 
-    private static byte[] newSubscriptions(
+    private static byte[] newBinary(
         OctetsFW bytes)
     {
-        final byte[] subscriptions = bytes != null ? new byte[bytes.sizeof()] : NO_SUBSCRIPTIONS;
+        final byte[] binary = bytes != null ? new byte[bytes.sizeof()] : NO_METADATA;
 
         if (bytes != null)
         {
-            bytes.buffer().getBytes(bytes.offset(), subscriptions);
+            bytes.buffer().getBytes(bytes.offset(), binary);
         }
 
-        return subscriptions;
+        return binary;
     }
 
     private static MqttMembershipRecord newMembership(
@@ -208,10 +215,11 @@ final class MqttClientStates
         List<MqttMembershipRecord> memberships,
         List<MqttPacketRecord> packets,
         String holder,
-        byte[] subscriptions)
+        byte[] subscriptions,
+        byte[] outbound)
     {
         int capacity = HEADER_SIZE + HOLDER_FIXED_SIZE + length(holder) * MAXIMUM_UTF8_BYTES_PER_CHAR +
-            SUBSCRIPTIONS_FIXED_SIZE + subscriptions.length;
+            SUBSCRIPTIONS_FIXED_SIZE + subscriptions.length + OUTBOUND_FIXED_SIZE + outbound.length;
 
         for (int i = 0; i < memberships.size(); i++)
         {
