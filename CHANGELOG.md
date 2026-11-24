@@ -16,6 +16,7 @@
 - mqtt: the server ignores the client's Receive Maximum and sends more unacknowledged QoS 1 and 2 PUBLISH packets than it allows [\#3352](https://github.com/aklivity/zilla/issues/3352) ([ankitk-me](https://github.com/ankitk-me))
 - kafka: engine stops with IndexOutOfBoundsException in KafkaClientConnectionPool while reading a Kafka response header [\#3424](https://github.com/aklivity/zilla/issues/3424) ([ankitk-me](https://github.com/ankitk-me))
 - mqtt-kafka: a few clients never get CONNACK \(2.8.0-rc5\) [\#3517](https://github.com/aklivity/zilla/issues/3517) ([ankitk-me](https://github.com/ankitk-me))
+- kafka cache: JVM crashes with SIGSEGV in `KafkaCachePartition.Node.clean` during produce-side segment compaction \(2.8.0-rc6\) [\#3536](https://github.com/aklivity/zilla/issues/3536) ([ankitk-me](https://github.com/ankitk-me))
 
 **Closed issues:**
 
@@ -62,6 +63,7 @@
 - flyweight: union uint32 member accessor sign-extends values of 2^31 and above [\#3387](https://github.com/aklivity/zilla/issues/3387) ([jfallows](https://github.com/jfallows))
 - mqtt: Response Topic is replaced by the Kafka topic name, and Correlation Data and User Properties carry over to later PUBLISH packets [\#3397](https://github.com/aklivity/zilla/issues/3397) ([jfallows](https://github.com/jfallows))
 - mqtt: CONNACK and DISCONNECT Reason String and User Properties are not checked against the client's Maximum Packet Size [\#3398](https://github.com/aklivity/zilla/issues/3398) ([jfallows](https://github.com/jfallows))
+- store-memory: StoreContext.detach does not remove the detaching worker's watchers [\#3529](https://github.com/aklivity/zilla/issues/3529) ([jfallows](https://github.com/jfallows))
 
 **Merged pull requests:**
 
@@ -254,6 +256,15 @@
 - fix\(binding-kafka\): complete session handshakes that never received a CONNACK [\#3524](https://github.com/aklivity/zilla/pull/3524) ([jfallows](https://github.com/jfallows))
 - feat\(examples\): create mqtt-sessions topic with 4 partitions [\#3525](https://github.com/aklivity/zilla/pull/3525) ([jfallows](https://github.com/jfallows))
 - fix\(binding-kafka\): keep pooled responses in step with requests and the fetch latest offset at or past stable [\#3526](https://github.com/aklivity/zilla/pull/3526) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): roll cache segment before an entry that would not fit [\#3527](https://github.com/aklivity/zilla/pull/3527) ([jfallows](https://github.com/jfallows))
+- test\(store-memory\): benchmark the store operations for per-client state [\#3528](https://github.com/aklivity/zilla/pull/3528) ([jfallows](https://github.com/jfallows))
+- fix\(store-memory\): remove a detached worker's watchers [\#3531](https://github.com/aklivity/zilla/pull/3531) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): ignore the remaining fragments of a merged produce message rejected on its first fragment [\#3532](https://github.com/aklivity/zilla/pull/3532) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add mandatory expire to StoreHandler [\#3533](https://github.com/aklivity/zilla/pull/3533) ([jfallows](https://github.com/jfallows))
+- refactor\(binding-mqtt\): move shared subscription state from mqtt-kafka to the mqtt binding's store [\#3534](https://github.com/aklivity/zilla/pull/3534) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): index active segment hash entries by key for ancestor lookup [\#3537](https://github.com/aklivity/zilla/pull/3537) ([jfallows](https://github.com/jfallows))
+- test\(engine\): gate store.expire and store.watch scripts on the delivered notification [\#3538](https://github.com/aklivity/zilla/pull/3538) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): fold produce entry claim block into trailing padding [\#3540](https://github.com/aklivity/zilla/pull/3540) ([jfallows](https://github.com/jfallows))
 
 ## [2.7.1](https://github.com/aklivity/zilla/tree/2.7.1) (2026-11-16)
 
