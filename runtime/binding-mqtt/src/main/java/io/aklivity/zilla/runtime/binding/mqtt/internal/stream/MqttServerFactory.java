@@ -240,6 +240,7 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 public final class MqttServerFactory implements MqttStreamFactory
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     public static final int MQTT_PROTOCOL_VERSION_5 = 5;
@@ -3871,6 +3872,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         private Duration clientStateTtl()
         {
             return sessionExpiry > 0 ? Duration.ofSeconds(sessionExpiry) : null;
+        }
+
+        private boolean isConnectionActive()
+        {
+            return !StreamState.initialClosed(state) && !StreamState.replyClosed(state);
         }
 
         private boolean sessionStateRestored()
@@ -7559,6 +7565,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private List<Subscription> subscriptions;
             private List<Subscription> unAckedSubscriptions;
             private Int2ObjectHashMap<List<String>> deferredUnsubscribes;
+            private byte[] replayState;
             private MessageConsumer application;
 
             private long originId;
@@ -7670,6 +7677,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert initialAck <= initialSeq;
 
                 decodeNetwork(traceId);
+                doSessionStateReplay(traceId, authorization);
 
                 if (budgetId != 0L && debit == null)
                 {
@@ -7893,10 +7901,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                     else if (sessionSubscriptions != null)
                     {
-                        if (storedSubscriptions())
+                        if (storedSubscriptions() && clientState.ready())
                         {
                             clientState.subscriptions(copyBytes(buffer, offset, limit));
-                            clientState.write(() -> onSessionStateResolved(traceId, authorization, sessionSubscriptions));
+                            clientState.write(() -> onSessionStateWritten(traceId, authorization, sessionSubscriptions));
                         }
                         else
                         {
@@ -7933,9 +7941,55 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 long authorization)
             {
-                final byte[] stored = clientState.subscriptions();
+                final byte[] stored = clientState.ready() ? clientState.subscriptions() : NO_SUBSCRIPTIONS;
 
-                if (!isCleanStart(connectFlags) && stored.length > 0 && hasSessionWindow(stored.length))
+                if (!isCleanStart(connectFlags) && stored.length > 0)
+                {
+                    replayState = stored;
+                    doSessionStateReplay(traceId, authorization);
+                }
+                else if (clientState.ready())
+                {
+                    clientState.subscriptions(emptySubscriptions());
+                    clientState.write(() -> onSessionStateWrittenConnack(traceId, authorization));
+                }
+                else
+                {
+                    doSessionConnack(traceId, authorization, SUCCESS, false);
+                }
+            }
+
+            private void onSessionStateWrittenConnack(
+                long traceId,
+                long authorization)
+            {
+                if (isConnectionActive())
+                {
+                    doSessionConnack(traceId, authorization, SUCCESS, false);
+                }
+            }
+
+            private void onSessionStateWritten(
+                long traceId,
+                long authorization,
+                List<Subscription> sessionSubscriptions)
+            {
+                if (isConnectionActive())
+                {
+                    onSessionStateResolved(traceId, authorization, sessionSubscriptions);
+                }
+            }
+
+            private void doSessionStateReplay(
+                long traceId,
+                long authorization)
+            {
+                if (replayState != null && initialMax > 0 && replayState.length + initialPad > initialMax)
+                {
+                    replayState = null;
+                    doSessionConnack(traceId, authorization, SUCCESS, false);
+                }
+                else if (replayState != null && hasSessionWindow(replayState.length))
                 {
                     final MqttDataExFW.Builder sessionDataExBuilder =
                         mqttSessionDataExRW
@@ -7943,14 +7997,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                             .typeId(mqttTypeId)
                             .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
                     final MqttSessionStateFW storedState =
-                        mqttSessionStateRO.wrap(new UnsafeBufferEx(stored), 0, stored.length);
+                        mqttSessionStateRO.wrap(new UnsafeBufferEx(replayState), 0, replayState.length);
 
-                    doSessionData(traceId, stored.length, sessionDataExBuilder.build(), storedState);
-                }
-                else
-                {
-                    clientState.subscriptions(emptySubscriptions());
-                    clientState.write(() -> doSessionConnack(traceId, authorization, SUCCESS, false));
+                    doSessionData(traceId, replayState.length, sessionDataExBuilder.build(), storedState);
+                    replayState = null;
                 }
             }
 
