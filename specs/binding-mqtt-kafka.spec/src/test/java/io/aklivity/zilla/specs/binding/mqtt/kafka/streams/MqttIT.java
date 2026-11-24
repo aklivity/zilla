@@ -804,15 +804,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.store.inbound.state.qos.max.1/client",
-        "${mqtt}/session.store.inbound.state.qos.max.1/server"})
-    public void shouldSessionStoreInboundStateQosMax1() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.store.persistent.close.reconnect.non.expiring/client",
         "${mqtt}/session.store.persistent.close.reconnect.non.expiring/server"})
     public void shouldSessionStorePersistentCloseReconnectNonExpiring() throws Exception

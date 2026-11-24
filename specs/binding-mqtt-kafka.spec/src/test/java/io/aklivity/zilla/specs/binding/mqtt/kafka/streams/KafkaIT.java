@@ -949,17 +949,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.store.inbound.state.qos.max.1/client",
-        "${kafka}/session.store.inbound.state.qos.max.1/server"})
-    public void shouldSessionStoreInboundStateQosMax1() throws Exception
-    {
-        k3po.start();
-        k3po.notifyBarrier("INBOUND_SENT");
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.store.will.message.normal.disconnect/client",
         "${kafka}/session.store.will.message.normal.disconnect/server"})
     public void shouldSessionStoreWillMessageNormalDisconnect() throws Exception

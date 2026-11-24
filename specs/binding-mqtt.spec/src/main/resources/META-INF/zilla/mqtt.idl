@@ -347,8 +347,7 @@ scope mqtt
         enum MqttSessionDataKind
         {
             STATE,
-            WILL,
-            INBOUND
+            WILL
         }
 
         struct MqttSessionDataEx
