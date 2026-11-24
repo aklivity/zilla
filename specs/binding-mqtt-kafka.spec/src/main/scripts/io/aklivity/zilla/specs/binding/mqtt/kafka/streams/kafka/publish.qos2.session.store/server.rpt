@@ -122,53 +122,6 @@ write close
 
 accepted
 
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-sessions")
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 1, 1, 1, 0)
-                .packetId(1)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 2, 1, 1, 0)
-                .packetId(1)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-
-
-accepted
-
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()

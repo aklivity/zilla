@@ -374,6 +374,18 @@ public class MqttKafkaPublishProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.in.flight/client",
+        "${kafka}/publish.qos2.session.store/server"})
+    public void shouldSendMessagesQos2InFlightWithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/publish.qos2/client",
         "${kafka}/publish.qos2.offset.commit.credit.window/server"})
