@@ -1958,7 +1958,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
         private boolean isSessionEstablishable()
         {
-            return !StreamState.replyOpening(state) && offsetCommit != null &&
+            return !(session instanceof KafkaSessionStateProxy) && offsetCommit != null &&
                 offsetCommit.seedLimit != 0L && offsetCommit.initialAck >= offsetCommit.seedLimit &&
                 isGroupOffsetsSettled();
         }
