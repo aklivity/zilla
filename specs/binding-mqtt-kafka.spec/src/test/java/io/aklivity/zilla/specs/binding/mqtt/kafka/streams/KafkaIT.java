@@ -1489,6 +1489,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.receive.message.qos2.session.store/client",
+        "${kafka}/subscribe.receive.message.qos2.session.store/server"})
+    public void shouldReceiveMessageQoS2WithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.receive.messages.qos2.sparse.offsets/client",
         "${kafka}/subscribe.receive.messages.qos2.sparse.offsets/server"})
     public void shouldReceiveMessagesQoS2SparseOffsets() throws Exception
