@@ -1158,6 +1158,15 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.shared.receive.message.qos2.inflight/client",
+        "${app}/subscribe.shared.receive.message.qos2.inflight/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2Inflight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.shared.receive.message.qos1.granted.qos0/client",
         "${app}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
     public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
