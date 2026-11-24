@@ -1078,12 +1078,16 @@ public final class KafkaCachePartition
 
         if (!trailers.isEmpty())
         {
-            logFile.writeBytes(valueLimit.value, trailers);
-            valueLimit.value += trailers.sizeof();
-            logFile.writeInt(valueLimit.value, trailersSizeMax - trailers.sizeof());
+            logFile.writeBytes(trailersAt, trailers);
         }
 
-        valueLimit.value = trailersAt + trailersSizeMax;
+        // the envelope claim reserved after the trailers belongs to the entry, so it is folded into the entry's
+        // own trailing paddingLen/padding, exactly as writeEntryFinish does, keeping the entry contiguous with the next
+        final int entryPaddingLenAt = trailersAt + (trailers.isEmpty() ? SIZEOF_EMPTY_TRAILERS : trailers.sizeof());
+        final int reservedEnd = trailersAt + trailersSizeMax + SIZEOF_PADDING_LENGTH + trailersSizeMax;
+        logFile.writeInt(entryPaddingLenAt, reservedEnd - entryPaddingLenAt - SIZEOF_PADDING_LENGTH);
+
+        valueLimit.value = reservedEnd;
 
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS,
