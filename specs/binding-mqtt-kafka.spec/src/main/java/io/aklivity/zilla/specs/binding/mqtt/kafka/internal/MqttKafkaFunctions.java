@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.PrimitiveIterator;
+import java.util.function.Consumer;
 
 import org.agrona.BitUtil;
 import org.agrona.collections.IntArrayList;
@@ -38,6 +39,10 @@ import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOf
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV1FW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataV2FW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataVersion;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundPacketState;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundV1FW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundVersion;
 
 public final class MqttKafkaFunctions
 {
@@ -57,6 +62,12 @@ public final class MqttKafkaFunctions
     public static MqttSharedRecordBuilder sharedRecord()
     {
         return new MqttSharedRecordBuilder();
+    }
+
+    @Function
+    public static MqttSubscribeOutboundBuilder subscribeOutbound()
+    {
+        return new MqttSubscribeOutboundBuilder();
     }
 
     @Function
@@ -229,6 +240,61 @@ public final class MqttKafkaFunctions
                 .build();
 
             return Arrays.copyOfRange(sharedRecord.buffer().byteArray(), sharedRecord.offset(), sharedRecord.limit());
+        }
+    }
+
+    public static final class MqttSubscribeOutboundBuilder
+    {
+        private final MqttSubscribeOutboundFW.Builder subscribeOutboundRW = new MqttSubscribeOutboundFW.Builder();
+        private final MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(new byte[4096]);
+        private final List<Consumer<MqttSubscribeOutboundV1FW.Builder>> items = new ArrayList<>();
+
+        private MqttSubscribeOutboundBuilder()
+        {
+        }
+
+        public MqttSubscribeOutboundBuilder partition(
+            int qos,
+            String topic,
+            int partitionId,
+            long nextOffset)
+        {
+            items.add(v1 -> v1.partitionsItem(p -> p
+                .qos(qos)
+                .topic(topic)
+                .partitionId(partitionId)
+                .nextOffset(nextOffset)));
+            return this;
+        }
+
+        public MqttSubscribeOutboundBuilder packet(
+            int packetId,
+            String state,
+            int qos,
+            String topic,
+            int partitionId,
+            long partitionOffset)
+        {
+            final int packetState = MqttSubscribeOutboundPacketState.valueOf(state).value();
+            items.add(v1 -> v1.packetsItem(p -> p
+                .packetId(packetId)
+                .state(packetState)
+                .qos(qos)
+                .topic(topic)
+                .partitionId(partitionId)
+                .partitionOffset(partitionOffset)));
+            return this;
+        }
+
+        public byte[] build()
+        {
+            final MqttSubscribeOutboundFW subscribeOutbound = subscribeOutboundRW.wrap(writeBuffer, 0, writeBuffer.capacity())
+                .kind(MqttSubscribeOutboundVersion.V1)
+                .outboundV1(v1 -> items.forEach(item -> item.accept(v1)))
+                .build();
+
+            return Arrays.copyOfRange(subscribeOutbound.buffer().byteArray(),
+                subscribeOutbound.offset(), subscribeOutbound.limit());
         }
     }
 
