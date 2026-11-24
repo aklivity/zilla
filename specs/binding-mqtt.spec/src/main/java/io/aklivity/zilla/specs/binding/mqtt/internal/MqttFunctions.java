@@ -56,6 +56,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalLongFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
@@ -407,6 +408,13 @@ public final class MqttFunctions
                 long generation)
             {
                 subscribeBeginExRW.generation(generation);
+                return this;
+            }
+
+            public MqttSubscribeBeginExBuilder outbound(
+                byte[] outbound)
+            {
+                subscribeBeginExRW.outbound(o -> o.set(outbound));
                 return this;
             }
 
@@ -954,6 +962,13 @@ public final class MqttFunctions
                 String state)
             {
                 subscribeFlushExRW.state(MqttOffsetStateFlags.valueOf(state).ordinal());
+                return this;
+            }
+
+            public MqttSubscribeFlushExBuilder outbound(
+                byte[] outbound)
+            {
+                subscribeFlushExRW.outbound(o -> o.set(outbound));
                 return this;
             }
 
@@ -1911,6 +1926,7 @@ public final class MqttFunctions
             private Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filters;
             private Long generation;
             private Array32FW.Builder<MqttPacketFW.Builder, MqttPacketFW> packets;
+            private byte[] outbound;
 
             private MqttSubscribeBeginExMatcherBuilder()
             {
@@ -2014,6 +2030,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExMatcherBuilder outbound(
+                byte[] outbound)
+            {
+                this.outbound = outbound;
+                return this;
+            }
+
             public MqttSubscribeBeginExMatcherBuilder packet(
                 int packetId,
                 String state,
@@ -2101,7 +2124,24 @@ public final class MqttFunctions
                     matchQos(subscribeBeginEx) &&
                     matchFilters(subscribeBeginEx) &&
                     matchGeneration(subscribeBeginEx) &&
-                    matchPackets(subscribeBeginEx);
+                    matchPackets(subscribeBeginEx) &&
+                    matchOutbound(subscribeBeginEx);
+            }
+
+            private boolean matchOutbound(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                final OctetsFW actual = subscribeBeginEx.outbound();
+                boolean match = outbound == null;
+
+                if (!match && actual != null && actual.sizeof() == outbound.length)
+                {
+                    final byte[] actualBytes = new byte[actual.sizeof()];
+                    actual.buffer().getBytes(actual.offset(), actualBytes);
+                    match = Arrays.equals(outbound, actualBytes);
+                }
+
+                return match;
             }
 
             private boolean matchGeneration(
