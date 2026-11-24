@@ -21,6 +21,7 @@
   [![Latest Release][release-latest-image]][release-latest]
   [![Slack Community][community-image]][community-join]
   [![Artifact HUB][artifact-hub-shield]][artifact-hub]
+  [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aklivity/zilla)
   
 </div>
 
