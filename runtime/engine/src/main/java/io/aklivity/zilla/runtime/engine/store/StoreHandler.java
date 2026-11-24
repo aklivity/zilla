@@ -186,9 +186,11 @@ public interface StoreHandler
      * Atomically adds {@code delta} to the counter stored under the given key.
      * <p>
      * An absent or expired key is created at zero before the addition, with {@code ttl} applied
-     * on creation only; an existing counter keeps its remaining lifetime and its mode. A counter
-     * created by this call has an {@link Expiration#UNTRACKED} expiry: it is never reported through
-     * {@link #expire}. The stored form is the
+     * on creation only; an existing entry keeps its remaining lifetime. The expiry of a counter
+     * created by this call is {@link Expiration#UNTRACKED}, and incrementing an existing entry makes
+     * its remaining expiry {@link Expiration#UNTRACKED} too, so a counter is never reported through
+     * {@link #expire}: it still expires and is no longer readable, but its expiry is not delivered.
+     * The stored form is the
      * decimal string of the counter, so {@link #get} observes the same value. The existing value
      * must be a decimal integer, otherwise the call fails with {@link NumberFormatException}.
      * </p>
@@ -451,7 +453,8 @@ public interface StoreHandler
      * <p>
      * An entry expires when the time-to-live supplied on the write that stored its current value
      * elapses without the entry having been replaced or removed. An entry replaced, removed or
-     * incremented before its expiry instant is never reported. A replacement that carries a new
+     * incremented before its expiry instant is never reported: an increment leaves the entry its
+     * remaining lifetime but ends its tracking. A replacement that carries a new
      * time-to-live restarts the countdown. An entry written without a time-to-live never expires.
      * Lock leases are not entries and are not reported.
      * </p>

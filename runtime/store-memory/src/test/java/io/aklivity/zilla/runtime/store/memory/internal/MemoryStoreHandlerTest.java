@@ -212,7 +212,7 @@ public class MemoryStoreHandlerTest
     }
 
     @Test
-    public void shouldKeepModeOfExistingEntryWhenIncrementing() throws Exception
+    public void shouldNotReportExpiryOfTrackedEntryWhenIncremented() throws Exception
     {
         MemoryStoreHandler handler = newHandler(tasks);
         handler.expire("", (key, value) -> expired.add(key + "=" + value));
@@ -225,7 +225,27 @@ public class MemoryStoreHandlerTest
         newSweeper().sweep();
         run(tasks);
 
-        assertEquals(List.of("tracked=6"), expired);
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("tracked"));
+        assertNull(entries.get("untracked"));
+    }
+
+    @Test
+    public void shouldKeepRemainingLifetimeWhenIncrementingTrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.put("key", "5", Duration.ofSeconds(1), v -> {});
+
+        handler.increment("key", 1L, Duration.ofHours(1), (key, value) -> {});
+        clock.now += 500L;
+        newSweeper().sweep();
+
+        assertEquals("6", entries.get("key").value());
+
+        clock.now += 1_000L;
+        newSweeper().sweep();
+
+        assertNull(entries.get("key"));
     }
 
     @Test

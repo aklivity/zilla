@@ -750,4 +750,14 @@ public class EngineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.store.expiration.increment.tracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfIncrementedTrackedEntryInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
 }

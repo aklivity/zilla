@@ -285,4 +285,14 @@ public class MemoryStoreHandlerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("store.expiration.increment.tracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfIncrementedTrackedEntryInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
 }

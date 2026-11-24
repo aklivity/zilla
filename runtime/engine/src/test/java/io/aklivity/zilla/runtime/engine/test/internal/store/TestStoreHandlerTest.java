@@ -538,6 +538,35 @@ public class TestStoreHandlerTest
     }
 
     @Test
+    public void shouldNotReportExpiryOfTrackedEntryWhenIncremented() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "5", Duration.ofSeconds(1), v -> {});
+
+        handler.increment("key", 1L, Duration.ofHours(1), (key, value) -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+        assertNull(live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotReportIncrementedTrackedEntryToLateRegistrant() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.put("key", "5", Duration.ofSeconds(1), v -> {});
+        handler.increment("key", 1L, Duration.ofHours(1), (key, value) -> {});
+        advance(1_001L);
+
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
     public void shouldNotReportExpiredCounterWhenIncrementingExpiredCounter() throws Exception
     {
         TestStoreHandler handler = newExpiringHandler();

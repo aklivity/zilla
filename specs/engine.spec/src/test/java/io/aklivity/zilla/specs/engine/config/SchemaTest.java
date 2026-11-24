@@ -354,4 +354,12 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateServerStoreExpirationIncrementTrackedAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.increment.tracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

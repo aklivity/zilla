@@ -338,7 +338,7 @@ final class MemoryStoreHandler implements StoreHandler
             live = existing != null && !existing.expired(clock.millis());
             counter = (live ? Long.parseLong(existing.value()) : 0L) + delta;
             final MemoryEntry next = new MemoryEntry(Long.toString(counter), live ? existing.expiresAt() : expiresAt(ttl),
-                live ? existing.tracked() : ttl == null);
+                !live && ttl == null);
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);

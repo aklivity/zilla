@@ -189,7 +189,7 @@ public final class TestStoreHandler implements StoreHandler
             alive = existing != null && !existing.expired(clock.getAsLong());
             counter = (alive ? Long.parseLong(existing.value()) : 0L) + delta;
             next = new TestEntry(Long.toString(counter), alive ? existing.expiresAt() : expiresAt(ttl),
-                alive ? existing.tracked() : ttl == null);
+                !alive && ttl == null);
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
