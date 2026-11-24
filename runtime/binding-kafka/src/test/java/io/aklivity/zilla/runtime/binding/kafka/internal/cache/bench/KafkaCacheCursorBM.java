@@ -90,7 +90,6 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 @Measurement(iterations = 5, time = 1, timeUnit = SECONDS)
 public class KafkaCacheCursorBM
 {
-    private static final int ACTIVE_SUBSCRIBERS = 200;
     private static final int WARM_MESSAGES = 5;
     private static final int FILTER_LEVELS = 3;
     private static final int VALUE_SIZE = 256;
@@ -106,6 +105,9 @@ public class KafkaCacheCursorBM
 
     @Param({"200", "800"})
     public int subscribers;
+
+    @Param({"200"})
+    public int active;
 
     @Param({"none", "leading"})
     public String leaf;
@@ -125,12 +127,12 @@ public class KafkaCacheCursorBM
     private final KafkaCacheTrailerEnvelope valueEnvelope = new KafkaCacheTrailerEnvelope();
     private final MutableInteger entryMark = new MutableInteger();
     private final MutableInteger valueMark = new MutableInteger();
-    private final KafkaKeyFW[] keys = new KafkaKeyFW[ACTIVE_SUBSCRIBERS];
-    private final Array32FW<?>[] headers = new Array32FW<?>[ACTIVE_SUBSCRIBERS];
-    private final int[][] termHashes = new int[ACTIVE_SUBSCRIBERS][];
+    private KafkaKeyFW[] keys;
+    private Array32FW<?>[] headers;
+    private int[][] termHashes;
     private final Int2ObjectHashMap<IntArrayList> subscribersByTerm = new Int2ObjectHashMap<>();
     private final IntArrayList termlessSubscribers = new IntArrayList();
-    private final String[][] topics = new String[ACTIVE_SUBSCRIBERS][];
+    private String[][] topics;
     private String[][] patterns;
 
     private OctetsFW value;
@@ -144,6 +146,11 @@ public class KafkaCacheCursorBM
     @Setup(Level.Trial)
     public void validate() throws IOException
     {
+        keys = new KafkaKeyFW[active];
+        headers = new Array32FW<?>[active];
+        termHashes = new int[active][];
+        topics = new String[active][];
+
         buildMessages();
         init();
 
@@ -151,7 +158,7 @@ public class KafkaCacheCursorBM
         for (int message = 0; message < 3; message++)
         {
             Arrays.fill(hitsByCursor, 0);
-            final int[] expected = expectedHits((int) (nextOffset % ACTIVE_SUBSCRIBERS));
+            final int[] expected = expectedHits((int) (nextOffset % active));
             appendMessage();
             drain(hitsByCursor);
 
@@ -228,7 +235,7 @@ public class KafkaCacheCursorBM
 
     private void appendMessage()
     {
-        final int index = (int) (nextOffset % ACTIVE_SUBSCRIBERS);
+        final int index = (int) (nextOffset % active);
         appendedIndex = index;
         final KafkaKeyFW key = keys[index];
         @SuppressWarnings("unchecked")
@@ -334,9 +341,9 @@ public class KafkaCacheCursorBM
             }
             else
             {
-                result[i] = i < ACTIVE_SUBSCRIBERS
+                result[i] = i < active
                     ? new String[] {"device", "1", Integer.toString(i)}
-                    : new String[] {"device", "idle" + (i - ACTIVE_SUBSCRIBERS), Integer.toString(i)};
+                    : new String[] {"device", "idle" + (i - active), Integer.toString(i)};
             }
         }
         return result;
@@ -468,7 +475,7 @@ public class KafkaCacheCursorBM
             .set(valueBytes)
             .build();
 
-        for (int i = 0; i < ACTIVE_SUBSCRIBERS; i++)
+        for (int i = 0; i < active; i++)
         {
             final String[] levels = messageLevels(i);
             topics[i] = levels;
