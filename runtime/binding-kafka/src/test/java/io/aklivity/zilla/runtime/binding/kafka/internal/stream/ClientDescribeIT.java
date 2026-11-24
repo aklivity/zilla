@@ -148,6 +148,16 @@ public class ClientDescribeIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/topic.config.info.concurrent/client",
+        "${net}/topic.config.info.response.header.leading/server"})
+    public void shouldReceiveTopicConfigInfoResponseHeaderLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/topic.config.info.failed/client",
         "${net}/topic.config.info.response.malformed/server"})
     public void shouldAbortWhenResponseMalformed() throws Exception
