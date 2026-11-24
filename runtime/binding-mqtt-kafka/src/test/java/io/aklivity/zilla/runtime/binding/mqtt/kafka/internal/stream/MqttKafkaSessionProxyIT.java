@@ -566,6 +566,28 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
+    @Specification({
+        "${kafka}/session.expiry.signal.fragmented.local.ignored/server"})
+    public void shouldDecodeSessionSignalAfterFragmentedLocalSignalIgnored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_CLOCK_NAME, value = "java.time.Clock::systemUTC")
+    @Specification({
+        "${kafka}/session.expiry.signal.malformed.dropped/server"})
+    public void shouldDropMalformedSessionSignal() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
