@@ -1444,6 +1444,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.receive.message.qos1.session.store/client",
+        "${kafka}/subscribe.receive.message.qos1.session.store/server"})
+    public void shouldReceiveMessageQoS1WithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
     public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
