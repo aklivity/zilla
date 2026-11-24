@@ -930,6 +930,10 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             MqttSessionDataKind kind = mqttSessionDataEx != null ? mqttSessionDataEx.kind().get() : null;
             if (isSessionStateStored())
             {
+                if (kind == MqttSessionDataKind.STATE && hasInit(flags) && hasFin(flags))
+                {
+                    doMqttSessionStateStored(traceId, authorization, payload);
+                }
                 doMqttWindowStored(traceId, authorization);
             }
             else if (mqttSessionDataEx != null && hasInit(flags))
@@ -1387,6 +1391,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
+            if (isSessionStateStored())
+            {
+                doMqttWindowStored(traceId, authorization);
+            }
+
             session.doKafkaWindow(traceId, authorization, budgetId, capabilities);
         }
 
@@ -1567,11 +1576,29 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            initialAck = initialSeq;
-            initialMax = sessionStateBuffer.capacity();
+            initialAck = Math.max(initialAck, initialSeq - (replySeq - replyAck));
+            initialMax = Math.min(sessionStateBuffer.capacity(), replyMax);
 
             doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                traceId, authorization, 0L, 0, 0, 0);
+                traceId, authorization, 0L, replyPad, 0, 0);
+        }
+
+        private void doMqttSessionStateStored(
+            long traceId,
+            long authorization,
+            OctetsFW payload)
+        {
+            final Flyweight resolvedState = payload.sizeof() > 0 ? resolveSubscriptions(authorization, payload) : EMPTY_OCTETS;
+            final int length = resolvedState.limit() - resolvedState.offset();
+            final int reserved = length + replyPad;
+
+            assert reserved <= replyMax - (replySeq - replyAck);
+
+            doData(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                traceId, authorization, 0L, COMPLETE, reserved, resolvedState.buffer(), resolvedState.offset(), length,
+                EMPTY_OCTETS);
+
+            replySeq += reserved;
         }
 
         private void doEstablishSession(
