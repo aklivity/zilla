@@ -104,6 +104,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${net}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectNonCleanStartStoreUnreadableState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.client.takeover.after.lease/client",
         "${net}/session.client.takeover.after.lease/server"})
     public void shouldTakeOverSessionAfterLease() throws Exception
