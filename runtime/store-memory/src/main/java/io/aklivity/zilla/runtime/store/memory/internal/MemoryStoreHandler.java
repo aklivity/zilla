@@ -20,7 +20,9 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
@@ -34,6 +36,7 @@ final class MemoryStoreHandler implements StoreHandler
     private final ConcurrentMap<String, MemoryEntry> entries;
     private final ConcurrentMap<String, List<Watcher>> watchers;
     private final ConcurrentMap<String, LockEntry> locks;
+    private final Set<Watch> watches = ConcurrentHashMap.newKeySet();
     private final Consumer<Runnable> dispatcher;
     private final Clock clock;
 
@@ -269,14 +272,14 @@ final class MemoryStoreHandler implements StoreHandler
         final Watcher watcher = new Watcher(listener, dispatcher);
         final List<Watcher> list = watchers.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
         list.add(watcher);
-        return () ->
-        {
-            final List<Watcher> current = watchers.get(key);
-            if (current != null)
-            {
-                current.remove(watcher);
-            }
-        };
+        final Watch watch = new Watch(key, watcher);
+        watches.add(watch);
+        return watch;
+    }
+
+    void unwatchAll()
+    {
+        watches.forEach(Watch::close);
     }
 
     private long addAndGet(
@@ -342,6 +345,31 @@ final class MemoryStoreHandler implements StoreHandler
         Duration ttl)
     {
         return ttl == null ? Long.MAX_VALUE : clock.millis() + ttl.toMillis();
+    }
+
+    private final class Watch implements Closeable
+    {
+        private final String key;
+        private final Watcher watcher;
+
+        private Watch(
+            String key,
+            Watcher watcher)
+        {
+            this.key = key;
+            this.watcher = watcher;
+        }
+
+        @Override
+        public void close()
+        {
+            final List<Watcher> current = watchers.get(key);
+            if (current != null)
+            {
+                current.remove(watcher);
+            }
+            watches.remove(this);
+        }
     }
 
     record Watcher(
