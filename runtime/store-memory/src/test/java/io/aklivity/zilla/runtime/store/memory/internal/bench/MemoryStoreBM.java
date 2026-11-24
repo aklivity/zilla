@@ -49,6 +49,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.store.Store;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 import io.aklivity.zilla.runtime.store.memory.internal.MemoryStoreFactorySpi;
@@ -351,6 +352,12 @@ public class MemoryStoreBM
                 break;
             case "clock":
                 returned = Clock.systemUTC();
+                break;
+            case "signaler":
+                returned = Proxy.newProxyInstance(
+                    Signaler.class.getClassLoader(),
+                    new Class<?>[] {Signaler.class},
+                    (proxy, signal, signalArgs) -> Signaler.NO_CANCEL_ID);
                 break;
             default:
                 throw new UnsupportedOperationException(method.getName());

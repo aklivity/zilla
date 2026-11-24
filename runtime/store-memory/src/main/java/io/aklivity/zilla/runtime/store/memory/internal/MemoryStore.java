@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.Store;
@@ -29,11 +30,15 @@ final class MemoryStore implements Store
 {
     static final String NAME = "memory";
 
+    private static final int SWEEP_CHUNK = 1024;
+
     private final ConcurrentMap<Long, MemoryStorage> storage;
+    private final long sweepIntervalMillis;
 
     MemoryStore(
         MemoryStoreConfiguration config)
     {
+        this.sweepIntervalMillis = config.sweepInterval().toMillis();
         this.storage = new ConcurrentHashMap<>();
     }
 
@@ -51,9 +56,14 @@ final class MemoryStore implements Store
             this::acquireEntries,
             this::supplyWatchers,
             this::supplyLocks,
+            this::supplyExpirers,
+            this::supplyNextSweepAt,
             this::releaseEntries,
             context::dispatch,
-            context.clock());
+            context.signaler(),
+            context.clock(),
+            sweepIntervalMillis,
+            SWEEP_CHUNK);
     }
 
     private ConcurrentMap<String, MemoryEntry> acquireEntries(
@@ -78,6 +88,20 @@ final class MemoryStore implements Store
         return storage.computeIfAbsent(storeId, id -> new MemoryStorage()).locks;
     }
 
+    private MemoryExpirers supplyExpirers(
+        long storeId)
+    {
+        // attach already incremented refs via acquireEntries
+        return storage.computeIfAbsent(storeId, id -> new MemoryStorage()).expirers;
+    }
+
+    private AtomicLong supplyNextSweepAt(
+        long storeId)
+    {
+        // attach already incremented refs via acquireEntries
+        return storage.computeIfAbsent(storeId, id -> new MemoryStorage()).nextSweepAt;
+    }
+
     private void releaseEntries(
         long storeId)
     {
@@ -90,5 +114,7 @@ final class MemoryStore implements Store
         final ConcurrentMap<String, MemoryEntry> entries = new ConcurrentHashMap<>();
         final ConcurrentMap<String, List<Watcher>> watchers = new ConcurrentHashMap<>();
         final ConcurrentMap<String, LockEntry> locks = new ConcurrentHashMap<>();
+        final MemoryExpirers expirers = new MemoryExpirers();
+        final AtomicLong nextSweepAt = new AtomicLong();
     }
 }
