@@ -584,6 +584,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final MqttEventContext events;
     private final InstanceId instanceId;
     private final Duration sessionLease;
+    private final boolean sessionStateStoreEnabled;
     private final Duration sessionRenew;
     private final String serviceHostname;
     private final String replicaId;
@@ -645,6 +646,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.events = new MqttEventContext(context);
         this.instanceId = instanceId;
         this.sessionLease = config.sessionLease();
+        this.sessionStateStoreEnabled = config.sessionStateStoreEnabled();
         this.sessionRenew = config.sessionRenew();
         this.serviceHostname = config.serviceHostname();
         this.replicaId = instanceId.instanceId().asString();
@@ -3870,6 +3872,32 @@ public final class MqttServerFactory implements MqttStreamFactory
         private Duration clientStateTtl()
         {
             return sessionExpiry > 0 ? Duration.ofSeconds(sessionExpiry) : null;
+        }
+
+        private boolean storedSubscriptions()
+        {
+            return sessionStateStoreEnabled && sessionExpiry > 0;
+        }
+
+        private byte[] emptySubscriptions()
+        {
+            return copySubscriptions(sessionState(List.of()));
+        }
+
+        private byte[] copySubscriptions(
+            Flyweight sessionState)
+        {
+            return copyBytes(sessionState.buffer(), sessionState.offset(), sessionState.limit());
+        }
+
+        private byte[] copyBytes(
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            final byte[] bytes = new byte[limit - offset];
+            buffer.getBytes(offset, bytes);
+            return bytes;
         }
 
         private void releaseClientState(
@@ -7817,6 +7845,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                         doNetworkEnd(traceId, authorization);
                         decoder = decodeIgnoreAll;
                     }
+                    else if (!connected && sessionSubscriptions == null && storedSubscriptions())
+                    {
+                        doSessionStateStored(traceId, authorization);
+                    }
                     else if (!connected)
                     {
                         boolean sessionPresent = false;
@@ -7853,112 +7885,159 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 doSessionData(traceId, emptyStateSize, sessionDataExBuilder.build(), emptyState);
                             }
                         }
-                        doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, sessionPresent,
-                            null, null, version);
-                        connected = true;
-
-                        if (decoder == decodeAwaitConnack)
-                        {
-                            decoder = decodePacketTypeByVersion.get(version);
-                            decodeNetwork(traceId);
-                        }
+                        doSessionConnack(traceId, authorization, reasonCode, sessionPresent);
                     }
-                    else
+                    else if (sessionSubscriptions != null)
                     {
-                        if (sessionSubscriptions != null)
+                        if (storedSubscriptions())
                         {
-                            final List<Subscription> newState = sessionSubscriptions;
-                            List<Subscription> currentSubscriptions = session.subscriptions();
-                            if (newState.size() >= currentSubscriptions.size())
-                            {
-                                final List<Subscription> newSubscriptions = new ArrayList<>();
-                                for (int subscriptionIndex = 0; subscriptionIndex < newState.size(); subscriptionIndex++)
-                                {
-                                    final Subscription subscription = newState.get(subscriptionIndex);
-                                    if (!currentSubscriptions.contains(subscription) ||
-                                        unAckedSubscriptions.contains(subscription))
-                                    {
-                                        newSubscriptions.add(subscription);
-                                    }
-                                }
-                                if (!newSubscriptions.isEmpty() &&
-                                    pendingPacketId(PENDING_SUBSCRIBE, newSubscriptions.get(0).filter) != NO_PACKET_ID)
-                                {
-                                    int packetId = pendingPacketId(PENDING_SUBSCRIBE, newSubscriptions.get(0).filter);
-                                    final List<Subscription> acknowledgedSubscriptions =
-                                        acknowledgedSubscriptions(packetId, newSubscriptions);
-                                    acknowledgedSubscriptions.forEach(sub -> removePendingFilter(PENDING_SUBSCRIBE, sub.filter));
-                                    openSubscribeStreams(packetId, traceId, authorization, acknowledgedSubscriptions, false);
-                                    unAckedSubscriptions.removeAll(acknowledgedSubscriptions);
-                                }
-                                else
-                                {
-                                    openSubscribeStreams(0, traceId, authorization, newState, true);
-                                }
-                                unAckedSubscriptions.removeAll(newSubscriptions);
-                            }
-                            else
-                            {
-                                final List<String> unsubscribedFilters = new ArrayList<>();
-                                for (int currentIndex = 0; currentIndex < currentSubscriptions.size(); currentIndex++)
-                                {
-                                    final Subscription subscription = currentSubscriptions.get(currentIndex);
-                                    if (!newState.contains(subscription))
-                                    {
-                                        unsubscribedFilters.add(subscription.filter);
-                                    }
-                                }
-
-                                if (!unsubscribedFilters.isEmpty())
-                                {
-                                    final Map<Integer, List<String>> packetIdToFilters = new HashMap<>();
-                                    for (int filterIndex = 0; filterIndex < unsubscribedFilters.size(); filterIndex++)
-                                    {
-                                        final String unsubscribedFilter = unsubscribedFilters.get(filterIndex);
-                                        if (pendingPacketId(PENDING_UNSUBSCRIBE, unsubscribedFilter) != NO_PACKET_ID)
-                                        {
-                                            packetIdToFilters
-                                                .computeIfAbsent(removePendingFilter(PENDING_UNSUBSCRIBE, unsubscribedFilter),
-                                                    id -> new ArrayList<>())
-                                                .add(unsubscribedFilter);
-                                        }
-                                    }
-
-                                    if (!packetIdToFilters.isEmpty())
-                                    {
-                                        for (int unsubscribePacketId : packetIdToFilters.keySet())
-                                        {
-                                            final List<String> filters = removePendingFilters(unsubscribePacketId);
-                                            for (int filterIndex = 0; filterIndex < filters.size(); filterIndex++)
-                                            {
-                                                final String filter = filters.get(filterIndex);
-                                                removePendingFilter(PENDING_UNSUBSCRIBE, filter);
-                                            }
-                                            sendUnsuback(unsubscribePacketId, traceId, authorization, filters, newState, false);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        sendUnsuback(packetId, traceId, authorization, unsubscribedFilters, newState, true);
-                                    }
-                                }
-                            }
-                            final List<Subscription> granted = new ArrayList<>();
-                            for (int subscriptionIndex = 0; subscriptionIndex < newState.size(); subscriptionIndex++)
-                            {
-                                final Subscription subscription = newState.get(subscriptionIndex);
-                                if (subscription.reasonCode == SUCCESS)
-                                {
-                                    granted.add(subscription);
-                                }
-                            }
-                            session.setSubscriptions(granted);
-                            releaseDeferredUnsubscribes(traceId, authorization);
+                            clientState.subscriptions(copyBytes(buffer, offset, limit));
+                            clientState.write(() -> onSessionStateResolved(traceId, authorization, sessionSubscriptions));
+                        }
+                        else
+                        {
+                            onSessionStateResolved(traceId, authorization, sessionSubscriptions);
                         }
                     }
 
                     doSessionWindow(traceId, encodeSlotOffset, encodeBudgetMax);
                 }
+            }
+
+            private void doSessionConnack(
+                long traceId,
+                long authorization,
+                byte reasonCode,
+                boolean sessionPresent)
+            {
+                doEncodeConnack(traceId, authorization, reasonCode, assignedClientId, sessionPresent,
+                    null, null, version);
+                connected = true;
+
+                if (decoder == decodeAwaitConnack)
+                {
+                    decoder = decodePacketTypeByVersion.get(version);
+                    decodeNetwork(traceId);
+                }
+            }
+
+            private void doSessionStateStored(
+                long traceId,
+                long authorization)
+            {
+                final byte[] stored = clientState.subscriptions();
+
+                if (!isCleanStart(connectFlags) && stored.length > 0 && hasSessionWindow(stored.length))
+                {
+                    final MqttDataExFW.Builder sessionDataExBuilder =
+                        mqttSessionDataExRW
+                            .wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
+                            .typeId(mqttTypeId)
+                            .session(sessionBuilder -> sessionBuilder.kind(k -> k.set(MqttSessionDataKind.STATE)));
+                    final MqttSessionStateFW storedState =
+                        mqttSessionStateRO.wrap(new UnsafeBufferEx(stored), 0, stored.length);
+
+                    doSessionData(traceId, stored.length, sessionDataExBuilder.build(), storedState);
+                }
+                else
+                {
+                    clientState.subscriptions(emptySubscriptions());
+                    clientState.write(() -> doSessionConnack(traceId, authorization, SUCCESS, false));
+                }
+            }
+
+            private void onSessionStateResolved(
+                long traceId,
+                long authorization,
+                List<Subscription> sessionSubscriptions)
+            {
+                final List<Subscription> newState = sessionSubscriptions;
+                List<Subscription> currentSubscriptions = session.subscriptions();
+                if (newState.size() >= currentSubscriptions.size())
+                {
+                    final List<Subscription> newSubscriptions = new ArrayList<>();
+                    for (int subscriptionIndex = 0; subscriptionIndex < newState.size(); subscriptionIndex++)
+                    {
+                        final Subscription subscription = newState.get(subscriptionIndex);
+                        if (!currentSubscriptions.contains(subscription) ||
+                            unAckedSubscriptions.contains(subscription))
+                        {
+                            newSubscriptions.add(subscription);
+                        }
+                    }
+                    if (!newSubscriptions.isEmpty() &&
+                        pendingPacketId(PENDING_SUBSCRIBE, newSubscriptions.get(0).filter) != NO_PACKET_ID)
+                    {
+                        int packetId = pendingPacketId(PENDING_SUBSCRIBE, newSubscriptions.get(0).filter);
+                        final List<Subscription> acknowledgedSubscriptions =
+                            acknowledgedSubscriptions(packetId, newSubscriptions);
+                        acknowledgedSubscriptions.forEach(sub -> removePendingFilter(PENDING_SUBSCRIBE, sub.filter));
+                        openSubscribeStreams(packetId, traceId, authorization, acknowledgedSubscriptions, false);
+                        unAckedSubscriptions.removeAll(acknowledgedSubscriptions);
+                    }
+                    else
+                    {
+                        openSubscribeStreams(0, traceId, authorization, newState, true);
+                    }
+                    unAckedSubscriptions.removeAll(newSubscriptions);
+                }
+                else
+                {
+                    final List<String> unsubscribedFilters = new ArrayList<>();
+                    for (int currentIndex = 0; currentIndex < currentSubscriptions.size(); currentIndex++)
+                    {
+                        final Subscription subscription = currentSubscriptions.get(currentIndex);
+                        if (!newState.contains(subscription))
+                        {
+                            unsubscribedFilters.add(subscription.filter);
+                        }
+                    }
+
+                    if (!unsubscribedFilters.isEmpty())
+                    {
+                        final Map<Integer, List<String>> packetIdToFilters = new HashMap<>();
+                        for (int filterIndex = 0; filterIndex < unsubscribedFilters.size(); filterIndex++)
+                        {
+                            final String unsubscribedFilter = unsubscribedFilters.get(filterIndex);
+                            if (pendingPacketId(PENDING_UNSUBSCRIBE, unsubscribedFilter) != NO_PACKET_ID)
+                            {
+                                packetIdToFilters
+                                    .computeIfAbsent(removePendingFilter(PENDING_UNSUBSCRIBE, unsubscribedFilter),
+                                        id -> new ArrayList<>())
+                                    .add(unsubscribedFilter);
+                            }
+                        }
+
+                        if (!packetIdToFilters.isEmpty())
+                        {
+                            for (int unsubscribePacketId : packetIdToFilters.keySet())
+                            {
+                                final List<String> filters = removePendingFilters(unsubscribePacketId);
+                                for (int filterIndex = 0; filterIndex < filters.size(); filterIndex++)
+                                {
+                                    final String filter = filters.get(filterIndex);
+                                    removePendingFilter(PENDING_UNSUBSCRIBE, filter);
+                                }
+                                sendUnsuback(unsubscribePacketId, traceId, authorization, filters, newState, false);
+                            }
+                        }
+                        else
+                        {
+                            sendUnsuback(packetId, traceId, authorization, unsubscribedFilters, newState, true);
+                        }
+                    }
+                }
+                final List<Subscription> granted = new ArrayList<>();
+                for (int subscriptionIndex = 0; subscriptionIndex < newState.size(); subscriptionIndex++)
+                {
+                    final Subscription subscription = newState.get(subscriptionIndex);
+                    if (subscription.reasonCode == SUCCESS)
+                    {
+                        granted.add(subscription);
+                    }
+                }
+                session.setSubscriptions(granted);
+                releaseDeferredUnsubscribes(traceId, authorization);
             }
 
             private List<Subscription> acknowledgedSubscriptions(

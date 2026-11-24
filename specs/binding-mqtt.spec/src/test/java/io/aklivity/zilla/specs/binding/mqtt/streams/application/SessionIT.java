@@ -257,6 +257,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.client.takeover.persistent.stored/client",
+        "${app}/session.client.takeover.persistent.stored/server"})
+    public void shouldTakeOverPersistentSessionStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
