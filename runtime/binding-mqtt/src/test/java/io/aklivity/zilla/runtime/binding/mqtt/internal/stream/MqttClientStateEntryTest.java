@@ -201,6 +201,49 @@ public class MqttClientStateEntryTest
         assertTrue(entry.held());
     }
 
+    @Test
+    public void shouldReloadWhileInitialLoadIsPending()
+    {
+        entries.put(KEY, new TestEntry(encode("replica-z"), Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry();
+
+        entry.reload(this::completed);
+        runTasks();
+
+        assertEquals(1, completions);
+        assertTrue(entry.ready());
+        assertTrue(entry.held());
+    }
+
+    @Test
+    public void shouldReloadWhileEarlierReloadIsPending()
+    {
+        entries.put(KEY, new TestEntry(encode("replica-z"), Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry();
+        runTasks();
+
+        entry.reload(this::completed);
+        entry.reload(this::completed);
+        runTasks();
+
+        assertEquals(2, completions);
+        assertTrue(entry.ready());
+    }
+
+    @Test
+    public void shouldReloadValueStoredAfterEarlierLoadWasRequested()
+    {
+        entries.put(KEY, new TestEntry(encode("replica-z"), Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry();
+        entry.reload(this::completed);
+        entries.put(KEY, new TestEntry(encode(null, MEMBERSHIP), Long.MAX_VALUE));
+        runTasks();
+
+        assertEquals(1, completions);
+        assertNull(states.decode(stored()).holder);
+        assertEquals(List.of(MEMBERSHIP), entry.memberships());
+    }
+
     private MqttClientStateEntry newEntry(
         Assertion... assertions)
     {

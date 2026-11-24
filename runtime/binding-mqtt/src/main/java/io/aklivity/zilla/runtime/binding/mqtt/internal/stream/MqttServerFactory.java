@@ -7634,7 +7634,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert initialAck <= initialSeq;
 
                 decodeNetwork(traceId);
-                doSessionStateReplay(traceId);
+                doSessionStateReplay(traceId, authorization);
 
                 if (budgetId != 0L && debit == null)
                 {
@@ -7903,7 +7903,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (!isCleanStart(connectFlags) && stored.length > 0)
                 {
                     replayState = stored;
-                    doSessionStateReplay(traceId);
+                    doSessionStateReplay(traceId, authorization);
                 }
                 else if (clientState.ready())
                 {
@@ -7938,9 +7938,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
 
             private void doSessionStateReplay(
-                long traceId)
+                long traceId,
+                long authorization)
             {
-                if (replayState != null && hasSessionWindow(replayState.length))
+                if (replayState != null && initialMax > 0 && replayState.length + initialPad > initialMax)
+                {
+                    replayState = null;
+                    doSessionConnack(traceId, authorization, SUCCESS, false);
+                }
+                else if (replayState != null && hasSessionWindow(replayState.length))
                 {
                     final MqttDataExFW.Builder sessionDataExBuilder =
                         mqttSessionDataExRW
