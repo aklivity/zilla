@@ -2317,4 +2317,102 @@ public class MqttFunctionsTest
         assertEquals(7, mqttFlushEx.subscribe().packetId());
         assertEquals(MqttOffsetStateFlags.RECORDED.value(), mqttFlushEx.subscribe().state());
     }
+
+    @Test
+    public void shouldEncodeMqttSubscribeDataExWithMetadataBytes()
+    {
+        final byte[] array = MqttFunctions.dataEx()
+            .typeId(0)
+                .subscribe()
+                .topic("sensor/one")
+                .packetId(7)
+                .qos("EXACTLY_ONCE")
+                .metadataBytes(new byte[] {0x01, 0x02, 0x03})
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttDataExFW mqttDataEx = new MqttDataExFW().wrap(buffer, 0, buffer.capacity());
+
+        final byte[] metadata = new byte[3];
+        mqttDataEx.subscribe().metadata().bytes().buffer().getBytes(mqttDataEx.subscribe().metadata().bytes().offset(), metadata);
+        assertArrayEquals(new byte[] {0x01, 0x02, 0x03}, metadata);
+    }
+
+    @Test
+    public void shouldMatchSubscribeDataExtensionWithMetadataBytes() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchDataEx()
+            .subscribe()
+                .topic("sensor/one")
+                .metadataBytes(new byte[] {0x01, 0x02, 0x03})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttDataExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(s -> s
+                .topic("sensor/one")
+                .packetId(7)
+                .qos(2)
+                .metadata(m -> m.bytes(b -> b.set(new byte[] {0x01, 0x02, 0x03}))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeBeginExtSharedPacketBytes()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .qos("EXACTLY_ONCE")
+                .sharedFilter("consumers", "sensor/one", 1, "EXACTLY_ONCE")
+                .generation(1)
+                .sharedPacketBytes(7, "PUBLISH_SENT", "EXACTLY_ONCE", "consumers", "sensor/one", new byte[] {0x01, 0x02})
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(mqttBeginEx.subscribe().packets()
+            .matchFirst(p -> 7 == p.packetId() && 2 == p.metadata().length()));
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionSharedPacketBytes() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .sharedPacketBytes(7, "PUBREL_PENDING", "EXACTLY_ONCE", "consumers", "sensor/one", new byte[] {0x01, 0x02})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(2)
+                .generation(1)
+                .packetsItem(p -> p
+                    .packetId(7)
+                    .state(MqttPacketState.PUBREL_PENDING.value())
+                    .qos(2)
+                    .shareName("consumers")
+                    .filter("sensor/one")
+                    .metadata(m -> m.bytes(b -> b.set(new byte[] {0x01, 0x02})))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
 }
