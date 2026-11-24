@@ -333,6 +333,18 @@ public final class KafkaCachePartition
         }
     }
 
+    public static int headersSizeMax(
+        int headersItemsMax)
+    {
+        return SIZEOF_EMPTY_TRAILERS + headersItemsMax;
+    }
+
+    public static int trailersSizeMax(
+        int trailersSizeMax)
+    {
+        return Math.max(trailersSizeMax, SIZEOF_EMPTY_TRAILERS) + SIZEOF_PADDING_LENGTH;
+    }
+
     public Node newHeadIfNecessary(
         long offset,
         KafkaKeyFW key,
@@ -348,7 +360,7 @@ public final class KafkaCachePartition
         }
         else
         {
-            final int logRequired = entryInfo.capacity() + key.sizeof() + valueInfo.capacity() +
+            final int logRequired = entryInfo.capacity() + key.sizeof() + SIZEOF_PADDING_LENGTH + valueInfo.capacity() +
                     Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + headersSizeMax;
             final int hashKeyRequired = key.length() != -1 ? 1 : 0;
             final int hashHeaderRequiredMax = headersSizeMax >> 2;

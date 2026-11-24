@@ -951,17 +951,17 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int deferred = kafkaFetchDataEx.deferred();
                 final int partitionId = kafkaFetchDataEx.partition().partitionId();
                 final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
-                // headersMax bounds the entry's real headers, unknown until writeEntryFinish. When a value
-                // model is configured, headersSizeMax additionally reserves room for writeEntryStart's
-                // combined headers/trailers/scratch claim (see KafkaCachePartition.writeEntryStart) --
-                // trailersSizeMax is reused for both the composed transform's envelope scratch during the
-                // value drive and the entry's own final trailers, so only one trailersSizeMax-sized share
-                // is required, not two. A plain topic with no value model keeps its exact prior
-                // segment-capacity accounting
-                final int headersMax = Math.max(kafkaFetchDataEx.headers().sizeof(), kafkaFetchDataEx.headersSizeMax());
+                // headersMax bounds the stored headers array, whose real content is unknown until
+                // writeEntryFinish. headersSizeMax additionally reserves everything writeEntryFinish appends
+                // after the headers, so the head segment is rolled before the entry starts, never in the middle of
+                // it. When a value model is configured, that tail is the trailers-sized envelope claimed by
+                // writeEntryStart (see KafkaCachePartition.writeEntryStart), reused for the entry's own final trailers,
+                // so only one trailersSizeMax-sized share is required, not two
+                final int headersMax = Math.max(kafkaFetchDataEx.headers().sizeof(),
+                    KafkaCachePartition.headersSizeMax(kafkaFetchDataEx.headersSizeMax()));
                 this.headersMax = headersMax;
                 final int headersSizeMax = headersMax +
-                    (transformValue != KafkaCacheModel.NONE ? trailersSizeMax + Integer.BYTES : 0);
+                    KafkaCachePartition.trailersSizeMax(transformValue != KafkaCacheModel.NONE ? trailersSizeMax : 0);
                 final long timestamp = kafkaFetchDataEx.timestamp();
                 final KafkaTimestampType timestampType = kafkaFetchDataEx.timestampType().get();
                 final long producerId = kafkaFetchDataEx.producerId();

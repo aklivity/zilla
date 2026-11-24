@@ -581,6 +581,49 @@ public class KafkaCachePartitionTest
         assertEquals(0, entry.trailers().fieldCount());
     }
 
+    @Test
+    public void shouldNotWriteEntryBeyondSegmentLimitForPopulate() throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = 1024;
+        config.segmentIndexBytes = 4096;
+        KafkaCachePartition partition = new KafkaCachePartition(Clock.systemUTC(), location, config, "cache", "test", 0, 65536,
+            long[]::new);
+
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+        MutableInteger valueLimit = new MutableInteger(0);
+        MutableInteger headersMark = new MutableInteger(0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = headers(buffer, key.limit(), "h1", "v1", "h2", "v2");
+        final int headersMax = KafkaCachePartition.headersSizeMax(headers.sizeof() - Integer.BYTES * 2 + 1 + 3);
+        final int headersSizeMax = headersMax + KafkaCachePartition.trailersSizeMax(0);
+
+        for (int length = 0; length < 200; length++)
+        {
+            final long offset = 11L + length;
+            final OctetsFW value = value(buffer, headers.limit(), "x".repeat(length));
+
+            final Node head = partition.newHeadIfNecessary(offset, key, length, 0, headersSizeMax);
+            partition.writeEntryStart(null, 1L, 1L, 0L, offset, entryMark, valueMark, valueLimit, headersMark, 0L,
+                KafkaTimestampType.ADVISORY, -1L, key, length, 0, headersMax, 256, null, 0x00,
+                KafkaDeltaType.NONE, value, KafkaCacheModel.NONE, KafkaCacheModel.NONE, new KafkaCacheKeyEnvelope(),
+                new KafkaCacheTrailerEnvelope(), false);
+            partition.writeEntryContinue(1L, 1L, 0L, COMPLETE, entryMark, valueMark, valueLimit, value,
+                KafkaCacheModel.NONE, 0);
+            partition.writeEntryFinish(headers, KafkaDeltaType.NONE, entryMark, valueMark, headersMark, headersMax,
+                KafkaCacheModel.NONE, new KafkaCacheTrailerEnvelope(), 256);
+
+            final KafkaCacheFile logFile = head.segment().logFile();
+            final KafkaCacheEntryFW entry = logFile.readBytes(entryMark.value, entryRO::wrap);
+            assertEquals("entry " + offset + " ends at the log capacity", logFile.capacity(), entry.limit());
+            assertTrue("log within segment bytes", logFile.capacity() <= config.segmentBytes);
+        }
+    }
+
     private static boolean containsBytes(
         DirectBufferEx haystack,
         int offset,
