@@ -895,6 +895,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.clean.start/client",
+        "${kafka}/session.store.clean.start/server"})
+    public void shouldSessionStoreCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.clean.start.abort/client",
+        "${kafka}/session.store.clean.start.abort/server"})
+    public void shouldSessionStoreCleanStartAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.clean.start.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldSessionStoreCleanStartQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.expire.session.state/client",
         "${kafka}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
