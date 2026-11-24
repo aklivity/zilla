@@ -415,6 +415,7 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
     public static class SortedByValue extends KafkaCacheIndexFile
     {
         private final IntFunction<long[]> sortSpaceRef;
+        private final KafkaCacheIndexChain chain = new KafkaCacheIndexChain();
 
         protected SortedByValue(
             Path location,
@@ -461,22 +462,13 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
         public long last(
             int key)
         {
-            long last = cursor(-1, NEXT_SEGMENT_VALUE);
+            indexAppended();
 
-            final int lastIndex = (capacity() >> 3) - 1;
-            for (int currentIndex = lastIndex; currentIndex >= 0; currentIndex--)
-            {
-                final long indexEntry = readLong(currentIndex << 3);
-                final int indexKey = indexKey(indexEntry);
+            final int lastIndex = chain.last(key);
 
-                if (indexKey == key)
-                {
-                    last = cursor(currentIndex, indexValue(indexEntry));
-                    break;
-                }
-            }
-
-            return last;
+            return lastIndex != KafkaCacheIndexChain.NONE
+                ? cursor(lastIndex, indexValue(readLong(lastIndex << 3)))
+                : cursor(-1, NEXT_SEGMENT_VALUE);
         }
 
         @Override
@@ -601,23 +593,54 @@ public abstract class KafkaCacheIndexFile extends KafkaCacheFile
             final int index = cursorIndex(cursor);
             final int value = cursorValue(cursor);
 
+            indexAppended();
+
             long lower = cursor(-1, NEXT_SEGMENT_VALUE);
 
-            final int lastIndex = (capacity() >> 3) - 1;
-            for (int currentIndex = index; 0 <= currentIndex && currentIndex <= lastIndex; currentIndex--)
+            int currentIndex = KafkaCacheIndexChain.NONE;
+            if (0 <= index && index < chain.length())
             {
-                final long indexEntry = readLong(currentIndex << 3);
-                final int indexKey = indexKey(indexEntry);
-                final int indexValue = indexValue(indexEntry);
+                currentIndex = indexKey(readLong(index << 3)) == key ? index : chain.floor(key, index);
+            }
 
-                if (indexKey == key && (cursorRetryValue(cursor) || compareUnsigned(indexValue, value) < 0))
+            while (currentIndex != KafkaCacheIndexChain.NONE)
+            {
+                final int indexValue = indexValue(readLong(currentIndex << 3));
+
+                if (cursorRetryValue(cursor) || compareUnsigned(indexValue, value) < 0)
                 {
-                    lower = cursor(currentIndex, indexValue(indexEntry));
+                    lower = cursor(currentIndex, indexValue);
                     break;
                 }
+
+                currentIndex = chain.previous(currentIndex);
             }
 
             return lower;
+        }
+
+        @Override
+        public void freeze()
+        {
+            super.freeze();
+            chain.clear();
+        }
+
+        @Override
+        public void close()
+        {
+            super.close();
+            chain.clear();
+        }
+
+        private void indexAppended()
+        {
+            final int length = capacity() >> 3;
+
+            for (int index = chain.length(); index < length; index++)
+            {
+                chain.append(indexKey(readLong(index << 3)));
+            }
         }
 
         protected void sortByKey(
