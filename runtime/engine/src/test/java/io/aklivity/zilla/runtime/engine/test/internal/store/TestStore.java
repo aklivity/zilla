@@ -20,6 +20,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 import io.aklivity.zilla.runtime.engine.Configuration;
@@ -32,6 +33,7 @@ public final class TestStore implements Store
 
     private final ConcurrentMap<Long, ConcurrentMap<String, TestEntry>> storage;
     private final ConcurrentMap<Long, ConcurrentMap<String, List<TestWatcher>>> storageListeners;
+    private final ConcurrentMap<Long, List<TestExpirer>> storageExpirers;
     private final ConcurrentMap<Long, ConcurrentMap<String, TestLockEntry>> storageLocks;
     private final ConcurrentMap<Long, Queue<Assertion>> storageAssertions;
 
@@ -40,6 +42,7 @@ public final class TestStore implements Store
     {
         this.storage = new ConcurrentHashMap<>();
         this.storageListeners = new ConcurrentHashMap<>();
+        this.storageExpirers = new ConcurrentHashMap<>();
         this.storageLocks = new ConcurrentHashMap<>();
         this.storageAssertions = new ConcurrentHashMap<>();
     }
@@ -54,8 +57,8 @@ public final class TestStore implements Store
     public TestStoreContext supply(
         EngineContext context)
     {
-        return new TestStoreContext(context, this::acquireEntries, this::acquireListeners, this::acquireLocks,
-            this::acquireAssertions);
+        return new TestStoreContext(context, this::acquireEntries, this::acquireListeners, this::acquireExpirers,
+            this::acquireLocks, this::acquireAssertions);
     }
 
     private ConcurrentMap<String, TestEntry> acquireEntries(
@@ -68,6 +71,12 @@ public final class TestStore implements Store
         long storeId)
     {
         return storageListeners.computeIfAbsent(storeId, id -> new ConcurrentHashMap<>());
+    }
+
+    private List<TestExpirer> acquireExpirers(
+        long storeId)
+    {
+        return storageExpirers.computeIfAbsent(storeId, id -> new CopyOnWriteArrayList<>());
     }
 
     private ConcurrentMap<String, TestLockEntry> acquireLocks(

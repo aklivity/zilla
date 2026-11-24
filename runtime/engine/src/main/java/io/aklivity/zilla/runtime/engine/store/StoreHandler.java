@@ -270,7 +270,8 @@ public interface StoreHandler
      * </p>
      * <p>
      * Implementations decide the scope of change visibility — in-process, node-wide, or
-     * cluster-wide — and document it in their module.
+     * cluster-wide — and document it in their module. Expiry of an entry is not reported
+     * through this listener; see {@link #expire}.
      * </p>
      *
      * @param key       the key to observe
@@ -280,5 +281,56 @@ public interface StoreHandler
      */
     Closeable watch(
         String key,
+        BiConsumer<String, String> listener);
+
+    /**
+     * Registers a listener invoked when an entry whose key starts with the given prefix expires.
+     * <p>
+     * An entry expires when the time-to-live supplied on the write that stored its current value
+     * elapses without the entry having been replaced or removed. An entry replaced, removed or
+     * incremented before its expiry instant is never reported. A replacement that carries a new
+     * time-to-live restarts the countdown. An entry written without a time-to-live never expires.
+     * Lock leases are not entries and are not reported.
+     * </p>
+     * <p>
+     * Registration returns synchronously. The listener fires <em>strictly later</em> than the
+     * expiry, on the registering caller's I/O thread, following the same async contract as the
+     * other {@code StoreHandler} operations. Each invocation receives the key and the value the
+     * entry held when it expired. Both are non-null.
+     * </p>
+     * <p>
+     * An implementation guarantees:
+     * </p>
+     * <ul>
+     *   <li><b>Never early.</b> No notification is delivered before the expiry instant.</li>
+     *   <li><b>At least once.</b> Every expiry of an entry covered by a registration is delivered
+     *       to that registration at least once. A notification that is dropped or fails in transit
+     *       is redelivered, and a store whose scope spans processes may deliver the same expiry to
+     *       more than one registrant. A registrant makes its reaction idempotent, for example by
+     *       guarding it with {@link #putIfAbsent}.</li>
+     *   <li><b>Bounded delay.</b> Delivery follows the expiry instant by no more than an
+     *       implementation-defined interval, which the implementation documents.</li>
+     *   <li><b>Self-contained.</b> The store itself ensures an expiry is not lost because a
+     *       registrant attached after the expiry instant, or because the registrant or a transport
+     *       was unavailable. Callers are not required to enumerate or re-read state to find
+     *       expiries. The implementation documents how long it retains an undelivered expiry.</li>
+     *   <li><b>Value retained.</b> A store whose backend discards the value when an entry expires
+     *       retains it itself until the expiry has been delivered.</li>
+     * </ul>
+     * <p>
+     * Expiry is distinct from change observed through {@link #watch}, which reports explicit writes
+     * and removals only. Ordering between expiries of different keys is unspecified; for one key,
+     * the expiry follows any {@link #watch} notification for the write that stored the expired
+     * value.
+     * </p>
+     *
+     * @param prefix    the key prefix to observe, matched literally and case-sensitively;
+     *                  the empty string matches every key
+     * @param listener  a callback that receives {@code (key, value)} on every expiry
+     * @return a {@link Closeable} handle that unregisters the listener when closed;
+     *         no invocation begins after it is closed on the registering thread
+     */
+    Closeable expire(
+        String prefix,
         BiConsumer<String, String> listener);
 }

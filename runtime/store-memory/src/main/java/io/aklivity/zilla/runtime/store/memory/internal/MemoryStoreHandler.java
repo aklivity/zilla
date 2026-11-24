@@ -277,6 +277,14 @@ final class MemoryStoreHandler implements StoreHandler
         return watch;
     }
 
+    @Override
+    public Closeable expire(
+        String prefix,
+        BiConsumer<String, String> listener)
+    {
+        throw new UnsupportedOperationException("expire");
+    }
+
     void unwatchAll()
     {
         watches.forEach(Watch::close);

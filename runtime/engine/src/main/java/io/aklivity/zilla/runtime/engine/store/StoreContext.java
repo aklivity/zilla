@@ -41,7 +41,8 @@ public interface StoreContext
 
     /**
      * Detaches a previously attached store configuration from this thread's context,
-     * releasing any associated resources.
+     * releasing any associated resources, including the expiry registrations made through
+     * the detached {@link StoreHandler}.
      *
      * @param store  the store configuration to deactivate
      */
