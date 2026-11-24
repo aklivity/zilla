@@ -31,8 +31,6 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static io.aklivity.zilla.runtime.engine.util.Flags.NONE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.fin;
-import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
-import static io.aklivity.zilla.runtime.engine.util.Flags.hasInit;
 import static io.aklivity.zilla.runtime.engine.util.Flags.init;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
@@ -3683,25 +3681,17 @@ public final class HttpClientFactory implements HttpStreamFactory
             int offset = payload.offset();
             int limit = payload.limit();
 
-            if (exchange.requestChunked && flags != NONE)
+            if (exchange.requestChunked && payload.sizeof() > 0)
             {
-                int chunkLimit = 0;
-
-                if (hasFin(flags))
-                {
-                    chunkLimit += HttpUtil.putHex(codecBuffer, chunkLimit, payload.sizeof());
-                    codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
-                    chunkLimit += 2;
-                }
+                int chunkLimit = HttpUtil.putHex(codecBuffer, 0, payload.sizeof());
+                codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
+                chunkLimit += 2;
 
                 codecBuffer.putBytes(chunkLimit, payload.buffer(), payload.offset(), payload.sizeof());
                 chunkLimit += payload.sizeof();
 
-                if (hasInit(flags))
-                {
-                    codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
-                    chunkLimit += 2;
-                }
+                codecBuffer.putBytes(chunkLimit, CRLF_BYTES);
+                chunkLimit += 2;
 
                 buffer = codecBuffer;
                 offset = 0;
