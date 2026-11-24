@@ -39,6 +39,7 @@ final class MqttClientStateEntry
     private String stored;
     private MqttClientStateRecord record;
     private List<Runnable> loading;
+    private List<Runnable> reloading;
     private List<Runnable> writing;
     private List<Runnable> pending;
     private List<Runnable> idling;
@@ -60,9 +61,17 @@ final class MqttClientStateEntry
     void reload(
         Runnable continuation)
     {
-        loading = new ArrayList<>();
-        loading.add(continuation);
-        store.get(key, (k, value) -> onLoaded(value));
+        if (reloading == null)
+        {
+            reloading = new ArrayList<>();
+        }
+
+        reloading.add(continuation);
+
+        if (loading == null)
+        {
+            doLoad();
+        }
     }
 
     void awaitLoaded(
@@ -102,7 +111,7 @@ final class MqttClientStateEntry
 
     boolean idle()
     {
-        return loading == null && writing == null && pending == null;
+        return loading == null && reloading == null && writing == null && pending == null;
     }
 
     List<MqttPacketRecord> packets()
@@ -243,7 +252,21 @@ final class MqttClientStateEntry
         loading = null;
 
         continuations.forEach(Runnable::run);
+
+        if (reloading != null && loading == null)
+        {
+            doLoad();
+        }
+
         settled();
+    }
+
+    private void doLoad()
+    {
+        loading = reloading;
+        reloading = null;
+
+        store.get(key, (k, value) -> onLoaded(value));
     }
 
     private void doWrite()
