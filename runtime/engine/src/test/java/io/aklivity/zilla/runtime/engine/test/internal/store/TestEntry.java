@@ -17,8 +17,16 @@ package io.aklivity.zilla.runtime.engine.test.internal.store;
 
 public record TestEntry(
     String value,
-    long expiresAt)
+    long expiresAt,
+    boolean tracked)
 {
+    public TestEntry(
+        String value,
+        long expiresAt)
+    {
+        this(value, expiresAt, true);
+    }
+
     boolean expired(
         long now)
     {

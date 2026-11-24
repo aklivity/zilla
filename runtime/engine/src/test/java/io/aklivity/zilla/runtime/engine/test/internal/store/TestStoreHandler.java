@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
@@ -39,6 +40,7 @@ public final class TestStoreHandler implements StoreHandler
 {
     private static final String INCREMENT = "increment";
     private static final String REPLACE = "replace";
+    private static final String TRACKED_NAME = "tracked";
 
     private final ConcurrentMap<String, TestEntry> entries;
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
@@ -97,10 +99,11 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<String> completion)
     {
-        assertOperation(new Assertion("put", key, value, ttl));
-        final TestEntry next = new TestEntry(value, expiresAt(ttl));
+        assertOperation(new Assertion("put", key, null, value, null, 0L, ttl, name(expiration)));
+        final TestEntry next = new TestEntry(value, expiresAt(ttl), tracked(ttl, expiration));
         final TestEntry previous = entries.put(key, next);
         expireReplaced(key, previous);
         scheduleExpiry(key, next);
@@ -113,10 +116,11 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<String> completion)
     {
-        assertOperation(new Assertion("putIfAbsent", key, value, ttl));
-        final TestEntry next = new TestEntry(value, expiresAt(ttl));
+        assertOperation(new Assertion("putIfAbsent", key, null, value, null, 0L, ttl, name(expiration)));
+        final TestEntry next = new TestEntry(value, expiresAt(ttl), tracked(ttl, expiration));
         final TestEntry existing = entries.putIfAbsent(key, next);
         boolean stored = existing == null;
         if (existing != null && existing.expired(clock.getAsLong()))
@@ -184,7 +188,8 @@ public final class TestStoreHandler implements StoreHandler
             existing = entries.get(key);
             alive = existing != null && !existing.expired(clock.getAsLong());
             counter = (alive ? Long.parseLong(existing.value()) : 0L) + delta;
-            next = new TestEntry(Long.toString(counter), alive ? existing.expiresAt() : expiresAt(ttl));
+            next = new TestEntry(Long.toString(counter), alive ? existing.expiresAt() : expiresAt(ttl),
+                alive ? existing.tracked() : ttl == null);
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
@@ -242,21 +247,24 @@ public final class TestStoreHandler implements StoreHandler
         String expected,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<Boolean> completion)
     {
-        assertOperation(new Assertion("replace", key, null, value, expected, 0L, ttl));
+        assertOperation(new Assertion("replace", key, null, value, expected, 0L, ttl, name(expiration)));
+        final TestEntry next = new TestEntry(value, expiresAt(ttl), tracked(ttl, expiration));
         boolean replaced;
         boolean contended;
         do
         {
             final TestEntry existing = entries.get(key);
             final boolean matches = existing != null && !existing.expired(clock.getAsLong()) && existing.value().equals(expected);
-            replaced = matches && entries.replace(key, existing, new TestEntry(value, expiresAt(ttl)));
+            replaced = matches && entries.replace(key, existing, next);
             contended = matches && !replaced;
         }
         while (contended);
         if (replaced)
         {
+            scheduleExpiry(key, next);
             notifyListeners(key, value);
         }
         final boolean result = replaced;
@@ -279,7 +287,8 @@ public final class TestStoreHandler implements StoreHandler
         {
             existing = entries.get(key);
             live = existing != null && !existing.expired(clock.getAsLong());
-            next = live ? new TestEntry(existing.value(), expiresAt(ttl)) : null;
+            next = live ? new TestEntry(existing.value(), expiresAt(ttl),
+                ttl == null || existing.tracked() || existing.expiresAt() == Long.MAX_VALUE) : null;
             touched = live && entries.replace(key, existing, next);
             contended = live && !touched;
         }
@@ -396,7 +405,7 @@ public final class TestStoreHandler implements StoreHandler
         expiries.add(expiry);
         entries.forEach((key, entry) ->
         {
-            if (key.startsWith(prefix) && entry.expired(clock.getAsLong()))
+            if (entry.expired(clock.getAsLong()) && (!entry.tracked() || key.startsWith(prefix)))
             {
                 expire(key, entry);
             }
@@ -418,7 +427,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         TestEntry entry)
     {
-        if (expirers.stream().anyMatch(expirer -> key.startsWith(expirer.prefix())))
+        if (!entry.tracked() || expirers.stream().anyMatch(expirer -> key.startsWith(expirer.prefix())))
         {
             expire(key, entry);
         }
@@ -428,7 +437,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         TestEntry replaced)
     {
-        if (replaced != null && replaced.expired(clock.getAsLong()))
+        if (replaced != null && replaced.tracked() && replaced.expired(clock.getAsLong()))
         {
             notifyExpirers(key, replaced.value());
         }
@@ -438,7 +447,7 @@ public final class TestStoreHandler implements StoreHandler
         String key,
         TestEntry entry)
     {
-        if (entries.remove(key, entry))
+        if (entries.remove(key, entry) && entry.tracked())
         {
             notifyExpirers(key, entry.value());
         }
@@ -503,7 +512,8 @@ public final class TestStoreHandler implements StoreHandler
             (INCREMENT.equals(expected.op) && expected.value == null || Objects.equals(expected.value, actual.value)) &&
             Objects.equals(expected.expected, actual.expected) &&
             expected.delta == actual.delta &&
-            Objects.equals(expected.ttl, actual.ttl);
+            Objects.equals(expected.ttl, actual.ttl) &&
+            tracked(expected) == tracked(actual);
     }
 
     private static String describe(
@@ -515,11 +525,29 @@ public final class TestStoreHandler implements StoreHandler
         {
         case INCREMENT -> String.format("%s %s delta=%d value=%s ttl=%s",
             assertion.op, target, assertion.delta, assertion.value, assertion.ttl);
-        case REPLACE -> String.format("%s %s expected=%s value=%s ttl=%s",
-            assertion.op, target, assertion.expected, assertion.value, assertion.ttl);
-        default -> String.format("%s %s value=%s ttl=%s",
-            assertion.op, target, assertion.value, assertion.ttl);
+        case REPLACE -> String.format("%s %s expected=%s value=%s ttl=%s%s",
+            assertion.op, target, assertion.expected, assertion.value, assertion.ttl, untracked(assertion));
+        default -> String.format("%s %s value=%s ttl=%s%s",
+            assertion.op, target, assertion.value, assertion.ttl, untracked(assertion));
         };
+    }
+
+    private static boolean tracked(
+        Assertion assertion)
+    {
+        return assertion.expiration == null || TRACKED_NAME.equals(assertion.expiration);
+    }
+
+    private static String untracked(
+        Assertion assertion)
+    {
+        return tracked(assertion) ? "" : " expiration=" + assertion.expiration;
+    }
+
+    private static String name(
+        Expiration expiration)
+    {
+        return Objects.requireNonNull(expiration).name().toLowerCase(Locale.ROOT);
     }
 
     private static String target(
@@ -546,6 +574,13 @@ public final class TestStoreHandler implements StoreHandler
         TestEntry entry)
     {
         return entry != null && !entry.expired(clock.getAsLong()) ? entry.value() : null;
+    }
+
+    private static boolean tracked(
+        Duration ttl,
+        Expiration expiration)
+    {
+        return ttl == null || expiration == Expiration.TRACKED;
     }
 
     private long expiresAt(

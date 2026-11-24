@@ -84,6 +84,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
     private static final String STORE_DELTA_NAME = "delta";
     private static final String STORE_VALUE_NAME = "value";
     private static final String STORE_TTL_NAME = "ttl";
+    private static final String STORE_EXPIRATION_NAME = "expiration";
     private static final String STORE_EXPECT_NAME = "expect";
     private static final String EMBEDDING_NAME = "embedding";
     private static final String CLASSIFIER_NAME = "classifier";
@@ -340,6 +341,10 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                     if (a.ttl != null)
                     {
                         assertion.add(STORE_TTL_NAME, a.ttl.toString());
+                    }
+                    if (a.expiration != null)
+                    {
+                        assertion.add(STORE_EXPIRATION_NAME, a.expiration);
                     }
                     if (a.hasExpect)
                     {
@@ -701,6 +706,7 @@ public final class TestBindingOptionsConfigAdapter extends ConfigAdapter<Options
                         s.getString(STORE_EXPECTED_NAME, null),
                         s.containsKey(STORE_DELTA_NAME) ? s.getJsonNumber(STORE_DELTA_NAME).longValue() : 0L,
                         s.containsKey(STORE_TTL_NAME) ? Duration.parse(s.getString(STORE_TTL_NAME)) : null,
+                        s.getString(STORE_EXPIRATION_NAME, null),
                         expect,
                         expectNumber,
                         expectBoolean,

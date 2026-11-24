@@ -16,7 +16,8 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 record MemoryEntry(
     String value,
-    long expiresAt)
+    long expiresAt,
+    boolean tracked)
 {
     boolean expired(
         long now)

@@ -73,10 +73,11 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<String> completion)
     {
-        final long expiresAt = expiresAt(ttl);
-        final MemoryEntry previous = entries.put(key, new MemoryEntry(value, expiresAt));
+        final MemoryEntry next = new MemoryEntry(value, expiresAt(ttl), tracked(ttl, expiration));
+        final MemoryEntry previous = entries.put(key, next);
         expireReplaced(key, previous);
         notifyWatchers(key, value);
         defer(() -> completion.accept(null));
@@ -87,10 +88,10 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<String> completion)
     {
-        final long expiresAt = expiresAt(ttl);
-        final MemoryEntry newEntry = new MemoryEntry(value, expiresAt);
+        final MemoryEntry newEntry = new MemoryEntry(value, expiresAt(ttl), tracked(ttl, expiration));
         final MemoryEntry existing = entries.putIfAbsent(key, newEntry);
         boolean stored = existing == null;
         if (existing != null && existing.expired(clock.millis()))
@@ -192,9 +193,10 @@ final class MemoryStoreHandler implements StoreHandler
         String expected,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<Boolean> completion)
     {
-        final boolean replaced = replaceIfEqual(key, expected, value, ttl);
+        final boolean replaced = replaceIfEqual(key, expected, value, ttl, expiration);
         if (replaced)
         {
             notifyWatchers(key, value);
@@ -335,7 +337,8 @@ final class MemoryStoreHandler implements StoreHandler
             existing = entries.get(key);
             live = existing != null && !existing.expired(clock.millis());
             counter = (live ? Long.parseLong(existing.value()) : 0L) + delta;
-            final MemoryEntry next = new MemoryEntry(Long.toString(counter), live ? existing.expiresAt() : expiresAt(ttl));
+            final MemoryEntry next = new MemoryEntry(Long.toString(counter), live ? existing.expiresAt() : expiresAt(ttl),
+                live ? existing.tracked() : ttl == null);
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
@@ -351,15 +354,17 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         String expected,
         String value,
-        Duration ttl)
+        Duration ttl,
+        Expiration expiration)
     {
+        final MemoryEntry next = new MemoryEntry(value, expiresAt(ttl), tracked(ttl, expiration));
         boolean replaced;
         boolean contended;
         do
         {
             final MemoryEntry existing = entries.get(key);
             final boolean matches = existing != null && !existing.expired(clock.millis()) && existing.value().equals(expected);
-            replaced = matches && entries.replace(key, existing, new MemoryEntry(value, expiresAt(ttl)));
+            replaced = matches && entries.replace(key, existing, next);
             contended = matches && !replaced;
         }
         while (contended);
@@ -378,7 +383,8 @@ final class MemoryStoreHandler implements StoreHandler
         {
             existing = entries.get(key);
             live = existing != null && !existing.expired(clock.millis());
-            touched = live && entries.replace(key, existing, new MemoryEntry(existing.value(), expiresAt(ttl)));
+            touched = live && entries.replace(key, existing, new MemoryEntry(existing.value(), expiresAt(ttl),
+                ttl == null || existing.tracked() || existing.expiresAt() == Long.MAX_VALUE));
             contended = live && !touched;
         }
         while (contended);
@@ -395,7 +401,7 @@ final class MemoryStoreHandler implements StoreHandler
         String key,
         MemoryEntry replaced)
     {
-        if (replaced != null && replaced.expired(clock.millis()))
+        if (replaced != null && replaced.tracked() && replaced.expired(clock.millis()))
         {
             expirers.report(key, replaced.value());
         }
@@ -419,6 +425,13 @@ final class MemoryStoreHandler implements StoreHandler
         Runnable task)
     {
         dispatcher.accept(task);
+    }
+
+    private static boolean tracked(
+        Duration ttl,
+        Expiration expiration)
+    {
+        return Objects.requireNonNull(expiration) == Expiration.TRACKED || ttl == null;
     }
 
     private long expiresAt(

@@ -90,6 +90,15 @@
                                         "ttl":
                                         {
                                             "type": "string"
+                                        },
+                                        "expiration":
+                                        {
+                                            "type": "string",
+                                            "enum":
+                                            [
+                                                "tracked",
+                                                "untracked"
+                                            ]
                                         }
                                     },
                                     "required":

@@ -215,4 +215,74 @@ public class MemoryStoreHandlerIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("store.expiration.put.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedPutInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.expiration.put.if.absent.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedPutIfAbsentInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.expiration.replace.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedReplaceInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.expiration.touch.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldKeepUntrackedWhenTouchedInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.expiration.tracked.over.untracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldReportExpiryOfTrackedWriteOverUntrackedEntryInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.expiration.untracked.over.tracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedWriteOverTrackedEntryInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("store.expiration.increment.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfCounterInMemoryStore() throws Exception
+    {
+        k3po.finish();
+    }
 }
