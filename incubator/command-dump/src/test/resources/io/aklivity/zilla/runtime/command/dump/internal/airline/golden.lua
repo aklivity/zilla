@@ -3123,6 +3123,9 @@ add_field("mqtt_ext_packet_filter", ProtoField.string("zilla.mqtt_ext.packet_fil
 --     metadata
 add_field("mqtt_ext_metadata_length", ProtoField.int32("zilla.mqtt_ext.metadata_length", "Length", base.DEC))
 add_field("mqtt_ext_metadata", ProtoField.bytes("zilla.mqtt_ext.metadata", "Metadata", base.NONE))
+--     outbound
+add_field("mqtt_ext_outbound_length", ProtoField.int32("zilla.mqtt_ext.outbound_length", "Length", base.DEC))
+add_field("mqtt_ext_outbound", ProtoField.bytes("zilla.mqtt_ext.outbound", "Outbound", base.NONE))
 add_field("mqtt_ext_filter_pattern_length", ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC))
 add_field("mqtt_ext_filter_pattern", ProtoField.string("zilla.mqtt_ext.filter_pattern", "Pattern", base.NONE))
 add_field("mqtt_ext_filter_share_name_length", ProtoField.int16("zilla.mqtt_ext.filter_share_name_length", "Length", base.DEC))
@@ -3218,7 +3221,11 @@ function handle_mqtt_begin_subscribe_extension(buffer, offset, ext_subtree)
     ext_subtree:add_le(fields.mqtt_ext_generation, slice_generation)
     -- packets
     local packets_offset = generation_offset + generation_length
-    dissect_and_add_mqtt_packets(buffer, packets_offset, ext_subtree)
+    local packets_length = dissect_and_add_mqtt_packets(buffer, packets_offset, ext_subtree)
+    -- outbound
+    local outbound_offset = packets_offset + packets_length
+    add_mqtt_binary_as_subtree(buffer, outbound_offset, ext_subtree, "Outbound",
+        fields.mqtt_ext_outbound_length, fields.mqtt_ext_outbound)
 end
 
 function dissect_and_add_mqtt_packets(buffer, offset, tree)
@@ -3271,6 +3278,7 @@ function dissect_and_add_mqtt_packets(buffer, offset, tree)
         -- next
         item_offset = item_offset + record_length
     end
+    return item_offset - offset
 end
 
 function dissect_and_add_mqtt_topic_filters(buffer, offset, tree)
@@ -3634,6 +3642,10 @@ function handle_mqtt_flush_subscribe_extension(buffer, offset, ext_subtree)
     -- topic_filters
     local topic_filters_offset = reason_code_offset + reason_code_length
     dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
+    -- outbound
+    local outbound_offset = topic_filters_offset + resolve_length_of_array(buffer, topic_filters_offset)
+    add_mqtt_binary_as_subtree(buffer, outbound_offset, ext_subtree, "Outbound",
+        fields.mqtt_ext_outbound_length, fields.mqtt_ext_outbound)
 end
 
 function handle_mqtt_flush_session_extension(buffer, offset, ext_subtree)

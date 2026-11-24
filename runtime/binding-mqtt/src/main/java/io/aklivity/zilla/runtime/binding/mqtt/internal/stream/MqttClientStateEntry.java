@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 final class MqttClientStateEntry
 {
     private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
+    private static final byte[] NO_OUTBOUND = new byte[0];
     private static final byte[] NO_INBOUND = new byte[0];
 
     private final StoreHandler store;
@@ -136,6 +137,17 @@ final class MqttClientStateEntry
         record.subscriptions = subscriptions;
     }
 
+    byte[] outbound()
+    {
+        return record.outbound;
+    }
+
+    void outbound(
+        byte[] outbound)
+    {
+        record.outbound = outbound;
+    }
+
     byte[] inbound()
     {
         return record.inbound;
@@ -150,7 +162,7 @@ final class MqttClientStateEntry
     boolean empty()
     {
         return record.packets.isEmpty() && record.memberships.isEmpty() && record.subscriptions.length == 0 &&
-            record.inbound.length == 0;
+            record.outbound.length == 0 && record.inbound.length == 0;
     }
 
     boolean held()
@@ -189,6 +201,7 @@ final class MqttClientStateEntry
         record.packets.clear();
         record.memberships.clear();
         record.subscriptions = NO_SUBSCRIPTIONS;
+        record.outbound = NO_OUTBOUND;
         record.inbound = NO_INBOUND;
 
         return discarded;
@@ -299,7 +312,8 @@ final class MqttClientStateEntry
         }
         else
         {
-            final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions, record.inbound);
+            final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions,
+                record.outbound, record.inbound);
 
             store.put(key, value, ttl.get(), v -> onWriteCompleted());
         }
@@ -307,7 +321,8 @@ final class MqttClientStateEntry
 
     private void doWriteHeld()
     {
-        final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions, record.inbound);
+        final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions,
+                record.outbound, record.inbound);
 
         if (stored != null)
         {
