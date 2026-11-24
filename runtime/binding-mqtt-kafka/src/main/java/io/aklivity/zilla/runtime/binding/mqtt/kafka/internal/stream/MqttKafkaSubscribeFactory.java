@@ -77,6 +77,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRec
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRecordV1FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRecordVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -178,6 +179,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final MqttSubscribeMessageFW mqttSubscribeMessageRO = new MqttSubscribeMessageFW();
     private final MqttSharedRecordFW sharedRecordRO = new MqttSharedRecordFW();
     private final MqttSubscribeOffsetMetadataFW mqttOffsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
+    private final MqttSubscribeOutboundFW mqttSubscribeOutboundRO = new MqttSubscribeOutboundFW();
 
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
@@ -257,6 +259,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final MqttKafkaHeaderHelper helper;
     private final int reconnectDelay;
+    private static final long NO_RESUME_OFFSET = -3L;
+
     private final boolean bootstrapAvailable;
     private final boolean sessionStateStored;
     private final List<KafkaMessagesBootstrap> bootstrapStreams;
@@ -470,6 +474,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private ClientHighWaterMarks clientHighWaterMarks;
         private int qos;
         private boolean retainAvailable;
+        private final Map<String, Long2LongHashMap> resumeOffsetsByTopic = new HashMap<>();
 
         private MqttSubscribeProxy(
             MessageConsumer mqtt,
@@ -565,6 +570,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             clientHighWaterMarks = highWaterMarksByClient.computeIfAbsent(clientId.asString(), ClientHighWaterMarks::new);
             clientHighWaterMarks.streams.add(this);
 
+            final OctetsFW outbound = mqttSubscribeBeginEx.outbound();
+            if (sessionStateStored && outbound != null)
+            {
+                onOutboundResumed(outbound);
+            }
+
             Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
             filters.forEach(f -> retainAvailable |= (f.flags() & SEND_RETAIN_FLAG) != 0);
 
@@ -586,6 +597,32 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 retained.doKafkaBegin(traceId, authorization, affinity, retainedFilters);
             }
             messages.values().forEach(m -> m.doKafkaBegin(traceId, authorization, affinity, filters));
+        }
+
+        private void onOutboundResumed(
+            OctetsFW outbound)
+        {
+            final MqttSubscribeOutboundFW resumed =
+                mqttSubscribeOutboundRO.tryWrap(outbound.buffer(), outbound.offset(), outbound.limit());
+
+            if (resumed != null)
+            {
+                resumed.outboundV1().partitions().forEach(p ->
+                {
+                    if (p.qos() == qos)
+                    {
+                        resumeOffsetsByTopic
+                            .computeIfAbsent(p.topic().asString(), t -> new Long2LongHashMap(NO_RESUME_OFFSET))
+                            .put(p.partitionId(), p.nextOffset());
+                    }
+                });
+            }
+        }
+
+        private Long2LongHashMap resumeOffsets(
+            String16FW topic)
+        {
+            return resumeOffsetsByTopic.get(topic.asString());
         }
 
         private void onMqttFlush(
@@ -1815,7 +1852,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
                         initialMax,
                     traceId, authorization, affinity, mqtt.clientId, topic, filterBuilder.build(), mqtt.qos,
-                    KafkaOffsetType.LIVE);
+                    KafkaOffsetType.LIVE, mqtt.resumeOffsets(topic));
             }
         }
 
@@ -2521,7 +2558,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             kafka =
                 newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity, mqtt.clientId, topic, retainedFilters, mqtt.qos,
-                    KafkaOffsetType.HISTORICAL);
+                    KafkaOffsetType.HISTORICAL, mqtt.resumeOffsets(topic));
         }
 
         @Override
@@ -4677,7 +4714,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         String16FW topic,
         Array32FW<MqttTopicFilterFW> filters,
         int qos,
-        KafkaOffsetType offsetType)
+        KafkaOffsetType offsetType,
+        Long2LongHashMap resumeOffsets)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -4690,9 +4728,19 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     {
                         m.groupId(groupIdPrefix + "-" + clientId.asString());
                     }
-                    m.partitionsItem(p ->
-                        p.partitionId(offsetType.value())
-                            .partitionOffset(offsetType.value()));
+                    if (resumeOffsets != null && !resumeOffsets.isEmpty())
+                    {
+                        resumeOffsets.forEach((partitionId, nextOffset) ->
+                            m.partitionsItem(p -> p
+                                .partitionId(partitionId.intValue())
+                                .partitionOffset(nextOffset)));
+                    }
+                    else
+                    {
+                        m.partitionsItem(p ->
+                            p.partitionId(offsetType.value())
+                                .partitionOffset(offsetType.value()));
+                    }
                     filters.forEach(filter ->
                         forEachAlternative(filter.pattern().asString(), alternative ->
                             m.filtersItem(f -> buildFilterConditions(f, alternative, filter, clientId, qos))));
