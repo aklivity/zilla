@@ -99,6 +99,17 @@ final class MqttClientStateEntry
         return record.memberships;
     }
 
+    boolean empty()
+    {
+        return record.packets.isEmpty() && record.memberships.isEmpty();
+    }
+
+    void discard()
+    {
+        record.packets.clear();
+        record.memberships.clear();
+    }
+
     MqttPacketRecord packet(
         int packetId)
     {

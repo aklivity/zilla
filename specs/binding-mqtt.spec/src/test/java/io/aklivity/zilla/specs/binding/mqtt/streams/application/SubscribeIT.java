@@ -1578,4 +1578,22 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reconnect.clean.start.discard.qos2.packets/client",
+        "${app}/subscribe.shared.reconnect.clean.start.discard.qos2.packets/server"})
+    public void shouldSubscribeSharedReconnectCleanStartDiscardQos2Packets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reconnect.session.end.discard.qos2.packets/client",
+        "${app}/subscribe.shared.reconnect.session.end.discard.qos2.packets/server"})
+    public void shouldSubscribeSharedReconnectSessionEndDiscardQos2Packets() throws Exception
+    {
+        k3po.finish();
+    }
 }

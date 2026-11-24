@@ -2469,4 +2469,59 @@ public class MqttFunctionsTest
 
         assertThrows(Exception.class, () -> matcher.match(byteBuf));
     }
+
+    @Test
+    public void shouldEncodeMqttSubscribeBeginExtPacket()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .qos("EXACTLY_ONCE")
+                .filter("sensor/one", 1, "EXACTLY_ONCE")
+                .generation(0)
+                .packet(7, "PUBREL_PENDING", "EXACTLY_ONCE", "sensor/one", "metadata-7")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNotNull(mqttBeginEx.subscribe().packets()
+            .matchFirst(p ->
+                7 == p.packetId() &&
+                    MqttPacketState.PUBREL_PENDING.value() == p.state() &&
+                    "sensor/one".equals(p.filter().asString()) &&
+                    p.shareName().asString() == null));
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionPacket() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .packet(7, "PUBLISH_SENT", "EXACTLY_ONCE", "sensor/one", "metadata-7")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(2)
+                .generation(0)
+                .packetsItem(p -> p
+                    .packetId(7)
+                    .state(MqttPacketState.PUBLISH_SENT.value())
+                    .qos(2)
+                    .filter("sensor/one")
+                    .metadata(m -> m.bytes(b -> b.set("metadata-7".getBytes(UTF_8))))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
 }

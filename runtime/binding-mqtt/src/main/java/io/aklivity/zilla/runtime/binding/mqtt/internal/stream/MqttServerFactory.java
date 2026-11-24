@@ -3742,6 +3742,20 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void onClientStateLoaded(
             long traceId)
         {
+            if (isCleanStart(connectFlags) && clientState.ready() && !clientState.empty())
+            {
+                clientState.discard();
+                clientState.write(() -> onClientStateReady(traceId));
+            }
+            else
+            {
+                onClientStateReady(traceId);
+            }
+        }
+
+        private void onClientStateReady(
+            long traceId)
+        {
             if (!StreamState.initialClosed(state) && !StreamState.replyClosed(state))
             {
                 doEstablishSession(traceId);
@@ -4041,6 +4055,12 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doReleaseOwnership(
             long traceId)
         {
+            if (owns && sessionExpiry == 0 && clientState != null && clientState.ready() && !clientState.empty())
+            {
+                clientState.discard();
+                clientState.write(() -> {});
+            }
+
             if (renewAt != NO_CANCEL_ID)
             {
                 signaler.cancel(renewAt);

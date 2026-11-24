@@ -22,6 +22,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
                               .flags("CLEAN_START")
+                              .expiry(3600)
                               .clientId("client")
                               .build()
                             .build()}
@@ -30,6 +31,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
                                 .flags("CLEAN_START")
+                                .expiry(3600)
                                 .subscribeQosMax(2)
                                 .publishQosMax(2)
                                 .packetSizeMax(33792)
@@ -41,6 +43,15 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
 connected
 
 read zilla:data.empty
+
+write zilla:data.ext ${mqtt:dataEx()
+                           .typeId(zilla:id("mqtt"))
+                           .session()
+                              .kind("STATE")
+                              .build()
+                           .build()}
+write ${mqtt:session().build()}
+write flush
 
 write zilla:data.ext ${mqtt:dataEx()
                            .typeId(zilla:id("mqtt"))
@@ -112,6 +123,7 @@ connect await SENT_SESSION_ABORT
 write zilla:begin.ext ${mqtt:beginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
+                              .expiry(3600)
                               .clientId("client")
                               .build()
                             .build()}
@@ -119,6 +131,7 @@ write zilla:begin.ext ${mqtt:beginEx()
 read zilla:begin.ext ${mqtt:matchBeginEx()
                               .typeId(zilla:id("mqtt"))
                               .session()
+                                .expiry(3600)
                                 .subscribeQosMax(2)
                                 .publishQosMax(2)
                                 .packetSizeMax(33792)
