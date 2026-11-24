@@ -748,6 +748,30 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.will.message.normal.disconnect/client",
+        "${kafka}/session.store.will.message.normal.disconnect/server"})
+    public void shouldKeepNoKafkaSessionStateOrExpirySignalOnWillSessionWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.will.message.subscribe/client",
+        "${kafka}/session.store.will.message.normal.disconnect/server"})
+    public void shouldEchoSubscribeStateOnWillSessionWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.clean.start/client",
         "${kafka}/session.will.message.clean.start/server"})

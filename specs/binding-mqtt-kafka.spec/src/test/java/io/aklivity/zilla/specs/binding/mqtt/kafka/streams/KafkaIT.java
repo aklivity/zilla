@@ -949,6 +949,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.will.message.normal.disconnect/client",
+        "${kafka}/session.store.will.message.normal.disconnect/server"})
+    public void shouldSessionStoreWillMessageNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.store.subscribe.qos.max.1/client",
         "${kafka}/session.store.subscribe.qos.max.1/server"})
     public void shouldSessionStoreSubscribeQosMax1() throws Exception
