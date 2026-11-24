@@ -160,18 +160,10 @@ write zilla:begin.ext ${mqtt:beginEx()
                              .build()}
 connected
 
-write notify SUBSCRIBED_ONE
-
-connect await SUBSCRIBED_ONE
-        "zilla://streams/app0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${mqtt:beginEx()
-                             .typeId(zilla:id("mqtt"))
-                             .subscribe()
-                                .clientId("client")
-                                .filter("sensor/two", -1, "AT_MOST_ONCE", "SEND_RETAINED")
-                                .build()
-                             .build()}
-connected
+write advise zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .subscribe()
+                                     .filter("sensor/one", -1, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .filter("sensor/two", -2, "AT_MOST_ONCE", "SEND_RETAINED")
+                                     .build()
+                                 .build()}

@@ -2449,7 +2449,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode == 0)
             {
-                if (!StreamState.replyOpening(server.session.state))
+                if (!StreamState.replyOpening(server.session.state) || !server.sessionStateRestored())
                 {
                     //We don't know the server capabilities yet
                     break decode;
@@ -2499,7 +2499,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (reasonCode == 0)
             {
-                if (!StreamState.replyOpening(server.session.state))
+                if (!StreamState.replyOpening(server.session.state) || !server.sessionStateRestored())
                 {
                     //We don't know the server capabilities yet
                     break decode;
@@ -2546,16 +2546,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                 reasonCode = MALFORMED_PACKET;
             }
 
-            if (reasonCode == 0)
+            if (reasonCode != 0)
+            {
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
+            }
+            else if (server.sessionStateRestored())
             {
                 server.onDecodeUnsubscribe(traceId, authorization, unsubscribeV4.packetId(), unsubscribeV4.payload());
                 server.decoder = decodePacketTypeByVersion.get(server.version);
                 progress = unsubscribeV4.limit();
-            }
-            else
-            {
-                server.onDecodeError(traceId, authorization, reasonCode);
-                server.decoder = decodeIgnoreAll;
             }
         }
 
@@ -2594,17 +2594,16 @@ public final class MqttServerFactory implements MqttStreamFactory
                 reasonCode = decodeUnsubscribeProperties(unsubscribeV5.properties());
             }
 
-            if (reasonCode == 0)
+            if (reasonCode != 0)
+            {
+                server.onDecodeError(traceId, authorization, reasonCode);
+                server.decoder = decodeIgnoreAll;
+            }
+            else if (server.sessionStateRestored())
             {
                 server.onDecodeUnsubscribe(traceId, authorization, unsubscribeV5.packetId(), unsubscribeV5.payload());
                 server.decoder = decodePacketTypeByVersion.get(server.version);
                 progress = unsubscribeV5.limit();
-            }
-
-            else
-            {
-                server.onDecodeError(traceId, authorization, reasonCode);
-                server.decoder = decodeIgnoreAll;
             }
         }
 
@@ -3872,6 +3871,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         private Duration clientStateTtl()
         {
             return sessionExpiry > 0 ? Duration.ofSeconds(sessionExpiry) : null;
+        }
+
+        private boolean sessionStateRestored()
+        {
+            return !sessionStateStoreEnabled || connected;
         }
 
         private boolean storedSubscriptions()
@@ -7874,6 +7878,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (decoder == decodeAwaitConnack)
                 {
                     decoder = decodePacketTypeByVersion.get(version);
+                    decodeNetwork(traceId);
+                }
+                else if (sessionStateStoreEnabled)
+                {
                     decodeNetwork(traceId);
                 }
             }
