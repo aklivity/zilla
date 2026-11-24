@@ -889,6 +889,24 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/unmerged.produce.and.fetch.invalid.partition.fragments/client",
+        "${app}/unmerged.produce.and.fetch.invalid.partition.fragments/server"})
+    public void shouldIgnoreUnmergedMessageFragmentsAfterRejectedFirstFragment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.produce.and.fetch.invalid.partition.fragments/client",
+        "${app}/merged.produce.and.fetch.invalid.partition.fragments/server"})
+    public void shouldIgnoreMergedMessageFragmentsAfterRejectedFirstFragment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.group.produce.message.value/client",
         "${app}/merged.group.produce.message.value/server"})
     public void shouldProduceMergedMergedMessageValue() throws Exception

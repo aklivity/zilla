@@ -1240,7 +1240,7 @@ public final class KafkaMergedFactory implements BindingHandler
             {
                 doMergedCleanup(traceId);
             }
-            else
+            else if (!StreamState.initialClosing(state))
             {
                 assert hasProduceCapability(capabilities);
 
