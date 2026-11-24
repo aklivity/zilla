@@ -284,6 +284,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/client",
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowAfterReady() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception

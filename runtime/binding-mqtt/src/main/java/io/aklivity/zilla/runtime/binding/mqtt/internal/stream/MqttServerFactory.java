@@ -240,6 +240,7 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 public final class MqttServerFactory implements MqttStreamFactory
 {
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(new UnsafeBufferEx(new byte[0]), 0, 0);
+    private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
 
     private static final String16FW MQTT_PROTOCOL_NAME = new String16FW("MQTT", BIG_ENDIAN);
     public static final int MQTT_PROTOCOL_VERSION_5 = 5;
@@ -7850,7 +7851,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     }
                     else if (sessionSubscriptions != null)
                     {
-                        if (storedSubscriptions())
+                        if (storedSubscriptions() && clientState.ready())
                         {
                             clientState.subscriptions(copyBytes(buffer, offset, limit));
                             clientState.write(() -> onSessionStateResolved(traceId, authorization, sessionSubscriptions));
@@ -7890,7 +7891,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 long traceId,
                 long authorization)
             {
-                final byte[] stored = clientState.subscriptions();
+                final byte[] stored = clientState.ready() ? clientState.subscriptions() : NO_SUBSCRIPTIONS;
 
                 if (!isCleanStart(connectFlags) && stored.length > 0 && hasSessionWindow(stored.length))
                 {
@@ -7904,10 +7905,14 @@ public final class MqttServerFactory implements MqttStreamFactory
 
                     doSessionData(traceId, stored.length, sessionDataExBuilder.build(), storedState);
                 }
-                else
+                else if (clientState.ready())
                 {
                     clientState.subscriptions(emptySubscriptions());
                     clientState.write(() -> doSessionConnack(traceId, authorization, SUCCESS, false));
+                }
+                else
+                {
+                    doSessionConnack(traceId, authorization, SUCCESS, false);
                 }
             }
 
