@@ -282,6 +282,19 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionBeginExBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionBeginExBuilder inboundBytes(
+                byte[] inbound)
+            {
+                sessionBeginExRW.inbound(b -> b.set(inbound));
+                return this;
+            }
+
             public MqttSessionBeginExBuilder subscribeQosMax(
                 int subscribeQosMax)
             {
@@ -916,6 +929,19 @@ public final class MqttFunctions
                 int packetId)
             {
                 sessionFlushExRW.packetId(packetId);
+                return this;
+            }
+
+            public MqttSessionFlushExBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionFlushExBuilder inboundBytes(
+                byte[] inbound)
+            {
+                sessionFlushExRW.inbound(b -> b.set(inbound));
                 return this;
             }
 
@@ -2145,6 +2171,7 @@ public final class MqttFunctions
             private Integer subscribeQosMax;
             private Integer publishQosMax;
             private Integer packetSizeMax;
+            private byte[] inbound;
 
             private MqttSessionBeginExMatcherBuilder()
             {
@@ -2169,6 +2196,19 @@ public final class MqttFunctions
                 int packetId)
             {
                 this.packetIds.add(packetId);
+                return this;
+            }
+
+            public MqttSessionBeginExMatcherBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionBeginExMatcherBuilder inboundBytes(
+                byte[] inbound)
+            {
+                this.inbound = inbound;
                 return this;
             }
 
@@ -2223,6 +2263,7 @@ public final class MqttFunctions
                 return matchFlags(sessionBeginEx) &&
                     matchClientId(sessionBeginEx) &&
                     matchPacketIds(sessionBeginEx) &&
+                    matchInbound(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
                     matchSubscribeQosMax(sessionBeginEx) &&
                     matchPublishQosMax(sessionBeginEx) &&
@@ -2245,6 +2286,23 @@ public final class MqttFunctions
                 while (!match && ids.hasNext())
                 {
                     match = packetIds.contains(ids.nextInt());
+                }
+                return match;
+            }
+
+            private boolean matchInbound(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                boolean match = inbound == null;
+                if (!match)
+                {
+                    final int length = sessionBeginEx.inbound() == null ? 0 : sessionBeginEx.inbound().sizeof();
+                    final byte[] actual = new byte[length];
+                    if (length > 0)
+                    {
+                        sessionBeginEx.inbound().buffer().getBytes(sessionBeginEx.inbound().offset(), actual);
+                    }
+                    match = Arrays.equals(inbound, actual);
                 }
                 return match;
             }
@@ -2968,6 +3026,7 @@ public final class MqttFunctions
         public final class MqttSessionFlushExMatcherBuilder
         {
             private Integer packetId;
+            private byte[] inbound;
 
             private MqttSessionFlushExMatcherBuilder()
             {
@@ -2980,6 +3039,19 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionFlushExMatcherBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionFlushExMatcherBuilder inboundBytes(
+                byte[] inbound)
+            {
+                this.inbound = inbound;
+                return this;
+            }
+
             public MqttFlushExMatcherBuilder build()
             {
                 return MqttFlushExMatcherBuilder.this;
@@ -2989,7 +3061,25 @@ public final class MqttFunctions
                 MqttFlushExFW flushEx)
             {
                 final MqttSessionFlushExFW sessionFlushEx = flushEx.session();
-                return matchPacketId(sessionFlushEx);
+                return matchPacketId(sessionFlushEx) &&
+                    matchInbound(sessionFlushEx);
+            }
+
+            private boolean matchInbound(
+                final MqttSessionFlushExFW flush)
+            {
+                boolean match = inbound == null;
+                if (!match)
+                {
+                    final int length = flush.inbound() == null ? 0 : flush.inbound().sizeof();
+                    final byte[] actual = new byte[length];
+                    if (length > 0)
+                    {
+                        flush.inbound().buffer().getBytes(flush.inbound().offset(), actual);
+                    }
+                    match = Arrays.equals(inbound, actual);
+                }
+                return match;
             }
 
             private boolean matchPacketId(

@@ -172,6 +172,7 @@ scope mqtt
         MqttPacket[] packets;
         string16 holder = null;
         MqttBinary subscriptions;
+        MqttBinary inbound;
     }
 
     union MqttClientState switch (MqttClientStateVersion)
@@ -287,6 +288,8 @@ scope mqtt
             string16 clientId;
             int8 length;
             int16[length] packetIds = null;
+            int32 inboundLength;
+            octets[inboundLength] inbound = null;
         }
 
         struct MqttSubscribeBeginEx
@@ -385,6 +388,8 @@ scope mqtt
         struct MqttSessionFlushEx
         {
             uint16 packetId = 0;
+            int32 inboundLength;
+            octets[inboundLength] inbound = null;
         }
 
         struct MqttSubscribeFlushEx
