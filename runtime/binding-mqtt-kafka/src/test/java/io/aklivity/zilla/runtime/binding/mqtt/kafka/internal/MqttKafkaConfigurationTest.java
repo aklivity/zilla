@@ -21,6 +21,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.LIFETIME_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.PUBLISH_QOS_MAX;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_ID;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SESSION_STATE_STORE_ENABLED;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.SHARED_SUBSCRIPTION_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfiguration.WILL_ID;
@@ -49,6 +50,8 @@ public class MqttKafkaConfigurationTest
     public static final String WILL_ID_NAME = "zilla.binding.mqtt.kafka.will.id";
     public static final String LIFETIME_ID_NAME = "zilla.binding.mqtt.kafka.lifetime.id";
     public static final String INSTANCE_ID_NAME = "zilla.binding.mqtt.kafka.instance.id";
+    public static final String SESSION_STATE_STORE_ENABLED_NAME = "zilla.binding.mqtt.kafka.session.state.store.enabled";
+    public static final String MQTT_SESSION_STATE_STORE_ENABLED_NAME = "zilla.binding.mqtt.session.state.store.enabled";
 
     @Test
     public void shouldVerifyConstants()
@@ -63,6 +66,46 @@ public class MqttKafkaConfigurationTest
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(PUBLISH_QOS_MAX.name(), PUBLISH_MAX_QOS_NAME);
         assertEquals(SHARED_SUBSCRIPTION_AVAILABLE.name(), SHARED_SUBSCRIPTION_AVAILABLE_NAME);
+        assertEquals(SESSION_STATE_STORE_ENABLED.name(), SESSION_STATE_STORE_ENABLED_NAME);
+    }
+
+    @Test
+    public void shouldDefaultSessionStateStoreEnabledToFalse()
+    {
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(new Properties()));
+
+        assertFalse(config.sessionStateStoreEnabled());
+    }
+
+    @Test
+    public void shouldDefaultSessionStateStoreEnabledFromMqttBinding()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(MQTT_SESSION_STATE_STORE_ENABLED_NAME, "true");
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(properties));
+
+        assertTrue(config.sessionStateStoreEnabled());
+    }
+
+    @Test
+    public void shouldDisableSessionStateStoreOverridingMqttBinding()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(MQTT_SESSION_STATE_STORE_ENABLED_NAME, "true");
+        properties.setProperty(SESSION_STATE_STORE_ENABLED_NAME, "false");
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(properties));
+
+        assertFalse(config.sessionStateStoreEnabled());
+    }
+
+    @Test
+    public void shouldEnableSessionStateStoreOverridingMqttBinding()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(SESSION_STATE_STORE_ENABLED_NAME, "true");
+        MqttKafkaConfiguration config = new MqttKafkaConfiguration(new Configuration(properties));
+
+        assertTrue(config.sessionStateStoreEnabled());
     }
 
     @Test
