@@ -4175,11 +4175,14 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = renewTraceId;
             if (token != null)
             {
-                // the entry lifetime is independent of the lock lease, so it is rewritten with each renewal;
-                // StoreHandler.touch is expected to replace this rewrite
-                store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
-                renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
-                    originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+                if (owns && token.equals(ownerToken))
+                {
+                    // the entry lifetime is independent of the lock lease, so it is rewritten with each renewal;
+                    // StoreHandler.touch is expected to replace this rewrite
+                    store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
+                    renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
+                        originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+                }
             }
             else if (owns)
             {
