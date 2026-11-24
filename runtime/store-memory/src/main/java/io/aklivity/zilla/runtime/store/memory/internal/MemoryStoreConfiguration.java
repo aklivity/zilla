@@ -14,15 +14,20 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
+import java.time.Duration;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class MemoryStoreConfiguration extends Configuration
 {
+    public static final PropertyDef<Duration> MEMORY_STORE_SWEEP_INTERVAL;
     private static final ConfigurationDef MEMORY_STORE_CONFIG;
 
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.store.memory");
+        MEMORY_STORE_SWEEP_INTERVAL = config.property(Duration.class, "sweep.interval",
+            (c, v) -> Duration.parse(v), "PT1S");
         MEMORY_STORE_CONFIG = config;
     }
 
@@ -35,5 +40,10 @@ public class MemoryStoreConfiguration extends Configuration
         Configuration config)
     {
         super(MEMORY_STORE_CONFIG, config);
+    }
+
+    public Duration sweepInterval()
+    {
+        return MEMORY_STORE_SWEEP_INTERVAL.get(this);
     }
 }

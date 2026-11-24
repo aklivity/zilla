@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.Test;
 
@@ -35,6 +37,11 @@ public class TestStoreHandlerTest
 {
     private final ConcurrentMap<String, TestEntry> entries = new ConcurrentHashMap<>();
     private final List<Runnable> tasks = new ArrayList<>();
+    private final List<Long> scheduledTimes = new ArrayList<>();
+    private final List<Runnable> scheduledTasks = new ArrayList<>();
+    private final List<TestExpirer> expirers = new CopyOnWriteArrayList<>();
+    private final List<String> expired = new ArrayList<>();
+    private long now = 1_000L;
 
     @Test
     public void shouldNotAssertOperationsWithoutAssertions()
@@ -334,6 +341,251 @@ public class TestStoreHandlerTest
         tasks.forEach(Runnable::run);
 
         assertEquals(1, values.size());
+    }
+
+    @Test
+    public void shouldExpirePutEntry() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key=value"), expired);
+        assertNull(live(handler, "key"));
+    }
+
+    @Test
+    public void shouldExpirePutIfAbsentEntry() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.putIfAbsent("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldNotExpireEntryWithoutTtl() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("", (key, value) -> expired.add(key));
+
+        handler.put("key", "value", null, v -> {});
+        advance(1_000_000L);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotExpireBeforeExpiryInstant() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key));
+
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_000L);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotReportReplacedEntry() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.put("key", "first", Duration.ofSeconds(1), v -> {});
+        handler.put("key", "second", null, v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+        assertEquals("second", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotReportDeletedEntry() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key));
+
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        handler.delete("key", v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+    }
+
+    @Test
+    public void shouldRestartCountdownOnReplacement() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.put("key", "first", Duration.ofSeconds(1), v -> {});
+        advance(500L);
+        handler.put("key", "second", Duration.ofSeconds(1), v -> {});
+        advance(501L);
+        assertEquals(List.of(), expired);
+
+        advance(500L);
+        assertEquals(List.of("key=second"), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryToMatchingPrefixOnly() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("session.", (key, value) -> expired.add("session:" + key));
+        handler.expire("token.", (key, value) -> expired.add("token:" + key));
+
+        handler.put("session.1", "a", Duration.ofSeconds(1), v -> {});
+        handler.put("other", "b", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("session:session.1"), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryToEveryMatchingRegistrant() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("", (key, value) -> expired.add("all:" + key));
+        handler.expire("key", (key, value) -> expired.add("key:" + key));
+
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("all:key", "key:key"), expired);
+    }
+
+    @Test
+    public void shouldNotInvokeClosedRegistrant() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        Closeable registration = handler.expire("key", (key, value) -> expired.add(key));
+
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        now += 1_001L;
+        runScheduled();
+        registration.close();
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), expired);
+    }
+
+    @Test
+    public void shouldNotInvokeRegistrantsClosedOnDetach() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key));
+
+        handler.unexpireAll();
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryToLateRegistrant() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+        assertEquals(List.of(), expired);
+
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryBeforeWriteOverExpiredEntry() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.put("key", "old", Duration.ofSeconds(1), v -> {});
+        now += 1_001L;
+        handler.put("key", "new", null, v -> {});
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of("key=old"), expired);
+        assertEquals("new", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldExpireCounterEntry() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("count", (key, value) -> expired.add(key + "=" + value));
+
+        handler.increment("count", 5L, Duration.ofSeconds(1), (key, value) -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("count=5"), expired);
+    }
+
+    @Test
+    public void shouldNotLoseExpiryWhenRegistrantsAttachToSharedStore() throws Exception
+    {
+        TestStoreHandler writer = newExpiringHandler();
+        TestStoreHandler observer = newExpiringHandler();
+        observer.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        writer.put("key", "value", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    private TestStoreHandler newExpiringHandler()
+    {
+        return new TestStoreHandler(null, tasks::add, () -> now, (time, task) ->
+        {
+            scheduledTimes.add(time);
+            scheduledTasks.add(task);
+        }, entries, new ConcurrentHashMap<>(), expirers, new ConcurrentHashMap<>(), null);
+    }
+
+    private void advance(
+        long millis)
+    {
+        now += millis;
+        runScheduled();
+        tasks.forEach(Runnable::run);
+        tasks.clear();
+    }
+
+    private void runScheduled()
+    {
+        for (int index = 0; index < scheduledTasks.size(); index++)
+        {
+            if (scheduledTimes.get(index) <= now)
+            {
+                scheduledTasks.get(index).run();
+                scheduledTimes.set(index, Long.MAX_VALUE);
+            }
+        }
+    }
+
+    private String live(
+        TestStoreHandler handler,
+        String key)
+    {
+        List<String> values = new ArrayList<>();
+        handler.get(key, (k, v) -> values.add(v));
+        tasks.forEach(Runnable::run);
+        tasks.clear();
+        return values.get(0);
     }
 
     private TestStoreHandler newHandler(

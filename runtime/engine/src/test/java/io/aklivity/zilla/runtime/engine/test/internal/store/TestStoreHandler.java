@@ -21,12 +21,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
@@ -40,7 +43,11 @@ public final class TestStoreHandler implements StoreHandler
     private final ConcurrentMap<String, TestEntry> entries;
     private final ConcurrentMap<String, List<TestWatcher>> listeners;
     private final ConcurrentMap<String, TestLockEntry> locks;
+    private final List<TestExpirer> expirers;
+    private final Set<Expiry> expiries = ConcurrentHashMap.newKeySet();
     private final Consumer<Runnable> dispatcher;
+    private final LongSupplier clock;
+    private final BiConsumer<Long, Runnable> scheduler;
     private final Queue<Assertion> assertions;
 
     public TestStoreHandler(
@@ -51,9 +58,27 @@ public final class TestStoreHandler implements StoreHandler
         ConcurrentMap<String, TestLockEntry> locks,
         Queue<Assertion> assertions)
     {
+        this(store, dispatcher, System::currentTimeMillis, (time, task) -> {}, entries, listeners, new CopyOnWriteArrayList<>(),
+            locks, assertions);
+    }
+
+    public TestStoreHandler(
+        StoreConfig store,
+        Consumer<Runnable> dispatcher,
+        LongSupplier clock,
+        BiConsumer<Long, Runnable> scheduler,
+        ConcurrentMap<String, TestEntry> entries,
+        ConcurrentMap<String, List<TestWatcher>> listeners,
+        List<TestExpirer> expirers,
+        ConcurrentMap<String, TestLockEntry> locks,
+        Queue<Assertion> assertions)
+    {
         this.entries = Objects.requireNonNull(entries);
         this.dispatcher = Objects.requireNonNull(dispatcher);
+        this.clock = Objects.requireNonNull(clock);
+        this.scheduler = Objects.requireNonNull(scheduler);
         this.listeners = Objects.requireNonNull(listeners);
+        this.expirers = Objects.requireNonNull(expirers);
         this.locks = Objects.requireNonNull(locks);
         this.assertions = assertions;
     }
@@ -75,8 +100,10 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         assertOperation(new Assertion("put", key, value, ttl));
-        // put and putIfAbsent never expire so bindings configured with short leases keep their records
-        entries.put(key, new TestEntry(value, Long.MAX_VALUE));
+        final TestEntry next = new TestEntry(value, expiresAt(ttl));
+        final TestEntry previous = entries.put(key, next);
+        expireReplaced(key, previous);
+        scheduleExpiry(key, next);
         notifyListeners(key, value);
         defer(() -> completion.accept(null));
     }
@@ -89,15 +116,20 @@ public final class TestStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         assertOperation(new Assertion("putIfAbsent", key, value, ttl));
-        final TestEntry next = new TestEntry(value, Long.MAX_VALUE);
+        final TestEntry next = new TestEntry(value, expiresAt(ttl));
         final TestEntry existing = entries.putIfAbsent(key, next);
         boolean stored = existing == null;
-        if (existing != null && existing.expired())
+        if (existing != null && existing.expired(clock.getAsLong()))
         {
             stored = entries.replace(key, existing, next);
+            if (stored)
+            {
+                expireReplaced(key, existing);
+            }
         }
         if (stored)
         {
+            scheduleExpiry(key, next);
             notifyListeners(key, value);
         }
         final String result = live(existing);
@@ -113,6 +145,7 @@ public final class TestStoreHandler implements StoreHandler
         final TestEntry removed = entries.remove(key);
         if (removed != null)
         {
+            expireReplaced(key, removed);
             notifyListeners(key, null);
         }
         defer(() -> completion.accept(null));
@@ -127,6 +160,7 @@ public final class TestStoreHandler implements StoreHandler
         final TestEntry prior = entries.remove(key);
         if (prior != null)
         {
+            expireReplaced(key, prior);
             notifyListeners(key, null);
         }
         final String result = live(prior);
@@ -142,15 +176,23 @@ public final class TestStoreHandler implements StoreHandler
     {
         long counter;
         boolean updated;
+        boolean alive;
+        TestEntry existing;
+        TestEntry next;
         do
         {
-            final TestEntry existing = entries.get(key);
-            final boolean alive = existing != null && !existing.expired();
+            existing = entries.get(key);
+            alive = existing != null && !existing.expired(clock.getAsLong());
             counter = (alive ? Long.parseLong(existing.value()) : 0L) + delta;
-            final TestEntry next = new TestEntry(Long.toString(counter), alive ? existing.expiresAt() : expiresAt(ttl));
+            next = new TestEntry(Long.toString(counter), alive ? existing.expiresAt() : expiresAt(ttl));
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
+        if (!alive)
+        {
+            expireReplaced(key, existing);
+            scheduleExpiry(key, next);
+        }
         assertOperation(new Assertion("increment", key, null, Long.toString(counter), null, delta, ttl));
         notifyListeners(key, Long.toString(counter));
         final long result = counter;
@@ -182,8 +224,9 @@ public final class TestStoreHandler implements StoreHandler
             final TestEntry entry = entries.remove(key);
             if (entry != null)
             {
+                expireReplaced(key, entry);
                 notifyListeners(key, null);
-                if (!entry.expired())
+                if (!entry.expired(clock.getAsLong()))
                 {
                     removed++;
                 }
@@ -207,7 +250,7 @@ public final class TestStoreHandler implements StoreHandler
         do
         {
             final TestEntry existing = entries.get(key);
-            final boolean matches = existing != null && !existing.expired() && existing.value().equals(expected);
+            final boolean matches = existing != null && !existing.expired(clock.getAsLong()) && existing.value().equals(expected);
             replaced = matches && entries.replace(key, existing, new TestEntry(value, expiresAt(ttl)));
             contended = matches && !replaced;
         }
@@ -309,6 +352,94 @@ public final class TestStoreHandler implements StoreHandler
         };
     }
 
+    @Override
+    public Closeable expire(
+        String prefix,
+        BiConsumer<String, String> listener)
+    {
+        final TestExpirer expirer = new TestExpirer(Objects.requireNonNull(prefix), listener, dispatcher);
+        final Expiry expiry = new Expiry(expirer);
+        expirers.add(expirer);
+        expiries.add(expiry);
+        entries.forEach((key, entry) ->
+        {
+            if (key.startsWith(prefix) && entry.expired(clock.getAsLong()))
+            {
+                expire(key, entry);
+            }
+        });
+        return expiry;
+    }
+
+    private void scheduleExpiry(
+        String key,
+        TestEntry entry)
+    {
+        if (entry.expiresAt() != Long.MAX_VALUE)
+        {
+            scheduler.accept(entry.expiresAt() + 1L, () -> expireIfCovered(key, entry));
+        }
+    }
+
+    private void expireIfCovered(
+        String key,
+        TestEntry entry)
+    {
+        if (expirers.stream().anyMatch(expirer -> key.startsWith(expirer.prefix())))
+        {
+            expire(key, entry);
+        }
+    }
+
+    private void expireReplaced(
+        String key,
+        TestEntry replaced)
+    {
+        if (replaced != null && replaced.expired(clock.getAsLong()))
+        {
+            notifyExpirers(key, replaced.value());
+        }
+    }
+
+    private void expire(
+        String key,
+        TestEntry entry)
+    {
+        if (entries.remove(key, entry))
+        {
+            notifyExpirers(key, entry.value());
+        }
+    }
+
+    private void notifyExpirers(
+        String key,
+        String value)
+    {
+        for (TestExpirer expirer : expirers)
+        {
+            if (key.startsWith(expirer.prefix()))
+            {
+                expirer.dispatcher().accept(() -> notifyExpirer(expirer, key, value));
+            }
+        }
+    }
+
+    private void notifyExpirer(
+        TestExpirer expirer,
+        String key,
+        String value)
+    {
+        if (expirers.contains(expirer))
+        {
+            expirer.listener().accept(key, value);
+        }
+    }
+
+    void unexpireAll()
+    {
+        expiries.forEach(Expiry::close);
+    }
+
     private void assertOperation(
         Assertion actual)
     {
@@ -378,21 +509,39 @@ public final class TestStoreHandler implements StoreHandler
         }
     }
 
-    private static String live(
+    private String live(
         TestEntry entry)
     {
-        return entry != null && !entry.expired() ? entry.value() : null;
+        return entry != null && !entry.expired(clock.getAsLong()) ? entry.value() : null;
     }
 
-    private static long expiresAt(
+    private long expiresAt(
         Duration ttl)
     {
-        return ttl == null ? Long.MAX_VALUE : System.currentTimeMillis() + ttl.toMillis();
+        return ttl == null ? Long.MAX_VALUE : clock.getAsLong() + ttl.toMillis();
     }
 
     private void defer(
         Runnable task)
     {
         dispatcher.accept(task);
+    }
+
+    private final class Expiry implements Closeable
+    {
+        private final TestExpirer expirer;
+
+        private Expiry(
+            TestExpirer expirer)
+        {
+            this.expirer = expirer;
+        }
+
+        @Override
+        public void close()
+        {
+            expirers.remove(expirer);
+            expiries.remove(this);
+        }
     }
 }

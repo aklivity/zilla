@@ -97,6 +97,16 @@ public class MemoryStoreHandlerIT
     }
 
     @Test
+    @Configuration("store.expire.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldExpireEntry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("store.increment.yaml")
     @Specification({
         "${net}/store.assert/client",

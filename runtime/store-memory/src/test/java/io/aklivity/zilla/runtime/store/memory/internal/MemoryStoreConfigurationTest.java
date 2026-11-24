@@ -14,6 +14,10 @@
  */
 package io.aklivity.zilla.runtime.store.memory.internal;
 
+import static org.junit.Assert.assertEquals;
+
+import java.time.Duration;
+
 import org.junit.Test;
 
 public class MemoryStoreConfigurationTest
@@ -22,5 +26,11 @@ public class MemoryStoreConfigurationTest
     public void shouldVerifyConstants() throws Exception
     {
         new MemoryStoreConfiguration();
+    }
+
+    @Test
+    public void shouldDefaultSweepIntervalToOneSecond() throws Exception
+    {
+        assertEquals(Duration.ofSeconds(1), new MemoryStoreConfiguration().sweepInterval());
     }
 }

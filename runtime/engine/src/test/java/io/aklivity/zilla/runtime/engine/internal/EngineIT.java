@@ -590,4 +590,14 @@ public class EngineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.store.expire.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldExpireEntryInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
 }

@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
@@ -88,6 +89,7 @@ public class MemoryStoreContextTest
     {
         final EngineContext context = mock(EngineContext.class);
         when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.signaler()).thenReturn(mock(Signaler.class));
         doAnswer(invocation ->
         {
             ((Runnable) invocation.getArgument(0)).run();

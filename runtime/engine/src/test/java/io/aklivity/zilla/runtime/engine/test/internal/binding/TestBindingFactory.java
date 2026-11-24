@@ -38,6 +38,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.LongConsumer;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -1412,7 +1413,8 @@ final class TestBindingFactory implements BindingHandler
                 returned.value = true;
                 break;
             case "watch":
-                runWatchAssertion(traceId, a, dispatchThread, next);
+            case "expire":
+                runObserveAssertion(traceId, a, dispatchThread, next);
                 break;
             default:
                 doInitialReset(traceId);
@@ -1491,16 +1493,17 @@ final class TestBindingFactory implements BindingHandler
             returned.value = true;
         }
 
-        private void runWatchAssertion(
+        private void runObserveAssertion(
             long traceId,
             StoreAssertion a,
             Thread dispatchThread,
             Runnable next)
         {
-            // registration is synchronous; listener fires async on mutations. emit an observable
-            // reply flush per notification so the script can gate on the callback having fired on
-            // the dispatch thread, making the watch deterministic
-            store.watch(a.key, (k, v) ->
+            // registration is synchronous; listener fires async on mutations (watch) or on expiry of
+            // an entry under the prefix (expire). emit an observable reply flush per notification so
+            // the script can gate on the callback having fired on the dispatch thread, making the
+            // observation deterministic
+            final BiConsumer<String, String> listener = (k, v) ->
             {
                 if (Thread.currentThread() != dispatchThread ||
                     a.hasExpect && !Objects.equals(v, a.expect))
@@ -1511,7 +1514,16 @@ final class TestBindingFactory implements BindingHandler
                 {
                     doReplyFlush(traceId, 0);
                 }
-            });
+            };
+
+            if ("watch".equals(a.op))
+            {
+                store.watch(a.key, listener);
+            }
+            else
+            {
+                store.expire(a.key, listener);
+            }
             next.run();
         }
 
