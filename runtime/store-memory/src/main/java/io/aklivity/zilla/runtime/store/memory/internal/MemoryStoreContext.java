@@ -15,7 +15,9 @@
 package io.aklivity.zilla.runtime.store.memory.internal;
 
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
@@ -32,6 +34,7 @@ final class MemoryStoreContext implements StoreContext
     private final LongFunction<ConcurrentMap<String, MemoryEntry>> supplyEntries;
     private final LongFunction<ConcurrentMap<String, List<Watcher>>> supplyWatchers;
     private final LongFunction<ConcurrentMap<String, LockEntry>> supplyLocks;
+    private final Map<Long, MemoryStoreHandler> handlers = new HashMap<>();
     private final LongConsumer removeEntries;
     private final Consumer<Runnable> dispatcher;
     private final Clock clock;
@@ -56,18 +59,25 @@ final class MemoryStoreContext implements StoreContext
     public StoreHandler attach(
         StoreConfig config)
     {
-        return new MemoryStoreHandler(
+        final MemoryStoreHandler handler = new MemoryStoreHandler(
             supplyEntries.apply(config.id),
             supplyWatchers.apply(config.id),
             supplyLocks.apply(config.id),
             dispatcher,
             clock);
+        handlers.put(config.id, handler);
+        return handler;
     }
 
     @Override
     public void detach(
         StoreConfig config)
     {
+        final MemoryStoreHandler handler = handlers.remove(config.id);
+        if (handler != null)
+        {
+            handler.unwatchAll();
+        }
         removeEntries.accept(config.id);
     }
 }
