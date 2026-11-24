@@ -86,6 +86,18 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.client.takeover.after.lease/client",
+        "${net}/session.client.takeover.after.lease/server"})
+    public void shouldTakeOverSessionAfterLease() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CONNECTED");
+        k3po.notifyBarrier("LEASE_ELAPSED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.will.message.takeover/client",
         "${net}/session.will.message.takeover/server"})
     public void shouldDeliverWillMessageOnSessionTakeover() throws Exception

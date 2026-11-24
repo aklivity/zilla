@@ -345,6 +345,22 @@ public class SessionIT
     @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
+        "${net}/session.client.takeover.after.lease/client",
+        "${app}/session.client.takeover/server"})
+    public void shouldTakeOverSessionAfterLease() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CONNECTED");
+        Thread.sleep(1500L);
+        k3po.notifyBarrier("LEASE_ELAPSED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
         "${net}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start/server"})
     public void shouldRemoveSessionAtCleanStart() throws Exception
