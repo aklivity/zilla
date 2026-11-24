@@ -152,7 +152,7 @@ public final class KafkaClientConnectionPool extends KafkaClientSaslHandshaker
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.writeBuffer = context.writeBuffer("connectionPool@%s".formatted(System.identityHashCode(this)));
         this.encodeBuffer = context.writeBuffer("encode");
-        this.decodePool = context.bufferPool();
+        this.decodePool = context.bufferPool().duplicate();
         this.encodePool = context.bufferPool();
         this.supplyBinding = supplyBinding;
         this.signaler = new KafkaClientSignaler(context.signaler());

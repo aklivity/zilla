@@ -281,6 +281,16 @@ public class ClientFetchIT
     }
 
     @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/message.value.latest.behind.stable/client",
+        "${net}/message.value.latest.behind.stable/server"})
+    public void shouldReceiveMessageValueLatestBehindStable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.store.brokers.entries.yaml")
     @Specification({
         "${app}/message.value.leader.from.affinity/client",

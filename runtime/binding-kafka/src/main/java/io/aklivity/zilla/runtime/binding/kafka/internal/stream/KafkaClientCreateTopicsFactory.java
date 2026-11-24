@@ -541,9 +541,8 @@ public final class KafkaClientCreateTopicsFactory extends KafkaClientSaslHandsha
                 break decode;
             }
 
-            progress = responseHeader.limit();
-
-            final CreateTopicsResponseFW createTopicsResponse = createTopicsResponseRO.tryWrap(buffer, progress, limit);
+            final CreateTopicsResponseFW createTopicsResponse =
+                createTopicsResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
             if (createTopicsResponse == null)
             {
                 break decode;

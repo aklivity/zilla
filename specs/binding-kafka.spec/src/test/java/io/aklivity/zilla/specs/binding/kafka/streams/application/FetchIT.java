@@ -211,6 +211,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/message.value.latest.behind.stable/client",
+        "${app}/message.value.latest.behind.stable/server"})
+    public void shouldReceiveMessageValueLatestBehindStable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.leader.from.affinity/client",
         "${app}/message.value.leader.from.affinity/server"})
     public void shouldReceiveMessageValueLeaderFromAffinity() throws Exception

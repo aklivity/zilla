@@ -518,9 +518,8 @@ public final class KafkaClientAlterConfigsFactory extends KafkaClientSaslHandsha
                 break decode;
             }
 
-            progress = responseHeader.limit();
-
-            final AlterConfigsResponseFW alterConfigsResponse = alterConfigsResponseRO.tryWrap(buffer, progress, limit);
+            final AlterConfigsResponseFW alterConfigsResponse =
+                alterConfigsResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
             if (alterConfigsResponse == null)
             {
                 break decode;
