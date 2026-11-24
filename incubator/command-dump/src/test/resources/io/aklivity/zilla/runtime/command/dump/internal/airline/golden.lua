@@ -3074,6 +3074,8 @@ add_field("mqtt_ext_subscribe_qos_max", ProtoField.uint16("zilla.mqtt_ext.subscr
 add_field("mqtt_ext_publish_qos_max", ProtoField.uint16("zilla.mqtt_ext.publish_qos_max", "Publish QoS Maximum", base.DEC))
 add_field("mqtt_ext_packet_size_max", ProtoField.uint32("zilla.mqtt_ext.packet_size_max", "Packet Size Maximum", base.DEC))
 add_field("mqtt_ext_packet_ids_array_size", ProtoField.int8("zilla.mqtt_ext.packet_ids_array_size", "Size", base.DEC))
+add_field("mqtt_ext_inbound_length", ProtoField.int32("zilla.mqtt_ext.inbound_length", "Length", base.DEC))
+add_field("mqtt_ext_inbound", ProtoField.bytes("zilla.mqtt_ext.inbound", "Inbound", base.NONE))
 --     capabilities
 add_field("mqtt_ext_capabilities", ProtoField.uint8("zilla.mqtt_ext.capabilities", "Capabilities", base.HEX))
 add_field("mqtt_ext_capabilities_retain", ProtoField.uint8("zilla.mqtt_ext.capabilities_retain", "RETAIN",
@@ -3396,7 +3398,10 @@ function handle_mqtt_begin_session_extension(buffer, offset, ext_subtree)
         slice_client_id_length, slice_client_id_text, fields.mqtt_ext_client_id_length, fields.mqtt_ext_client_id)
     -- packet_ids
     local packet_ids_offset = client_id_offset + client_id_length
-    local next_offset = dissect_and_add_mqtt_packet_ids(buffer, packet_ids_offset, ext_subtree)
+    local inbound_offset = dissect_and_add_mqtt_packet_ids(buffer, packet_ids_offset, ext_subtree)
+    -- inbound
+    add_mqtt_binary_as_subtree(buffer, inbound_offset, ext_subtree, "Inbound",
+        fields.mqtt_ext_inbound_length, fields.mqtt_ext_inbound)
 end
 
 function dissect_and_add_mqtt_packet_ids(buffer, offset, tree)
@@ -3637,6 +3642,10 @@ function handle_mqtt_flush_session_extension(buffer, offset, ext_subtree)
     local packet_id_length = 2
     local slice_packet_id = buffer(packet_id_offset, packet_id_length)
     ext_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+    -- inbound
+    local inbound_offset = packet_id_offset + packet_id_length
+    add_mqtt_binary_as_subtree(buffer, inbound_offset, ext_subtree, "Inbound",
+        fields.mqtt_ext_inbound_length, fields.mqtt_ext_inbound)
 end
 
 function handle_mqtt_reset_extension(buffer, offset, ext_subtree)
