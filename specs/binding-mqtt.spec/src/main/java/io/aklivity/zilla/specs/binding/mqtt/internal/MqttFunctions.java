@@ -2052,6 +2052,12 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExMatcherBuilder noPackets()
+            {
+                supplyPackets();
+                return this;
+            }
+
             public MqttSubscribeBeginExMatcherBuilder sharedPacketBytes(
                 int packetId,
                 String state,

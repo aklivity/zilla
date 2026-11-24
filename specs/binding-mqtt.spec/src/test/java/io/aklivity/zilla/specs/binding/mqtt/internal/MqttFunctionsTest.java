@@ -2415,4 +2415,58 @@ public class MqttFunctionsTest
 
         assertNotNull(matcher.match(byteBuf));
     }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionNoPackets() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .noPackets()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(2)
+                .generation(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchSubscribeBeginExtensionNoPackets() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .noPackets()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(2)
+                .packetsItem(p -> p
+                    .packetId(7)
+                    .state(MqttPacketState.PUBLISH_SENT.value())
+                    .qos(2)
+                    .shareName("consumers")
+                    .filter("sensor/one")
+                    .metadata(m -> m.bytes(b -> b.set(new byte[] {0x01})))))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
 }
