@@ -275,6 +275,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${app}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectNonCleanStartStoreUnreadableState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
