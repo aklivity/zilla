@@ -339,10 +339,14 @@ public final class KafkaCachePartition
         return SIZEOF_EMPTY_TRAILERS + headersItemsMax;
     }
 
-    public static int trailersSizeMax(
-        int trailersSizeMax)
+    public Node newHeadIfNecessary(
+        long offset,
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int headersSizeMax)
     {
-        return Math.max(trailersSizeMax, SIZEOF_EMPTY_TRAILERS) + SIZEOF_PADDING_LENGTH;
+        return newHeadIfNecessary(offset, key, valueLength, valuePaddingMax, headersSizeMax, headersSizeMax);
     }
 
     public Node newHeadIfNecessary(
@@ -350,7 +354,21 @@ public final class KafkaCachePartition
         KafkaKeyFW key,
         int valueLength,
         int valuePaddingMax,
-        int headersSizeMax)
+        int headersSizeMax,
+        int trailersSizeMax)
+    {
+        final int trailersTailMax = Math.max(trailersSizeMax, SIZEOF_EMPTY_TRAILERS) + SIZEOF_PADDING_LENGTH;
+        return rollHeadIfNecessary(offset, key, valueLength, valuePaddingMax, headersSizeMax + trailersTailMax,
+            headersSizeMax + trailersSizeMax);
+    }
+
+    private Node rollHeadIfNecessary(
+        long offset,
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int logHeadersMax,
+        int hashHeadersMax)
     {
         Node head = sentinel.previous;
 
@@ -361,9 +379,9 @@ public final class KafkaCachePartition
         else
         {
             final int logRequired = entryInfo.capacity() + key.sizeof() + SIZEOF_PADDING_LENGTH + valueInfo.capacity() +
-                    Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + headersSizeMax;
+                    Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + logHeadersMax;
             final int hashKeyRequired = key.length() != -1 ? 1 : 0;
-            final int hashHeaderRequiredMax = headersSizeMax >> 2;
+            final int hashHeaderRequiredMax = hashHeadersMax >> 2;
             final int hashRequiredMax = (hashKeyRequired + hashHeaderRequiredMax) * SIZEOF_INDEX_RECORD;
 
             KafkaCacheSegment headSegment = head.segment;

@@ -600,14 +600,13 @@ public class KafkaCachePartitionTest
         KafkaKeyFW key = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers = headers(buffer, key.limit(), "h1", "v1", "h2", "v2");
         final int headersMax = KafkaCachePartition.headersSizeMax(headers.sizeof() - Integer.BYTES * 2 + 1 + 3);
-        final int headersSizeMax = headersMax + KafkaCachePartition.trailersSizeMax(0);
 
         for (int length = 0; length < 200; length++)
         {
             final long offset = 11L + length;
             final OctetsFW value = value(buffer, headers.limit(), "x".repeat(length));
 
-            final Node head = partition.newHeadIfNecessary(offset, key, length, 0, headersSizeMax);
+            final Node head = partition.newHeadIfNecessary(offset, key, length, 0, headersMax, 0);
             partition.writeEntryStart(null, 1L, 1L, 0L, offset, entryMark, valueMark, valueLimit, headersMark, 0L,
                 KafkaTimestampType.ADVISORY, -1L, key, length, 0, headersMax, 256, null, 0x00,
                 KafkaDeltaType.NONE, value, KafkaCacheModel.NONE, KafkaCacheModel.NONE, new KafkaCacheKeyEnvelope(),

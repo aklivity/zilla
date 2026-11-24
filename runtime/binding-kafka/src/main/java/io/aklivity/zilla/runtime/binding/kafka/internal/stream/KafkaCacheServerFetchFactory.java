@@ -952,16 +952,14 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 final int partitionId = kafkaFetchDataEx.partition().partitionId();
                 final long partitionOffset = kafkaFetchDataEx.partition().partitionOffset();
                 // headersMax bounds the stored headers array, whose real content is unknown until
-                // writeEntryFinish. headersSizeMax additionally reserves everything writeEntryFinish appends
-                // after the headers, so the head segment is rolled before the entry starts, never in the middle of
-                // it. When a value model is configured, that tail is the trailers-sized envelope claimed by
-                // writeEntryStart (see KafkaCachePartition.writeEntryStart), reused for the entry's own final trailers,
-                // so only one trailersSizeMax-sized share is required, not two
+                // writeEntryFinish. trailersMax is the trailers-sized envelope claimed by writeEntryStart when a
+                // value model is configured (see KafkaCachePartition.writeEntryStart), reused for the entry's own
+                // final trailers, so only one trailersSizeMax-sized share is required, not two. Both are
+                // reserved up front so the head segment is rolled before the entry starts, never in the middle of it
                 final int headersMax = Math.max(kafkaFetchDataEx.headers().sizeof(),
                     KafkaCachePartition.headersSizeMax(kafkaFetchDataEx.headersSizeMax()));
                 this.headersMax = headersMax;
-                final int headersSizeMax = headersMax +
-                    KafkaCachePartition.trailersSizeMax(transformValue != KafkaCacheModel.NONE ? trailersSizeMax : 0);
+                final int trailersMax = transformValue != KafkaCacheModel.NONE ? trailersSizeMax : 0;
                 final long timestamp = kafkaFetchDataEx.timestamp();
                 final KafkaTimestampType timestampType = kafkaFetchDataEx.timestampType().get();
                 final long producerId = kafkaFetchDataEx.producerId();
@@ -979,7 +977,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 final KafkaCachePartition.Node head = partition.head();
                 final KafkaCachePartition.Node nextHead =
-                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, valuePaddingMax, headersSizeMax);
+                        partition.newHeadIfNecessary(partitionOffset, key, valueLength, valuePaddingMax, headersMax, trailersMax);
 
                 final long nextOffset = partition.nextOffset(defaultOffset);
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset
