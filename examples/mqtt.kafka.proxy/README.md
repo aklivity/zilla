@@ -47,6 +47,12 @@ Client null sending PUBLISH (d0, q0, r0, m1, 'zilla', ... (12 bytes))
 Client null sending DISCONNECT
 ```
 
+### Sessions topic partitions
+
+Zilla stores the state of every MQTT client in the compacted `mqtt-sessions` topic: the session, the QoS 2 offsets, the expiry and will signals and the will message. All records of one client use the client id as key and stay in one partition, so the topic can have more than one partition. The [compose.yaml](compose.yaml) creates it with 4 partitions so that the session records of many clients are served and produced in parallel, spread over the Zilla workers.
+
+Each partition adds a stream per client session, so the number of partitions is a trade-off. Use roughly the number of Zilla workers, and set it before the first client connects, because Kafka does not move the records of existing clients when partitions are added.
+
 ### Shared subscriptions
 
 MQTT 5 shared subscriptions deliver each matching message to exactly one of the sessions subscribed with the same `$share/<ShareName>/<filter>`. Zilla maps a shared subscription to a Kafka share group, so the Kafka broker must have share groups enabled and the `mqtt-kafka` binding needs a `store` to keep the subscription lifecycle and the claim tickets of QoS 2 messages.
