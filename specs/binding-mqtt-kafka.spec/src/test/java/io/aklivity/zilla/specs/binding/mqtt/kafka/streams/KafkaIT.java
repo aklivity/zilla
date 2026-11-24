@@ -940,6 +940,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/client",
+        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldSessionStorePersistentCleanStartResetGroupOffsetsCoordinatorNotAvailableQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.persistent.clean.start.discard.offsets/client",
+        "${kafka}/session.store.persistent.clean.start.discard.offsets/server"})
+    public void shouldSessionStorePersistentCleanStartDiscardOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.persistent.close.reconnect.non.expiring/client",
+        "${kafka}/session.store.persistent.close.reconnect.non.expiring/server"})
+    public void shouldSessionStorePersistentCloseReconnectNonExpiring() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.store.subscribe.qos.max.1/client",
         "${kafka}/session.store.subscribe.qos.max.1/server"})
     public void shouldSessionStoreSubscribeQosMax1() throws Exception
