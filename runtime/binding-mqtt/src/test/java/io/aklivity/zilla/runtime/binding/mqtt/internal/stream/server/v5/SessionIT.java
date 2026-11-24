@@ -345,6 +345,18 @@ public class SessionIT
     @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent/server"})
+    public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
         "${net}/session.client.takeover.after.lease/client",
         "${app}/session.client.takeover/server"})
     public void shouldTakeOverSessionAfterLease() throws Exception
@@ -616,6 +628,16 @@ public class SessionIT
         "${net}/session.connect.non.clean.start.store.empty.state/client",
         "${app}/session.connect.non.clean.start.store.empty.state/server"})
     public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.held.yaml")
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.empty.state/client",
+        "${app}/session.connect.non.clean.start.store.held.state/server"})
+    public void shouldConnectNonCleanStartStoreHeldState() throws Exception
     {
         k3po.finish();
     }
