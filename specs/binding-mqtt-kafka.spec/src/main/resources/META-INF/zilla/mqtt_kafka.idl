@@ -55,6 +55,46 @@ scope mqtt_kafka
         case V1: MqttSharedRecordV1 recordV1;
     }
 
+    enum MqttSubscribeOutboundVersion (uint8)
+    {
+        V1 (1)
+    }
+
+    enum MqttSubscribeOutboundPacketState (uint8)
+    {
+        PUBLISH_SENT (1),
+        PUBREL_PENDING (2)
+    }
+
+    struct MqttSubscribeOutboundPartitionV1
+    {
+         uint8 qos;
+         string16 topic;
+         int32 partitionId;
+         int64 nextOffset;
+    }
+
+    struct MqttSubscribeOutboundPacketV1
+    {
+         uint16 packetId;
+         uint8 state;
+         uint8 qos;
+         string16 topic;
+         int32 partitionId;
+         int64 partitionOffset;
+    }
+
+    struct MqttSubscribeOutboundV1
+    {
+         MqttSubscribeOutboundPartitionV1[] partitions;
+         MqttSubscribeOutboundPacketV1[] packets;
+    }
+
+    union MqttSubscribeOutbound switch (MqttSubscribeOutboundVersion)
+    {
+        case V1: MqttSubscribeOutboundV1 outboundV1;
+    }
+
     struct MqttPublishOffsetMetadata
     {
          uint8 version = 1;

@@ -15,6 +15,7 @@
 package io.aklivity.zilla.specs.binding.mqtt.kafka.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
@@ -34,6 +35,9 @@ import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffs
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSharedRecordFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSharedRecordVersion;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundPacketState;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundVersion;
 
 public class MqttKafkaFunctionsTest
 {
@@ -43,6 +47,45 @@ public class MqttKafkaFunctionsTest
         MqttKafkaFunctions.Mapper mapper = new MqttKafkaFunctions.Mapper();
         assertEquals("mqtt_kafka", mapper.getPrefixName());
     }
+    @Test
+    public void shouldEncodeSubscribeOutbound()
+    {
+        final byte[] bytes = MqttKafkaFunctions.subscribeOutbound()
+            .partition(1, "mqtt-messages", 0, 5)
+            .partition(2, "mqtt-messages", 1, 9)
+            .packet(1, "PUBLISH_SENT", 2, "mqtt-messages", 0, 4)
+            .packet(2, "PUBREL_PENDING", 2, "mqtt-messages", 1, 8)
+            .build();
+
+        final MqttSubscribeOutboundFW outbound = new MqttSubscribeOutboundFW()
+            .wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(MqttSubscribeOutboundVersion.V1, outbound.kind());
+        assertEquals(2, outbound.outboundV1().partitions().fieldCount());
+        assertEquals(2, outbound.outboundV1().packets().fieldCount());
+        assertNotNull(outbound.outboundV1().partitions().matchFirst(p ->
+            p.qos() == 2 && "mqtt-messages".equals(p.topic().asString()) && p.partitionId() == 1 && p.nextOffset() == 9));
+        assertNotNull(outbound.outboundV1().packets().matchFirst(p ->
+            p.packetId() == 2 &&
+                p.state() == MqttSubscribeOutboundPacketState.PUBREL_PENDING.value() &&
+                p.qos() == 2 &&
+                "mqtt-messages".equals(p.topic().asString()) &&
+                p.partitionId() == 1 &&
+                p.partitionOffset() == 8));
+    }
+
+    @Test
+    public void shouldEncodeSubscribeOutboundEmpty()
+    {
+        final byte[] bytes = MqttKafkaFunctions.subscribeOutbound().build();
+
+        final MqttSubscribeOutboundFW outbound = new MqttSubscribeOutboundFW()
+            .wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(0, outbound.outboundV1().partitions().fieldCount());
+        assertEquals(0, outbound.outboundV1().packets().fieldCount());
+    }
+
     @Test
     public void shouldEncodeMqttOffsetMetadataV1()
     {
