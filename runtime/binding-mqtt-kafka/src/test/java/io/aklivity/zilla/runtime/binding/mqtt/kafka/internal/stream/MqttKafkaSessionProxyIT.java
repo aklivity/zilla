@@ -896,6 +896,22 @@ public class MqttKafkaSessionProxyIT
 
     @Test
     @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSendWillMessageQos2OnAbortWithoutExpirySignal() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = ENGINE_STREAMS_BUFFER_CAPACITY_NAME, value = "8192")
     @Specification({

@@ -956,6 +956,17 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/client",
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionWillMessageQos2AbortDeliverWill() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.will.message.qos2.abort.before.session.established/client",
         "${mqtt}/session.will.message.qos2.abort.before.session.established/server"})
     public void shouldSendWillSignalOnQos2AbortBeforeSessionEstablished() throws Exception
