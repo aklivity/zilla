@@ -1525,6 +1525,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound/client",
+        "${kafka}/subscribe.resume.qos1.outbound/server"})
+    public void shouldResumeSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
     public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
