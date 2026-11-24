@@ -1476,4 +1476,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.unreceived.message/client",
+        "${net}/subscribe.shared.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2UnreceivedMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }
