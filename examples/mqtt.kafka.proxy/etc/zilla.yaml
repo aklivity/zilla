@@ -25,7 +25,6 @@ bindings:
     type: mqtt-kafka
     kind: proxy
     options:
-      store: memory0
       topics:
         sessions: mqtt-sessions
         messages: mqtt-messages

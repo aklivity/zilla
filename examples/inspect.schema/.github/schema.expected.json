@@ -6441,10 +6441,6 @@
                                         ],
                                         "additionalProperties": false
                                     },
-                                    "store": {
-                                        "title": "Store Reference",
-                                        "type": "string"
-                                    },
                                     "clients": {
                                         "title": "Clients",
                                         "type": "array",
