@@ -293,6 +293,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.client.takeover.persistent.stored.window.too.small/client",
+        "${app}/session.client.takeover.persistent.stored.window.too.small/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowTooSmall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
