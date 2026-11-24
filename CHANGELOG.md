@@ -15,6 +15,7 @@
 - mqtt-kafka: Zilla stops sending CONNACK to every client once pending clients start giving up [\#3306](https://github.com/aklivity/zilla/issues/3306) ([ankitk-me](https://github.com/ankitk-me))
 - mqtt: the server ignores the client's Receive Maximum and sends more unacknowledged QoS 1 and 2 PUBLISH packets than it allows [\#3352](https://github.com/aklivity/zilla/issues/3352) ([ankitk-me](https://github.com/ankitk-me))
 - kafka: engine stops with IndexOutOfBoundsException in KafkaClientConnectionPool while reading a Kafka response header [\#3424](https://github.com/aklivity/zilla/issues/3424) ([ankitk-me](https://github.com/ankitk-me))
+- mqtt-kafka: a few clients never get CONNACK \(2.8.0-rc5\) [\#3517](https://github.com/aklivity/zilla/issues/3517) ([ankitk-me](https://github.com/ankitk-me))
 
 **Closed issues:**
 
@@ -245,6 +246,14 @@
 - perf\(flyweight-maven-plugin\): skip the array item rebuild pass for item types that do not rebuild [\#3510](https://github.com/aklivity/zilla/pull/3510) ([jfallows](https://github.com/jfallows))
 - fix\(binding-kafka\): retain interned topic names in the cache and client route [\#3512](https://github.com/aklivity/zilla/pull/3512) ([jfallows](https://github.com/jfallows))
 - perf\(binding-kafka\): faster fetch fanout, fewer flushes and syscalls, native scratch buffers [\#3513](https://github.com/aklivity/zilla/pull/3513) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): defer cache consumer offset commit until group joined [\#3515](https://github.com/aklivity/zilla/pull/3515) ([akrambek](https://github.com/akrambek))
+- test\(binding-kafka\): benchmark the cache server produce and populate path [\#3520](https://github.com/aklivity/zilla/pull/3520) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): release session signal decode slot after every signal [\#3521](https://github.com/aklivity/zilla/pull/3521) ([jfallows](https://github.com/jfallows))
+- perf\(binding-kafka\): remove per-record allocation in the cache server produce and populate path [\#3522](https://github.com/aklivity/zilla/pull/3522) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): hash session state by client id and cover multi-partition sessions topic [\#3523](https://github.com/aklivity/zilla/pull/3523) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): complete session handshakes that never received a CONNACK [\#3524](https://github.com/aklivity/zilla/pull/3524) ([jfallows](https://github.com/jfallows))
+- feat\(examples\): create mqtt-sessions topic with 4 partitions [\#3525](https://github.com/aklivity/zilla/pull/3525) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): keep pooled responses in step with requests and the fetch latest offset at or past stable [\#3526](https://github.com/aklivity/zilla/pull/3526) ([jfallows](https://github.com/jfallows))
 
 ## [2.7.1](https://github.com/aklivity/zilla/tree/2.7.1) (2026-11-16)
 
