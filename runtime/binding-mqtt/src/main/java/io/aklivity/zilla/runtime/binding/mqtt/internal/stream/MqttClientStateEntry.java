@@ -274,7 +274,9 @@ final class MqttClientStateEntry
     {
         final List<Runnable> continuations = loading;
 
-        record = states.decode(value);
+        final MqttClientStateRecord decoded = states.decode(value);
+
+        record = decoded != null ? decoded : states.decode(null);
         stored = value;
         loading = null;
 

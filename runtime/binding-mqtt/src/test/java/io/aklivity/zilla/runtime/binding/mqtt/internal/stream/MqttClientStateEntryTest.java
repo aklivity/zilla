@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -288,5 +289,53 @@ public class MqttClientStateEntryTest
         String value)
     {
         return new Assertion("replace", KEY, null, value, expected, 0L, TTL);
+    }
+
+    @Test
+    public void shouldApplyOnlyLatestOfOverlappingReloads()
+    {
+        entries.put(KEY, new TestEntry(encode("replica-a"), Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry();
+        runTasks();
+
+        entry.reload(this::completed);
+        entries.put(KEY, new TestEntry(encode(null, MEMBERSHIP), Long.MAX_VALUE));
+        entry.reload(this::completed);
+        runTasks();
+
+        assertEquals(2, completions);
+        assertTrue(entry.ready());
+        assertEquals(List.of(MEMBERSHIP), entry.memberships());
+        assertFalse(entry.held());
+    }
+
+    @Test
+    public void shouldTreatUnreadableRecordAsNoState()
+    {
+        entries.put(KEY, new TestEntry("CQ", Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry();
+        runTasks();
+
+        assertTrue(entry.ready());
+        assertTrue(entry.empty());
+        assertFalse(entry.held());
+        assertTrue(entry.memberships().isEmpty());
+        assertTrue(entry.packets().isEmpty());
+        assertEquals(0, entry.subscriptions().length);
+    }
+
+    @Test
+    public void shouldHoldOverUnreadableRecordWithReplace()
+    {
+        final String held = encode("replica-a");
+        entries.put(KEY, new TestEntry("CQ", Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry(replace("CQ", held));
+        runTasks();
+
+        entry.hold("replica-a", this::completed);
+        runTasks();
+
+        assertEquals(1, completions);
+        assertEquals(held, stored());
     }
 }
