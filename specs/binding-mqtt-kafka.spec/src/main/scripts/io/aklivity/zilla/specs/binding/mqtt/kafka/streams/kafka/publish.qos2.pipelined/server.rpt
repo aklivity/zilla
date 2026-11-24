@@ -137,6 +137,7 @@ read zilla:data.ext ${kafka:matchDataEx()
                            .build()}
 read ${mqtt_kafka:sessionOffsets()
             .entry("mqtt-messages", 0, 2, 1, 1, 0)
+                .packetId(2)
             .entry("mqtt-messages", 1, 1, 1, 1, 0)
             .entry("mqtt-retained", 0, 1, 1, 1, 0)
             .build()}
@@ -340,6 +341,7 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
+read await SENT_DATA_TWO
 read zilla:data.ext ${kafka:matchDataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -368,8 +370,9 @@ read zilla:data.ext ${kafka:matchDataEx()
                                .build()
                            .build()}
 read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 2, 1, 1, 0)
+            .entry("mqtt-messages", 0, 1, 1, 1, 0)
                 .packetId(1)
+                .packetId(2)
             .entry("mqtt-messages", 1, 1, 1, 1, 0)
             .entry("mqtt-retained", 0, 1, 1, 1, 0)
             .build()}

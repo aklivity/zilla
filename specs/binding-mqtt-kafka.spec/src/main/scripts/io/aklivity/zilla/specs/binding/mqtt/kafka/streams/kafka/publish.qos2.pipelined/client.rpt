@@ -129,6 +129,8 @@ write ${mqtt_kafka:sessionOffsets()
 write flush
 write notify SENT_INITIAL_OFFSET_COMMIT
 
+write flush
+
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -141,10 +143,10 @@ write zilla:data.ext ${kafka:dataEx()
                            .build()}
 write ${mqtt_kafka:sessionOffsets()
             .entry("mqtt-messages", 0, 2, 1, 1, 0)
+                .packetId(2)
             .entry("mqtt-messages", 1, 1, 1, 1, 0)
             .entry("mqtt-retained", 0, 1, 1, 1, 0)
             .build()}
-write flush
 
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
@@ -362,6 +364,7 @@ write zilla:begin.ext ${kafka:beginEx()
 
 connected
 
+write notify SENT_DATA_TWO
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
                            .merged()
@@ -391,8 +394,9 @@ write zilla:data.ext ${kafka:dataEx()
                                .build()
                            .build()}
 write ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 2, 1, 1, 0)
+            .entry("mqtt-messages", 0, 1, 1, 1, 0)
                 .packetId(1)
+                .packetId(2)
             .entry("mqtt-messages", 1, 1, 1, 1, 0)
             .entry("mqtt-retained", 0, 1, 1, 1, 0)
             .build()}
