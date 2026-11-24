@@ -3886,7 +3886,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private boolean storedSubscriptions()
         {
-            return sessionStateStoreEnabled && sessionExpiry > 0;
+            return sessionStateStoreEnabled && sessionExpiry != 0;
         }
 
         private byte[] emptySubscriptions()

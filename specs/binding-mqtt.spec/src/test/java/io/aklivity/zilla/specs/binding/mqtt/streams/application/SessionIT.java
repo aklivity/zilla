@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.reconnect.non.clean.start.stored/client",
+        "${app}/session.reconnect.non.clean.start.stored/server"})
+    public void shouldReconnectNonCleanStartStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start/client",
         "${app}/session.connect.non.clean.start/server"})
     public void shouldConnectNonCleanStart() throws Exception
