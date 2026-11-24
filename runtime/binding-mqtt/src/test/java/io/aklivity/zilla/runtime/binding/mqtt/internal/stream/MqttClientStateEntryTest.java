@@ -378,4 +378,105 @@ public class MqttClientStateEntryTest
         assertEquals(2, completions);
         assertEquals(held, stored());
     }
+
+    @Test
+    public void shouldTouchHeldRecordToRestartTimeToLive()
+    {
+        final String held = encode("replica-a");
+        final MqttClientStateEntry entry = newEntry(new Assertion("putIfAbsent", KEY, held, TTL), touch());
+        runTasks();
+        entry.hold("replica-a", this::completed);
+        runTasks();
+        final long expiring = System.currentTimeMillis() + 1_000L;
+        entries.put(KEY, new TestEntry(held, expiring));
+
+        entry.touch();
+        runTasks();
+
+        assertEquals(held, stored());
+        assertTrue(entries.get(KEY).expiresAt() > expiring + 30_000L);
+    }
+
+    @Test
+    public void shouldRestoreHeldRecordWhenTouchFindsNoRecord()
+    {
+        final String loaded = encode(null, MEMBERSHIP);
+        final String held = encode("replica-a", MEMBERSHIP);
+        entries.put(KEY, new TestEntry(loaded, Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry(
+            replace(loaded, held), touch(), new Assertion("putIfAbsent", KEY, held, TTL));
+        runTasks();
+        entry.hold("replica-a", this::completed);
+        runTasks();
+        entries.remove(KEY);
+
+        entry.touch();
+        runTasks();
+
+        assertEquals(held, stored());
+    }
+
+    @Test
+    public void shouldNotTouchRecordThatIsNotHeld()
+    {
+        final long expiring = System.currentTimeMillis() + 1_000L;
+        entries.put(KEY, new TestEntry(encode(null, MEMBERSHIP), expiring));
+        final MqttClientStateEntry entry = newEntry();
+        runTasks();
+
+        entry.touch();
+        runTasks();
+
+        assertEquals(expiring, entries.get(KEY).expiresAt());
+    }
+
+    @Test
+    public void shouldNotTouchRecordOfSuccessor()
+    {
+        final String held = encode("replica-a");
+        final String successor = encode("replica-b");
+        final MqttClientStateEntry entry = newEntry(new Assertion("putIfAbsent", KEY, held, TTL), replace(held, held));
+        runTasks();
+        entry.hold("replica-a", this::completed);
+        runTasks();
+        final long expiring = System.currentTimeMillis() + 1_000L;
+        entries.put(KEY, new TestEntry(successor, expiring));
+        entry.write(this::completed);
+        runTasks();
+
+        entry.touch();
+        runTasks();
+
+        assertEquals(successor, stored());
+        assertEquals(expiring, entries.get(KEY).expiresAt());
+    }
+
+    @Test
+    public void shouldTouchHeldRecordOnlyAfterPendingReloadSettles()
+    {
+        final String held = encode("replica-a");
+        final MqttClientStateEntry entry = newEntry(new Assertion("putIfAbsent", KEY, held, TTL), touch());
+        runTasks();
+        entry.hold("replica-a", this::completed);
+        runTasks();
+        final long expiring = System.currentTimeMillis() + 1_000L;
+        entries.put(KEY, new TestEntry(held, expiring));
+
+        entry.reload(this::completed);
+        entry.touch();
+        runTasks();
+
+        assertEquals(expiring, entries.get(KEY).expiresAt());
+
+        entry.touch();
+        runTasks();
+
+        assertEquals(held, stored());
+        assertTrue(entries.get(KEY).expiresAt() > expiring + 30_000L);
+    }
+
+    private static Assertion touch()
+    {
+        return new Assertion("touch", KEY, null, TTL);
+    }
 }

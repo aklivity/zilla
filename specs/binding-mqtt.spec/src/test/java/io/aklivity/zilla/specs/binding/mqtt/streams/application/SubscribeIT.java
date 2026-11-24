@@ -1650,4 +1650,15 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/client",
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2AfterIdle() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("MESSAGE_ALLOWED");
+        k3po.finish();
+    }
 }

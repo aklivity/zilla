@@ -1560,4 +1560,13 @@ public class SubscribeIT
         k3po.notifyBarrier("SESSION_EXPIRED");
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.after.idle/client",
+        "${net}/subscribe.shared.reconnect.replay.qos2.after.idle/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2AfterIdle() throws Exception
+    {
+        k3po.finish();
+    }
 }

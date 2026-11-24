@@ -165,6 +165,14 @@ final class MqttClientStateEntry
             record.outbound.length == 0 && record.inbound.length == 0;
     }
 
+    void touch()
+    {
+        if (writer == writeHeld && idle())
+        {
+            store.touch(key, ttl.get(), touched -> onTouched(touched));
+        }
+    }
+
     boolean held()
     {
         return record.holder != null;
@@ -341,6 +349,17 @@ final class MqttClientStateEntry
         else
         {
             store.putIfAbsent(key, value, ttl.get(), existing -> onHeldWriteCompleted(existing == null, value));
+        }
+    }
+
+    private void onTouched(
+        boolean touched)
+    {
+        if (!touched && writer == writeHeld)
+        {
+            stored = null;
+
+            write(() -> {});
         }
     }
 
