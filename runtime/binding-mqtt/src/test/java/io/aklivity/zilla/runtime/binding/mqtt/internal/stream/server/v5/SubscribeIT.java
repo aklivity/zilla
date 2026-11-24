@@ -1580,4 +1580,14 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.abandon.qos2.unreceived.message/client",
+        "${app}/subscribe.shared.reconnect.abandon.qos2.unreceived.message/server"})
+    public void shouldSubscribeSharedReconnectAbandonQos2UnreceivedMessage() throws Exception
+    {
+        k3po.finish();
+    }
 }

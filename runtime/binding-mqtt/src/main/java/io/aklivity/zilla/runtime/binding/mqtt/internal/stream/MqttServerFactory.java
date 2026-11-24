@@ -330,6 +330,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     public static final int QOS2_INCOMPLETE_OFFSET_STATE = MqttOffsetStateFlags.INCOMPLETE.value();
     public static final int QOS2_COMPLETE_OFFSET_STATE = MqttOffsetStateFlags.COMPLETE.value();
     public static final int RECORDED_OFFSET_STATE = MqttOffsetStateFlags.RECORDED.value();
+    public static final int ABANDONED_OFFSET_STATE = MqttOffsetStateFlags.ABANDONED.value();
 
 
     private final BeginFW beginRO = new BeginFW();
@@ -9505,7 +9506,14 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final int packetId = subscribeFlushEx.subscribe().packetId();
                     final MqttPacketRecord packet = clientState != null ? clientState.packet(packetId) : null;
 
-                    if (packet != null && packet.state == MqttPacketState.PUBLISH_SENT)
+                    if (subscribeFlushEx.subscribe().state() == ABANDONED_OFFSET_STATE)
+                    {
+                        if (packet != null && clientState.remove(packetId))
+                        {
+                            clientState.write(() -> {});
+                        }
+                    }
+                    else if (packet != null && packet.state == MqttPacketState.PUBLISH_SENT)
                     {
                         clientState.replace(packet.pubrelPending());
                         clientState.write(() -> doSubscribePubrel(traceId, authorization, packetId));
