@@ -124,6 +124,44 @@ scope mqtt
         case V3: mqtt::MqttSessionStateV3 sessionStateV3;
     }
 
+    enum MqttPacketState (uint8)
+    {
+        PUBLISH_SENT (1),
+        PUBREL_PENDING (2)
+    }
+
+    struct MqttPacket
+    {
+        uint16 packetId;
+        uint8 state;
+        uint8 qos;
+        string16 shareName = null;
+        string16 filter = null;
+        MqttBinary metadata;
+    }
+
+    struct MqttMembership
+    {
+        string16 shareName;
+        string16 filter;
+    }
+
+    enum MqttClientStateVersion (uint8)
+    {
+        V1 (1)
+    }
+
+    struct MqttClientStateV1
+    {
+        MqttMembership[] memberships;
+        MqttPacket[] packets;
+    }
+
+    union MqttClientState switch (MqttClientStateVersion)
+    {
+        case V1: mqtt::MqttClientStateV1 clientStateV1;
+    }
+
     enum MqttSessionSignalType (uint8)
     {
         WILL (0),
@@ -236,6 +274,8 @@ scope mqtt
             string16 clientId;
             uint8 qos = 0;
             MqttTopicFilter[] filters;
+            uint32 generation = 0;
+            MqttPacket[] packets;
         }
 
         struct MqttPublishBeginEx
@@ -267,6 +307,7 @@ scope mqtt
             string16 responseTopic = null;
             MqttBinary correlation;
             MqttUserProperty[] properties;
+            MqttBinary metadata;
         }
 
         struct MqttPublishDataEx
@@ -338,7 +379,8 @@ scope mqtt
         enum MqttOffsetStateFlags (uint8)
         {
             COMPLETE(0),
-            INCOMPLETE(1)
+            INCOMPLETE(1),
+            RECORDED(2)
         }
     }
 
