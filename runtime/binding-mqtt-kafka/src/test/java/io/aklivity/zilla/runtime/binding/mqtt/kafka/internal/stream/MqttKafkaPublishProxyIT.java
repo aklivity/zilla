@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.BOOTSTRAP_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.INSTANCE_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
@@ -354,6 +355,18 @@ public class MqttKafkaPublishProxyIT
         "${mqtt}/publish.qos2/client",
         "${kafka}/publish.qos2/server"})
     public void shouldSendMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store/client",
+        "${kafka}/publish.qos2.session.store/server"})
+    public void shouldSendMessageQos2WithSessionStateStore() throws Exception
     {
         k3po.finish();
     }
