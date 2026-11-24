@@ -777,6 +777,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.subscribe.qos.max.1/client",
+        "${mqtt}/session.store.subscribe.qos.max.1/server"})
+    public void shouldSessionStoreSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.unsubscribe.after.subscribe.qos.max.1/client",
+        "${mqtt}/session.store.unsubscribe.after.subscribe.qos.max.1/server"})
+    public void shouldSessionStoreUnsubscribeAfterSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${mqtt}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
