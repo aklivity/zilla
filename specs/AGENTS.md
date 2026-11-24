@@ -300,6 +300,11 @@ approach.
 
 - Happy path for each `kind` and each `capability` the binding supports
 - Flow control: sender blocked by zero WINDOW, WINDOW credit restores flow
+- Flow control edge cases: a window of one byte (or padding plus one) still
+  makes progress, a window sized exactly to the next write releases exactly
+  that write, and credit withheld then released in steps resumes where
+  processing stopped; run payloads of 0, 1, slot-1, slot, slot+1 and 100k bytes
+  with the engine buffer slot capacity lowered below the payload
 - Orderly close: client-initiated END, server-initiated END
 - Abortive close: ABORT mid-stream, RESET on rejected stream
 - Protocol error: malformed input rejected with correct error response
