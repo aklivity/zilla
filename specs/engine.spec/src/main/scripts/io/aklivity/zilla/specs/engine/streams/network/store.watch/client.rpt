@@ -20,3 +20,6 @@ connect "zilla://streams/net0"
 connected
 
 read advised zilla:flush
+
+# the binding flushes once for each watch notification, and once more when its store assertions complete
+read advised zilla:flush
