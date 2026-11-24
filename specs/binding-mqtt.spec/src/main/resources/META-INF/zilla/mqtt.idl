@@ -253,7 +253,8 @@ scope mqtt
             WILDCARD (1),
             SUBSCRIPTION_IDS (2),
             SHARED_SUBSCRIPTIONS (3),
-            REDIRECT(4)
+            REDIRECT(4),
+            SHARED_GENERATION (5)
         }
 
         struct MqttSessionBeginEx

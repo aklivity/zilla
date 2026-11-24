@@ -104,10 +104,14 @@ final class MqttClientStateEntry
         return record.packets.isEmpty() && record.memberships.isEmpty();
     }
 
-    void discard()
+    List<MqttMembershipRecord> discard()
     {
+        final List<MqttMembershipRecord> discarded = new ArrayList<>(record.memberships);
+
         record.packets.clear();
         record.memberships.clear();
+
+        return discarded;
     }
 
     MqttPacketRecord packet(

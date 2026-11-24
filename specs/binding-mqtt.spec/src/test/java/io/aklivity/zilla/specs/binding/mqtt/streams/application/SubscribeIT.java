@@ -1596,4 +1596,13 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.rejoin.after.disconnect.new.generation/client",
+        "${app}/subscribe.shared.rejoin.after.disconnect.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterDisconnectNewGeneration() throws Exception
+    {
+        k3po.finish();
+    }
 }
