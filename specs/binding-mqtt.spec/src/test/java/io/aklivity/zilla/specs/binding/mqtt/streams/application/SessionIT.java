@@ -248,6 +248,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent/server"})
+    public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.unsubscribe.after.subscribe/client",
         "${app}/session.unsubscribe.after.subscribe/server"})
     public void shouldUnsubscribeAndUpdateSessionState() throws Exception
@@ -626,6 +635,15 @@ public class SessionIT
         "${app}/session.connect.non.clean.start.store.empty.state/client",
         "${app}/session.connect.non.clean.start.store.empty.state/server"})
     public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.non.clean.start.store.held.state/client",
+        "${app}/session.connect.non.clean.start.store.held.state/server"})
+    public void shouldConnectNonCleanStartStoreHeldState() throws Exception
     {
         k3po.finish();
     }

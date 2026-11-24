@@ -21,12 +21,15 @@ final class MqttClientStateRecord
 {
     final List<MqttMembershipRecord> memberships;
     final List<MqttPacketRecord> packets;
+    final String holder;
 
     MqttClientStateRecord(
         List<MqttMembershipRecord> memberships,
-        List<MqttPacketRecord> packets)
+        List<MqttPacketRecord> packets,
+        String holder)
     {
         this.memberships = memberships;
         this.packets = packets;
+        this.holder = holder;
     }
 }
