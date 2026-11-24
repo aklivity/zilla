@@ -1640,4 +1640,18 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.rejoin.after.session.expiry.new.generation/client",
+        "${app}/subscribe.shared.rejoin.after.session.expiry.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterSessionExpiryNewGeneration() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        Thread.sleep(1500L);
+        k3po.notifyBarrier("SESSION_EXPIRED");
+        k3po.finish();
+    }
 }

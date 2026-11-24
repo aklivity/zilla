@@ -35,6 +35,7 @@ import io.aklivity.zilla.runtime.engine.test.internal.store.TestStoreHandler;
 public class MqttSharedRegistryTest
 {
     private static final String KEY = "Y29uc3VtZXJz:c2Vuc29yL29uZQ#registry";
+    private static final String MEMBER_KEY = "Y29uc3VtZXJz:c2Vuc29yL29uZQ#b25l#member";
 
     private final ConcurrentMap<String, TestEntry> entries = new ConcurrentHashMap<>();
     private final List<Runnable> tasks = new ArrayList<>();
@@ -355,6 +356,90 @@ public class MqttSharedRegistryTest
         assertEquals("0:" + (MqttSharedRegistry.ATTEMPTS_MAX + 2), stored());
     }
 
+    @Test
+    public void shouldJoinMemberRecordingSessionToken()
+    {
+        final MqttSharedRegistry registry = newRegistry(putIfAbsent("0:1"), putMember("lifetime-1"));
+
+        registry.join(KEY, MEMBER_KEY, "lifetime-1", epochs::add, this::failed);
+        runTasks();
+
+        assertEquals(List.of(0L), epochs);
+        assertEquals("0:1", stored());
+        assertEquals("lifetime-1", storedMember());
+        assertEquals(0, failures);
+    }
+
+    @Test
+    public void shouldReleaseMemberOfSession()
+    {
+        seed("0:2");
+        seedMember("lifetime-1");
+        final MqttSharedRegistry registry = newRegistry(releaseMember("lifetime-1"), replace("0:2", "0:1"));
+
+        registry.release(KEY, MEMBER_KEY, "lifetime-1", this::completed);
+        runTasks();
+
+        assertEquals("0:1", stored());
+        assertEquals(MqttSharedRegistry.RELEASED, storedMember());
+        assertEquals(1, completions);
+    }
+
+    @Test
+    public void shouldNotReleaseMemberTwice()
+    {
+        seed("0:2");
+        seedMember("lifetime-1");
+        final MqttSharedRegistry registry = newRegistry(
+            releaseMember("lifetime-1"), replace("0:2", "0:1"), releaseMember("lifetime-1"));
+
+        registry.release(KEY, MEMBER_KEY, "lifetime-1", this::completed);
+        runTasks();
+        registry.release(KEY, MEMBER_KEY, "lifetime-1", this::completed);
+        runTasks();
+
+        assertEquals("0:1", stored());
+        assertEquals(MqttSharedRegistry.RELEASED, storedMember());
+        assertEquals(2, completions);
+    }
+
+    @Test
+    public void shouldNotReleaseMemberOfNewerSession()
+    {
+        seed("0:1");
+        seedMember("lifetime-2");
+        final MqttSharedRegistry registry = newRegistry(releaseMember("lifetime-1"));
+
+        registry.release(KEY, MEMBER_KEY, "lifetime-1", this::completed);
+        runTasks();
+
+        assertEquals("0:1", stored());
+        assertEquals("lifetime-2", storedMember());
+        assertEquals(1, completions);
+    }
+
+    @Test
+    public void shouldNotReleaseAbsentMember()
+    {
+        seed("0:1");
+        final MqttSharedRegistry registry = newRegistry(releaseMember("lifetime-1"));
+
+        registry.release(KEY, MEMBER_KEY, "lifetime-1", this::completed);
+        runTasks();
+
+        assertEquals("0:1", stored());
+        assertNull(storedMember());
+        assertEquals(1, completions);
+    }
+
+    @Test
+    public void shouldKeyMemberByEncodedClientIdOutsideStateFamily()
+    {
+        final String memberKey = MqttSharedRegistry.memberKey("consumers", "sensor/one", "one#state");
+
+        assertEquals("Y29uc3VtZXJz:c2Vuc29yL29uZQ#b25lI3N0YXRl#member", memberKey);
+    }
+
     private MqttSharedRegistry newRegistry(
         Assertion... assertions)
     {
@@ -402,6 +487,31 @@ public class MqttSharedRegistryTest
             tasks.clear();
             batch.forEach(Runnable::run);
         }
+    }
+
+    private void seedMember(
+        String token)
+    {
+        entries.put(MEMBER_KEY, new TestEntry(token, Long.MAX_VALUE));
+    }
+
+    private String storedMember()
+    {
+        final TestEntry entry = entries.get(MEMBER_KEY);
+        return entry != null ? entry.value() : null;
+    }
+
+    private static Assertion putMember(
+        String token)
+    {
+        return new Assertion("put", MEMBER_KEY, token, null);
+    }
+
+    private static Assertion releaseMember(
+        String token)
+    {
+        return new Assertion("replace", MEMBER_KEY, null, MqttSharedRegistry.RELEASED, token, 0L,
+            MqttSharedRegistry.RELEASED_TTL);
     }
 
     private static Assertion putIfAbsent(

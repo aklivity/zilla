@@ -1548,4 +1548,16 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.rejoin.after.session.expiry.new.generation/client",
+        "${net}/subscribe.shared.rejoin.after.session.expiry.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterSessionExpiryNewGeneration() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        k3po.notifyBarrier("SESSION_EXPIRED");
+        k3po.finish();
+    }
 }

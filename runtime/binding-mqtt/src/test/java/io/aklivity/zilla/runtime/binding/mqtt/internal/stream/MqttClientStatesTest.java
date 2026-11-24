@@ -139,6 +139,124 @@ public class MqttClientStatesTest
     }
 
     @Test
+    public void shouldRoundTripMembershipToken()
+    {
+        final List<MqttMembershipRecord> memberships = List.of(
+            new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1"),
+            new MqttMembershipRecord("consumers", "sensor/two", "lifetime-2"));
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(memberships, List.of(), null, NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND));
+
+        assertEquals(2, record.memberships.size());
+        assertEquals("sensor/one", record.memberships.get(0).filter);
+        assertEquals("lifetime-1", record.memberships.get(0).token);
+        assertEquals("sensor/two", record.memberships.get(1).filter);
+        assertEquals("lifetime-2", record.memberships.get(1).token);
+    }
+
+    @Test
+    public void shouldRoundTripMembershipTokenWithSubscriptions()
+    {
+        final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1"));
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(memberships, List.of(), "replica-1", new byte[] {1, 2}, NO_OUTBOUND, NO_INBOUND));
+
+        assertEquals("lifetime-1", record.memberships.get(0).token);
+        assertEquals("replica-1", record.holder);
+        assertArrayEquals(new byte[] {1, 2}, record.subscriptions);
+    }
+
+    @Test
+    public void shouldEncodeVersionThreeWithMembershipToken()
+    {
+        final String encoded = states.encode(
+            List.of(new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1")), List.of(), null,
+            NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND);
+
+        assertEquals(MqttClientStateVersion.V3.value(), Base64.getUrlDecoder().decode(encoded)[0]);
+    }
+
+    @Test
+    public void shouldEncodeVersionTwoWithMembershipWithoutToken()
+    {
+        final String encoded = states.encode(
+            List.of(new MqttMembershipRecord("consumers", "sensor/one")), List.of(), null,
+            NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND);
+
+        assertEquals(MqttClientStateVersion.V2.value(), Base64.getUrlDecoder().decode(encoded)[0]);
+    }
+
+    @Test
+    public void shouldRoundTripMembershipTokenWithOutbound()
+    {
+        final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1"));
+        final byte[] outbound = {3, 4, 5};
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(memberships, List.of(), "replica-1", NO_SUBSCRIPTIONS, outbound, NO_INBOUND));
+
+        assertEquals("lifetime-1", record.memberships.get(0).token);
+        assertEquals("replica-1", record.holder);
+        assertArrayEquals(outbound, record.outbound);
+        assertEquals(0, record.inbound.length);
+    }
+
+    @Test
+    public void shouldRoundTripMembershipTokenWithInbound()
+    {
+        final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1"));
+        final byte[] inbound = {6, 7, 8, 9};
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(memberships, List.of(), null, NO_SUBSCRIPTIONS, NO_OUTBOUND, inbound));
+
+        assertEquals("lifetime-1", record.memberships.get(0).token);
+        assertEquals(0, record.outbound.length);
+        assertArrayEquals(inbound, record.inbound);
+    }
+
+    @Test
+    public void shouldRoundTripMembershipTokenWithSubscriptionsOutboundAndInbound()
+    {
+        final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1"));
+        final byte[] subscriptions = {1, 2};
+        final byte[] outbound = {3, 4, 5};
+        final byte[] inbound = {6, 7, 8, 9};
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(memberships, List.of(), "replica-1", subscriptions, outbound, inbound));
+
+        assertEquals("lifetime-1", record.memberships.get(0).token);
+        assertEquals("replica-1", record.holder);
+        assertArrayEquals(subscriptions, record.subscriptions);
+        assertArrayEquals(outbound, record.outbound);
+        assertArrayEquals(inbound, record.inbound);
+    }
+
+    @Test
+    public void shouldEncodeVersionThreeWithMembershipTokenAlone()
+    {
+        final String encoded = states.encode(List.of(new MqttMembershipRecord("consumers", "sensor/one", "lifetime-1")),
+            List.of(), null, NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND);
+
+        assertEquals(MqttClientStateVersion.V3.value(), Base64.getUrlDecoder().decode(encoded)[0]);
+    }
+
+    @Test
+    public void shouldDecodeMembershipWithoutTokenOfVersionTwo()
+    {
+        final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one"));
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(memberships, List.of(), "replica-1", NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND));
+
+        assertEquals(1, record.memberships.size());
+        assertNull(record.memberships.get(0).token);
+    }
+
+    @Test
     public void shouldDecodeVersionTwoWithoutSubscriptions()
     {
         final UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[64]);

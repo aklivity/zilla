@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.function.LongConsumer;
 
@@ -24,8 +25,11 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 final class MqttSharedRegistry
 {
     static final int ATTEMPTS_MAX = 16;
+    static final String RELEASED = "released";
+    static final Duration RELEASED_TTL = Duration.ofMinutes(1);
 
     private static final String REGISTRY_KEY_POSTFIX = "#registry";
+    private static final String MEMBER_KEY_POSTFIX = "#member";
 
     private static final long EPOCH_FIRST = 0L;
 
@@ -41,12 +45,20 @@ final class MqttSharedRegistry
         String shareName,
         String filter)
     {
+        return shareKey(shareName, filter) + REGISTRY_KEY_POSTFIX;
+    }
+
+    static String memberKey(
+        String shareName,
+        String filter,
+        String clientId)
+    {
         final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
 
-        return String.format("%s:%s%s",
-            encoder.encodeToString(shareName.getBytes(StandardCharsets.UTF_8)),
-            encoder.encodeToString(filter.getBytes(StandardCharsets.UTF_8)),
-            REGISTRY_KEY_POSTFIX);
+        return String.format("%s#%s%s",
+            shareKey(shareName, filter),
+            encoder.encodeToString(clientId.getBytes(StandardCharsets.UTF_8)),
+            MEMBER_KEY_POSTFIX);
     }
 
     void join(
@@ -55,6 +67,35 @@ final class MqttSharedRegistry
         Runnable failed)
     {
         doJoin(key, 1, joined, failed);
+    }
+
+    void join(
+        String key,
+        String memberKey,
+        String token,
+        LongConsumer joined,
+        Runnable failed)
+    {
+        join(key, epoch -> store.put(memberKey, token, null, stored -> joined.accept(epoch)), failed);
+    }
+
+    void release(
+        String key,
+        String memberKey,
+        String token,
+        Runnable completed)
+    {
+        store.replace(memberKey, token, RELEASED, RELEASED_TTL, released ->
+        {
+            if (released)
+            {
+                leave(key, completed);
+            }
+            else
+            {
+                completed.run();
+            }
+        });
     }
 
     void epoch(
@@ -82,6 +123,17 @@ final class MqttSharedRegistry
         Runnable completed)
     {
         doLeave(key, 1, completed);
+    }
+
+    private static String shareKey(
+        String shareName,
+        String filter)
+    {
+        final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+
+        return String.format("%s:%s",
+            encoder.encodeToString(shareName.getBytes(StandardCharsets.UTF_8)),
+            encoder.encodeToString(filter.getBytes(StandardCharsets.UTF_8)));
     }
 
     private void doJoin(
