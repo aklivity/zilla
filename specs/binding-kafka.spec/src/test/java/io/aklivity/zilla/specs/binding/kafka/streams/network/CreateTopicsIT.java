@@ -45,4 +45,13 @@ public class CreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/create.topics.fragmented/client",
+        "${net}/create.topics.fragmented/server"})
+    public void shouldCreateTopicsFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

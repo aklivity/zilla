@@ -45,4 +45,13 @@ public class DeleteTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/delete.topics.fragmented/client",
+        "${net}/delete.topics.fragmented/server"})
+    public void shouldDeleteTopicsFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

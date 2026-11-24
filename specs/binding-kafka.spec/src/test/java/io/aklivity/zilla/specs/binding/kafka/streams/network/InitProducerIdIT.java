@@ -48,6 +48,15 @@ public class InitProducerIdIT
 
     @Test
     @Specification({
+        "${net}/produce.new.id.fragmented/client",
+        "${net}/produce.new.id.fragmented/server"})
+    public void shouldGenerateNewProducerIdFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/produce.new.id.coordinator.load.in.progress/client",
         "${net}/produce.new.id.coordinator.load.in.progress/server"})
     public void shouldGenerateNewProducerIdAfterCoordinatorLoadInProgress() throws Exception

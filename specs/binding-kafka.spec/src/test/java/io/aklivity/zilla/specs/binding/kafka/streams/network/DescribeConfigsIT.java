@@ -114,6 +114,15 @@ public class DescribeConfigsIT
 
     @Test
     @Specification({
+        "${net}/topic.config.info.response.header.leading/client",
+        "${net}/topic.config.info.response.header.leading/server"})
+    public void shouldReceiveTopicConfigInfoResponseHeaderLeading() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/topic.config.info.response.malformed/client",
         "${net}/topic.config.info.response.malformed/server"})
     public void shouldAbortWhenResponseMalformed() throws Exception

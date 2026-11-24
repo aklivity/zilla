@@ -529,9 +529,8 @@ public final class KafkaClientOffsetCommitFactory extends KafkaClientSaslHandsha
                 break decode;
             }
 
-            progress = responseHeader.limit();
-
-            final OffsetCommitResponseFW offsetCommitResponse = offsetCommitResponseRO.tryWrap(buffer, progress, limit);
+            final OffsetCommitResponseFW offsetCommitResponse =
+                offsetCommitResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
             if (offsetCommitResponse == null)
             {
                 break decode;

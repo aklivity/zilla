@@ -72,4 +72,13 @@ public class OffsetCommitIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/update.topic.partition.offsets.fragmented/client",
+        "${net}/update.topic.partition.offsets.fragmented/server"})
+    public void shouldUpdateTopicPartitionOffsetsFragmented() throws Exception
+    {
+        k3po.finish();
+    }
 }

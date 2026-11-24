@@ -63,6 +63,16 @@ public class ClientOffsetFetchIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/topic.offset.info/client",
+        "${net}/topic.offset.info.fragmented/server"})
+    public void shouldFetchPartitionLastCommittedOffsetFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/topic.offset.no.partition/client",
         "${net}/topic.offset.no.partition/server"})
     public void shouldRejectPartitionOffsetOnNoPartition() throws Exception

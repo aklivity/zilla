@@ -211,6 +211,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${app}/message.value.latest.behind.stable/client",
+        "${app}/message.value.latest.behind.stable/server"})
+    public void shouldReceiveMessageValueLatestBehindStable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.leader.from.affinity/client",
         "${app}/message.value.leader.from.affinity/server"})
     public void shouldReceiveMessageValueLeaderFromAffinity() throws Exception
@@ -399,6 +408,15 @@ public class FetchIT
         "${app}/filter.sync/client",
         "${app}/filter.sync/server"})
     public void shouldFetchFilterSync() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/filter.key.sync/client",
+        "${app}/filter.key.sync/server"})
+    public void shouldFetchFilterKeySync() throws Exception
     {
         k3po.finish();
     }

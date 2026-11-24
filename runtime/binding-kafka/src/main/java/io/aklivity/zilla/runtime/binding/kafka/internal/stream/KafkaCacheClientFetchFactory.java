@@ -569,6 +569,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
     private final class KafkaCacheClientFetchDispatch
     {
         private final KafkaCacheFanoutIndex<KafkaCacheClientFetchStream> index = new KafkaCacheFanoutIndex<>();
+        private final List<KafkaCacheClientFetchStream> unflushed = new ArrayList<>();
         private final Consumer<KafkaCacheClientFetchStream> waker = this::wake;
         private final Consumer<KafkaHeaderFW> headerWaker = this::wakeHeader;
         private final KafkaCacheClientFetchFanout group;
@@ -595,12 +596,18 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             }
 
             index.register(member, member.terms);
+
+            if (!member.terms.isEmpty())
+            {
+                unflushed.add(member);
+            }
         }
 
         private void unregister(
             KafkaCacheClientFetchStream member)
         {
             index.unregister(member);
+            unflushed.remove(member);
 
             if (!index.hasIndexed())
             {
@@ -611,6 +618,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private void clear()
         {
             index.clear();
+            unflushed.clear();
             closeCursor();
         }
 
@@ -620,6 +628,7 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             this.traceId = traceId;
 
             index.forEachWildcard(waker);
+            wakeUnflushed();
 
             if (index.hasIndexed())
             {
@@ -655,6 +664,27 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         private long bound()
         {
             return Math.min(group.partitionOffset, isolatedOffset.getAsLong());
+        }
+
+        private void wakeUnflushed()
+        {
+            for (int index = unflushed.size() - 1; index >= 0; index--)
+            {
+                if (index < unflushed.size())
+                {
+                    final KafkaCacheClientFetchStream member = unflushed.get(index);
+
+                    if (member.flushFramesSent == 0)
+                    {
+                        wake(member);
+                    }
+
+                    if (member.flushFramesSent != 0)
+                    {
+                        unflushed.remove(member);
+                    }
+                }
+            }
         }
 
         private void wake(

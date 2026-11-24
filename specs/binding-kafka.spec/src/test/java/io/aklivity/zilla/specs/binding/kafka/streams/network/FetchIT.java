@@ -229,6 +229,15 @@ public class FetchIT
 
     @Test
     @Specification({
+        "${net}/message.value.latest.behind.stable/client",
+        "${net}/message.value.latest.behind.stable/server"})
+    public void shouldReceiveMessageValueLatestBehindStable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.value.broker.in.store/client",
         "${net}/message.value.broker.in.store/server"})
     public void shouldReceiveMessageValueBrokerInStore() throws Exception

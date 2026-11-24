@@ -510,9 +510,8 @@ public final class KafkaClientDeleteTopicsFactory extends KafkaClientSaslHandsha
                 break decode;
             }
 
-            progress = responseHeader.limit();
-
-            final DeleteTopicsResponseFW deleteTopicsResponse = deleteTopicsResponseRO.tryWrap(buffer, progress, limit);
+            final DeleteTopicsResponseFW deleteTopicsResponse =
+                deleteTopicsResponseRO.tryWrap(buffer, responseHeader.limit(), limit);
             if (deleteTopicsResponse == null)
             {
                 break decode;
