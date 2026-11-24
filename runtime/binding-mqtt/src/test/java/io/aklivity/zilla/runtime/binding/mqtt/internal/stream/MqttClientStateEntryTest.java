@@ -215,7 +215,7 @@ public class MqttClientStateEntryTest
         String holder,
         MqttMembershipRecord... memberships)
     {
-        return states.encode(List.of(memberships), List.of(), holder);
+        return states.encode(List.of(memberships), List.of(), holder, new byte[0]);
     }
 
     private String stored()
