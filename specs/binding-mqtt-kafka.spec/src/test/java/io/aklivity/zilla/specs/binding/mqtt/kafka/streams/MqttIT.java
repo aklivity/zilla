@@ -768,6 +768,33 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.clean.start/client",
+        "${mqtt}/session.store.clean.start/server"})
+    public void shouldSessionStoreCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.clean.start.abort/client",
+        "${mqtt}/session.store.clean.start.abort/server"})
+    public void shouldSessionStoreCleanStartAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.clean.start.qos.max.1/client",
+        "${mqtt}/session.store.clean.start.qos.max.1/server"})
+    public void shouldSessionStoreCleanStartQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${mqtt}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
@@ -1032,6 +1059,16 @@ public class MqttIT
         "${mqtt}/publish.qos2.in.flight.reverse.release/client",
         "${mqtt}/publish.qos2.in.flight.reverse.release/server"})
     public void shouldPublishQoS2InFlightReverseRelease() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.session.store/client",
+        "${mqtt}/publish.qos2.session.store/server"})
+    public void shouldPublishQoS2SessionStore() throws Exception
     {
         k3po.start();
         k3po.finish();
