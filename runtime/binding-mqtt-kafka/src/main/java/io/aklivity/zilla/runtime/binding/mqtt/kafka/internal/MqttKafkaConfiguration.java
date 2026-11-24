@@ -29,6 +29,7 @@ import io.aklivity.zilla.runtime.engine.EngineConfiguration;
 public class MqttKafkaConfiguration extends Configuration
 {
     private static final ConfigurationDef MQTT_KAFKA_CONFIG;
+    private static final String MQTT_SESSION_STATE_STORE_ENABLED = "zilla.binding.mqtt.session.state.store.enabled";
     public static final PropertyDef<StringSupplier> SESSION_ID;
     public static final PropertyDef<StringSupplier> WILL_ID;
     public static final PropertyDef<StringSupplier> LIFETIME_ID;
@@ -40,6 +41,7 @@ public class MqttKafkaConfiguration extends Configuration
     public static final IntPropertyDef PUBLISH_QOS_MAX;
     public static final BooleanPropertyDef SHARED_SUBSCRIPTION_AVAILABLE;
     public static final PropertyDef<String> KAFKA_GROUP_ID_PREFIX;
+    public static final BooleanPropertyDef SESSION_STATE_STORE_ENABLED;
 
     static
     {
@@ -59,6 +61,8 @@ public class MqttKafkaConfiguration extends Configuration
         PUBLISH_QOS_MAX = config.property("publish.qos.max", 2);
         SHARED_SUBSCRIPTION_AVAILABLE = config.property("shared.subscription.available", true);
         KAFKA_GROUP_ID_PREFIX = config.property("group.id.prefix.format", "zilla:%s-%s");
+        SESSION_STATE_STORE_ENABLED = config.property("session.state.store.enabled",
+            MqttKafkaConfiguration::defaultSessionStateStoreEnabled);
         MQTT_KAFKA_CONFIG = config;
     }
 
@@ -128,11 +132,22 @@ public class MqttKafkaConfiguration extends Configuration
         return KAFKA_GROUP_ID_PREFIX.get(this);
     }
 
+    public boolean sessionStateStoreEnabled()
+    {
+        return SESSION_STATE_STORE_ENABLED.get(this);
+    }
+
     public String serviceHostname()
     {
         return EngineConfiguration.ENGINE_SERVICE_HOSTNAME.get(this);
     }
 
+
+    private static boolean defaultSessionStateStoreEnabled(
+        Configuration config)
+    {
+        return Boolean.parseBoolean((String) config.asMap().get(MQTT_SESSION_STATE_STORE_ENABLED));
+    }
 
     private static StringSupplier decodeStringSupplier(
         String fullyQualifiedMethodName)
