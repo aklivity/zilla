@@ -58,6 +58,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.ArrayFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckMode;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaAckModeFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaDeltaType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaEvaluation;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaFilterFW;
@@ -77,6 +78,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaBeginE
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceBeginExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceDataExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
@@ -157,6 +159,54 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final int reconnectDelay;
     private static final int SIGNAL_RECONNECT = 1;
 
+    private int produceDeferred;
+    private long produceTimestamp;
+    private long produceProducerId;
+    private short produceProducerEpoch;
+    private int produceSequence;
+    private long produceChecksum;
+    private KafkaAckMode produceAckMode;
+    private KafkaKeyFW produceKey;
+    private ArrayFW<KafkaHeaderFW> produceHeaders;
+    private ArrayFW<KafkaHeaderFW> produceTrailers;
+    private KafkaHeaderFW produceHeader;
+    private Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> produceHeadersRW;
+
+    private final Consumer<KafkaHeaderFW.Builder> produceHeaderWriter = i -> i.set(produceHeader);
+    private final Consumer<KafkaHeaderFW> produceHeaderCopier = this::copyProduceHeader;
+    private final Consumer<Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW>> produceHeadersWriter =
+        this::writeProduceHeaders;
+    private final Consumer<KafkaAckModeFW.Builder> produceAckModeWriter = a -> a.set(produceAckMode);
+    private final Consumer<KafkaKeyFW.Builder> produceKeyWriter = k -> k
+        .length(produceKey.length())
+        .value(produceKey.value());
+    private final Consumer<KafkaProduceDataExFW.Builder> produceFullWriter = f -> f
+        .timestamp(produceTimestamp)
+        .producerId(produceProducerId)
+        .producerEpoch(produceProducerEpoch)
+        .sequence(produceSequence)
+        .crc32c(produceChecksum)
+        .ackMode(produceAckModeWriter)
+        .key(produceKeyWriter)
+        .headers(produceHeadersWriter);
+    private final Consumer<KafkaProduceDataExFW.Builder> produceInitWriter = f -> f
+        .deferred(produceDeferred)
+        .timestamp(produceTimestamp)
+        .producerId(produceProducerId)
+        .producerEpoch(produceProducerEpoch)
+        .sequence(produceSequence)
+        .crc32c(produceChecksum)
+        .ackMode(produceAckModeWriter)
+        .key(produceKeyWriter)
+        .headers(produceHeadersWriter);
+    private final Consumer<KafkaProduceDataExFW.Builder> produceFinWriter = f -> f.headers(produceHeadersWriter);
+    private final Flyweight.Builder.Visitor produceFullVisitor = this::writeProduceFullEx;
+    private final Flyweight.Builder.Visitor produceInitVisitor = this::writeProduceInitEx;
+    private final Flyweight.Builder.Visitor produceFinVisitor = this::writeProduceFinEx;
+    private final Consumer<OctetsFW.Builder> produceFullExtension = ex -> ex.set(produceFullVisitor);
+    private final Consumer<OctetsFW.Builder> produceInitExtension = ex -> ex.set(produceInitVisitor);
+    private final Consumer<OctetsFW.Builder> produceFinExtension = ex -> ex.set(produceFinVisitor);
+
     public KafkaCacheServerProduceFactory(
         KafkaConfiguration config,
         EngineContext context,
@@ -184,6 +234,66 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         this.supplyRemoteIndex = context::supplyClientIndex;
         this.crc32c = new CRC32C();
         this.reconnectDelay = config.cacheServerReconnect();
+    }
+
+    private void copyProduceHeader(
+        KafkaHeaderFW header)
+    {
+        produceHeader = header;
+        produceHeadersRW.item(produceHeaderWriter);
+    }
+
+    private void writeProduceHeaders(
+        Array32FW.Builder<KafkaHeaderFW.Builder, KafkaHeaderFW> headersRW)
+    {
+        produceHeadersRW = headersRW;
+        produceHeaders.forEach(produceHeaderCopier);
+        produceTrailers.forEach(produceHeaderCopier);
+    }
+
+    private int writeProduceFullEx(
+        MutableDirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return kafkaDataExRW.wrap(buffer, offset, limit)
+            .typeId(kafkaTypeId)
+            .produce(produceFullWriter)
+            .build()
+            .sizeof();
+    }
+
+    private int writeProduceInitEx(
+        MutableDirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return kafkaDataExRW.wrap(buffer, offset, limit)
+            .typeId(kafkaTypeId)
+            .produce(produceInitWriter)
+            .build()
+            .sizeof();
+    }
+
+    private int writeProduceFinEx(
+        MutableDirectBufferEx buffer,
+        int offset,
+        int limit)
+    {
+        return kafkaDataExRW.wrap(buffer, offset, limit)
+            .typeId(kafkaTypeId)
+            .produce(produceFinWriter)
+            .build()
+            .sizeof();
+    }
+
+    private void clearProduceRecord()
+    {
+        produceKey = null;
+        produceHeaders = null;
+        produceTrailers = null;
+        produceHeader = null;
+        produceHeadersRW = null;
     }
 
     @Override
@@ -1423,23 +1533,19 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             int reserved,
             int flags)
         {
-            fan.doServerFanInitialData(traceId, flags, 0L, reserved, value,
-                ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
-                           .typeId(kafkaTypeId)
-                           .produce(f -> f.timestamp(timestamp)
-                                        .producerId(producerId)
-                                        .producerEpoch(produceEpoch)
-                                        .sequence(sequence)
-                                        .crc32c(checksum)
-                                        .ackMode(a -> a.set(ackMode))
-                                        .key(k -> k.length(key.length()).value(key.value()))
-                                        .headers(hs ->
-                                        {
-                                            headers.forEach(h -> hs.item(i -> i.set(h)));
-                                            trailers.forEach(t -> hs.item(i -> i.set(t)));
-                                        }))
-                           .build()
-                           .sizeof()));
+            produceTimestamp = timestamp;
+            produceProducerId = producerId;
+            produceProducerEpoch = produceEpoch;
+            produceSequence = sequence;
+            produceChecksum = checksum;
+            produceAckMode = ackMode;
+            produceKey = key;
+            produceHeaders = headers;
+            produceTrailers = trailers;
+
+            fan.doServerFanInitialData(traceId, flags, 0L, reserved, value, produceFullExtension);
+
+            clearProduceRecord();
         }
 
         private void doServerInitialDataInit(
@@ -1458,24 +1564,20 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             int reserved,
             int flags)
         {
-            fan.doServerFanInitialData(traceId, flags, 0L, reserved, value,
-                ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
-                           .typeId(kafkaTypeId)
-                           .produce(f -> f.deferred(deferred)
-                                          .timestamp(timestamp)
-                                          .producerId(producerId)
-                                          .producerEpoch(produceEpoch)
-                                          .sequence(sequence)
-                                          .crc32c(checksum)
-                                          .ackMode(a -> a.set(ackMode))
-                                          .key(k -> k.length(key.length()).value(key.value()))
-                                          .headers(hs ->
-                                          {
-                                              headers.forEach(h -> hs.item(i -> i.set(h)));
-                                              trailers.forEach(t -> hs.item(i -> i.set(t)));
-                                          }))
-                           .build()
-                           .sizeof()));
+            produceDeferred = deferred;
+            produceTimestamp = timestamp;
+            produceProducerId = producerId;
+            produceProducerEpoch = produceEpoch;
+            produceSequence = sequence;
+            produceChecksum = checksum;
+            produceAckMode = ackMode;
+            produceKey = key;
+            produceHeaders = headers;
+            produceTrailers = trailers;
+
+            fan.doServerFanInitialData(traceId, flags, 0L, reserved, value, produceInitExtension);
+
+            clearProduceRecord();
         }
 
         private void doServerInitialDataNone(
@@ -1496,18 +1598,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             int reserved,
             int flags)
         {
-            fan.doServerFanInitialData(traceId, flags, 0L, reserved, fragment,
-                ex -> ex.set((b, o, l) -> kafkaDataExRW.wrap(b, o, l)
-                           .typeId(kafkaTypeId)
-                           .produce(f -> f
-                               .headers(hs ->
-                               {
-                                   headers.forEach(h -> hs.item(i -> i.set(h)));
-                                   trailers.forEach(t -> hs.item(i -> i.set(t)));
-                               }
-                           ))
-                           .build()
-                           .sizeof()));
+            produceHeaders = headers;
+            produceTrailers = trailers;
+
+            fan.doServerFanInitialData(traceId, flags, 0L, reserved, fragment, produceFinExtension);
+
+            clearProduceRecord();
         }
 
         private void doServerInitialResetIfNecessary(

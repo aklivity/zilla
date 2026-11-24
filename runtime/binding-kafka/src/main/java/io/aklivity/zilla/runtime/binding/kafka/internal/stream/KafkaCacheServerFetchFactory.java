@@ -513,6 +513,13 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final KafkaOffsetType defaultOffset;
         private final long retentionMillisMax;
         private final List<KafkaCacheServerFetchStream> members;
+        private final IntFunction<KafkaCacheEntryFW> ancestorFinder = this::findAncestor;
+        private final Consumer<KafkaCacheServerFetchStream> memberFlusher = this::flushMember;
+
+        private KafkaKeyFW ancestorKey;
+        private KafkaCachePartition.Node ancestorHead;
+        private long ancestorDescendantOffset;
+        private long flushTraceId;
         private final KafkaCacheModel transformKey;
         private final KafkaCacheModel transformValue;
         private final KafkaCacheKeyEnvelope transformKeyEnvelope;
@@ -1001,15 +1008,19 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                         this::onServerFanoutInitialSignalSegmentDelete);
                 }
 
-                IntFunction<KafkaCacheEntryFW> findAncestor =
-                    kh -> findAndMarkAncestor(key, nextHead, kh, partitionOffset);
+                this.ancestorKey = key;
+                this.ancestorHead = nextHead;
+                this.ancestorDescendantOffset = partitionOffset;
                 final int entryFlags =
                     (hasSkip(flags) ? CACHE_ENTRY_FLAGS_ABORTED : 0x00) |
                     (timestampType == AUTHORITATIVE ? CACHE_ENTRY_FLAGS_AUTHORITATIVE : 0x00);
                 partition.writeEntryStart(context, traceId, routedId, NO_AUTHORIZATION, partitionOffset, entryMark, valueMark,
                     valueLimit, headersMark, timestamp, timestampType, producerId, key, valueLength, valuePaddingMax,
-                    headersMax, trailersSizeMax, findAncestor, entryFlags, deltaType, valueFragment, transformKey,
+                    headersMax, trailersSizeMax, ancestorFinder, entryFlags, deltaType, valueFragment, transformKey,
                     transformValue, transformKeyEnvelope, transformValueEnvelope, verbose);
+
+                this.ancestorKey = null;
+                this.ancestorHead = null;
             }
 
             if (valueFragment != null)
@@ -1041,10 +1052,23 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
                 this.stableOffset = stableOffset;
                 this.latestOffset = latestOffset;
 
-                members.forEach(s -> s.doServerReplyFlushIfNecessary(traceId));
+                this.flushTraceId = traceId;
+                members.forEach(memberFlusher);
             }
 
             doServerFanoutReplyWindow(traceId, 0, replyMax);
+        }
+
+        private KafkaCacheEntryFW findAncestor(
+            int keyHash)
+        {
+            return findAndMarkAncestor(ancestorKey, ancestorHead, keyHash, ancestorDescendantOffset);
+        }
+
+        private void flushMember(
+            KafkaCacheServerFetchStream member)
+        {
+            member.doServerReplyFlushIfNecessary(flushTraceId);
         }
 
         private KafkaCacheEntryFW findAndMarkAncestor(

@@ -116,6 +116,7 @@ public final class KafkaCachePartition
 
     private final KafkaCachePaddedKeyFW paddedKeyRO = new KafkaCachePaddedKeyFW();
     private final KafkaCacheEntryFW headEntryRO = new KafkaCacheEntryFW();
+    private final Flyweight.Visitor<KafkaCacheEntryFW> headEntryWrapper = headEntryRO::wrap;
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
@@ -155,6 +156,7 @@ public final class KafkaCachePartition
     private final AtomicLong produceCapacity;
     private final OctetsFW octetsRO = new OctetsFW();
     private final KafkaKeyFW keyRO = new KafkaKeyFW();
+    private final Flyweight.Visitor<KafkaKeyFW> keyWrapper = keyRO::wrap;
 
     public KafkaCachePartition(
         Clock clock,
@@ -566,7 +568,7 @@ public final class KafkaCachePartition
             valueEnvelope.claim(logFile, headersMark.value + headersMax, trailersSizeMax);
         }
 
-        final long keyHash = computeHash(logFile.readBytes(keyAt, keyRO::wrap));
+        final long keyHash = computeHash(logFile.readBytes(keyAt, keyWrapper));
 
         final KafkaCacheEntryFW ancestor = findAncestor != null ? findAncestor.apply((int) keyHash) : null;
 
@@ -782,7 +784,7 @@ public final class KafkaCachePartition
         assert indexFile.available() >= Long.BYTES;
         indexFile.appendLong(indexEntry);
 
-        final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryRO::wrap);
+        final KafkaCacheEntryFW headEntry = logFile.readBytes(logFile.markValue(), headEntryWrapper);
 
         if (deltaType == JSON_PATCH &&
             ancestorEntry != null && ancestorEntry.paddedValue().length() != -1 &&
