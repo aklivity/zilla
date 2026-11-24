@@ -56,4 +56,14 @@ public class CreateTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/create.topics/client",
+        "${net}/create.topics.fragmented/server"})
+    public void shouldCreateTopicsFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

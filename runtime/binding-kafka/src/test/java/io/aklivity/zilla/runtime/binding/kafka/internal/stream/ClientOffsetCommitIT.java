@@ -157,4 +157,14 @@ public class ClientOffsetCommitIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/update.topic.partition.offsets/client",
+        "${net}/update.topic.partition.offsets.fragmented/server"})
+    public void shouldUpdateTopicPartitionOffsetsFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

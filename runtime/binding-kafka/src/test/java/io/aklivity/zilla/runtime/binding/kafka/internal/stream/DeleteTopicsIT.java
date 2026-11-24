@@ -56,4 +56,14 @@ public class DeleteTopicsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/delete.topics/client",
+        "${net}/delete.topics.fragmented/server"})
+    public void shouldDeleteTopicsFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }

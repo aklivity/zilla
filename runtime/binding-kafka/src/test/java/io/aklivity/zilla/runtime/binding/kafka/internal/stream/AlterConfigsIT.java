@@ -56,4 +56,14 @@ public class AlterConfigsIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/alter.topics.config/client",
+        "${net}/alter.topics.config.fragmented/server"})
+    public void shouldAlterTopicConfigsFragmentedResponse() throws Exception
+    {
+        k3po.finish();
+    }
 }
