@@ -899,7 +899,7 @@ public class MqttKafkaSessionProxyIT
     @Specification({
         "${mqtt}/session.will.message.qos2.abort.deliver.will/client",
         "${kafka}/session.will.message.qos2.abort.deliver.will/server"})
-    public void shouldSendWillMessageQos2OnAbortWithoutExpirySignal() throws Exception
+    public void shouldSendWillMessageQos2OnAbort() throws Exception
     {
         k3po.start();
         k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
