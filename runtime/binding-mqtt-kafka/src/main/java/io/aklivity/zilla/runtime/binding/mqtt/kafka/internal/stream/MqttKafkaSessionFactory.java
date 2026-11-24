@@ -800,7 +800,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 doMqttWindow(authorization, traceId, 0, 0, 0);
                 this.metadata = new MqttKafkaPublishMetadata(
                     new Long2ObjectHashMap<>(), new MqttKafkaPacketPartitions(), leaderEpochs);
-                this.metadata.sessionsTopic = sessionsTopic;
+                this.metadata.sessionsTopic = isSessionStateStored() ? null : sessionsTopic;
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
             }
