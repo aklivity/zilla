@@ -20,7 +20,9 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
@@ -34,6 +36,9 @@ final class MemoryStoreHandler implements StoreHandler
     private final ConcurrentMap<String, MemoryEntry> entries;
     private final ConcurrentMap<String, List<Watcher>> watchers;
     private final ConcurrentMap<String, LockEntry> locks;
+    private final MemoryExpirers expirers;
+    private final Set<Watch> watches = ConcurrentHashMap.newKeySet();
+    private final Set<Expiry> expiries = ConcurrentHashMap.newKeySet();
     private final Consumer<Runnable> dispatcher;
     private final Clock clock;
 
@@ -41,12 +46,14 @@ final class MemoryStoreHandler implements StoreHandler
         ConcurrentMap<String, MemoryEntry> entries,
         ConcurrentMap<String, List<Watcher>> watchers,
         ConcurrentMap<String, LockEntry> locks,
+        MemoryExpirers expirers,
         Consumer<Runnable> dispatcher,
         Clock clock)
     {
         this.entries = entries;
         this.watchers = watchers;
         this.locks = locks;
+        this.expirers = expirers;
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.clock = clock;
     }
@@ -69,7 +76,8 @@ final class MemoryStoreHandler implements StoreHandler
         Consumer<String> completion)
     {
         final long expiresAt = expiresAt(ttl);
-        entries.put(key, new MemoryEntry(value, expiresAt));
+        final MemoryEntry previous = entries.put(key, new MemoryEntry(value, expiresAt));
+        expireReplaced(key, previous);
         notifyWatchers(key, value);
         defer(() -> completion.accept(null));
     }
@@ -88,6 +96,10 @@ final class MemoryStoreHandler implements StoreHandler
         if (existing != null && existing.expired(clock.millis()))
         {
             stored = entries.replace(key, existing, newEntry);
+            if (stored)
+            {
+                expireReplaced(key, existing);
+            }
         }
         if (stored)
         {
@@ -105,6 +117,7 @@ final class MemoryStoreHandler implements StoreHandler
         final MemoryEntry removed = entries.remove(key);
         if (removed != null)
         {
+            expireReplaced(key, removed);
             notifyWatchers(key, null);
         }
         defer(() -> completion.accept(null));
@@ -119,6 +132,7 @@ final class MemoryStoreHandler implements StoreHandler
         final String value = entry != null && !entry.expired(clock.millis()) ? entry.value() : null;
         if (entry != null)
         {
+            expireReplaced(key, entry);
             notifyWatchers(key, null);
         }
         defer(() -> completion.accept(value));
@@ -160,6 +174,7 @@ final class MemoryStoreHandler implements StoreHandler
             final MemoryEntry entry = entries.remove(key);
             if (entry != null)
             {
+                expireReplaced(key, entry);
                 notifyWatchers(key, null);
                 if (!entry.expired(clock.millis()))
                 {
@@ -269,14 +284,31 @@ final class MemoryStoreHandler implements StoreHandler
         final Watcher watcher = new Watcher(listener, dispatcher);
         final List<Watcher> list = watchers.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
         list.add(watcher);
-        return () ->
-        {
-            final List<Watcher> current = watchers.get(key);
-            if (current != null)
-            {
-                current.remove(watcher);
-            }
-        };
+        final Watch watch = new Watch(key, watcher);
+        watches.add(watch);
+        return watch;
+    }
+
+    @Override
+    public Closeable expire(
+        String prefix,
+        BiConsumer<String, String> listener)
+    {
+        final MemoryExpirer expirer = new MemoryExpirer(Objects.requireNonNull(prefix), listener, dispatcher);
+        final Expiry expiry = new Expiry(expirer);
+        expirers.add(expirer);
+        expiries.add(expiry);
+        return expiry;
+    }
+
+    void unexpireAll()
+    {
+        expiries.forEach(Expiry::close);
+    }
+
+    void unwatchAll()
+    {
+        watches.forEach(Watch::close);
     }
 
     private long addAndGet(
@@ -286,15 +318,21 @@ final class MemoryStoreHandler implements StoreHandler
     {
         long counter;
         boolean updated;
+        boolean live;
+        MemoryEntry existing;
         do
         {
-            final MemoryEntry existing = entries.get(key);
-            final boolean live = existing != null && !existing.expired(clock.millis());
+            existing = entries.get(key);
+            live = existing != null && !existing.expired(clock.millis());
             counter = (live ? Long.parseLong(existing.value()) : 0L) + delta;
             final MemoryEntry next = new MemoryEntry(Long.toString(counter), live ? existing.expiresAt() : expiresAt(ttl));
             updated = existing == null ? entries.putIfAbsent(key, next) == null : entries.replace(key, existing, next);
         }
         while (!updated);
+        if (!live)
+        {
+            expireReplaced(key, existing);
+        }
         notifyWatchers(key, Long.toString(counter));
         return counter;
     }
@@ -316,6 +354,16 @@ final class MemoryStoreHandler implements StoreHandler
         }
         while (contended);
         return replaced;
+    }
+
+    private void expireReplaced(
+        String key,
+        MemoryEntry replaced)
+    {
+        if (replaced != null && replaced.expired(clock.millis()))
+        {
+            expirers.report(key, replaced.value());
+        }
     }
 
     private void notifyWatchers(
@@ -342,6 +390,49 @@ final class MemoryStoreHandler implements StoreHandler
         Duration ttl)
     {
         return ttl == null ? Long.MAX_VALUE : clock.millis() + ttl.toMillis();
+    }
+
+    private final class Watch implements Closeable
+    {
+        private final String key;
+        private final Watcher watcher;
+
+        private Watch(
+            String key,
+            Watcher watcher)
+        {
+            this.key = key;
+            this.watcher = watcher;
+        }
+
+        @Override
+        public void close()
+        {
+            final List<Watcher> current = watchers.get(key);
+            if (current != null)
+            {
+                current.remove(watcher);
+            }
+            watches.remove(this);
+        }
+    }
+
+    private final class Expiry implements Closeable
+    {
+        private final MemoryExpirer expirer;
+
+        private Expiry(
+            MemoryExpirer expirer)
+        {
+            this.expirer = expirer;
+        }
+
+        @Override
+        public void close()
+        {
+            expirers.remove(expirer);
+            expiries.remove(this);
+        }
     }
 
     record Watcher(

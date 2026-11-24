@@ -1244,6 +1244,16 @@ public class SubscribeIT
     @Test
     @Configuration("server.yaml")
     @Specification({
+        "${net}/subscribe.shared.receive.message.qos2/client",
+        "${app}/subscribe.shared.receive.message.qos2.inflight/server"})
+    public void shouldSubscribeSharedReceiveMessageQos2Inflight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
         "${net}/subscribe.shared.receive.message.qos1.granted.qos0/client",
         "${app}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
     public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
@@ -1547,6 +1557,66 @@ public class SubscribeIT
         "${net}/subscribe.reject.truncated.body/client",
         "${app}/session.connect/server"})
     public void shouldRejectSubscribeTruncatedBody() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.unreceived.message/client",
+        "${app}/subscribe.shared.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2UnreceivedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.incomplete.message/client",
+        "${app}/subscribe.shared.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2IncompleteMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.abandon.qos2.unreceived.message/client",
+        "${app}/subscribe.shared.reconnect.abandon.qos2.unreceived.message/server"})
+    public void shouldSubscribeSharedReconnectAbandonQos2UnreceivedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.clean.start.discard.qos2.packets/client",
+        "${app}/subscribe.shared.reconnect.clean.start.discard.qos2.packets/server"})
+    public void shouldSubscribeSharedReconnectCleanStartDiscardQos2Packets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.session.end.discard.qos2.packets/client",
+        "${app}/subscribe.shared.reconnect.session.end.discard.qos2.packets/server"})
+    public void shouldSubscribeSharedReconnectSessionEndDiscardQos2Packets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.rejoin.after.disconnect.new.generation/client",
+        "${app}/subscribe.shared.rejoin.after.disconnect.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterDisconnectNewGeneration() throws Exception
     {
         k3po.finish();
     }

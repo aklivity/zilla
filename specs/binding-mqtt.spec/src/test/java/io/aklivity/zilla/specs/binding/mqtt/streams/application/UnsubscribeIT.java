@@ -368,4 +368,13 @@ public class UnsubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/unsubscribe.shared.resubscribe.new.generation/client",
+        "${app}/unsubscribe.shared.resubscribe.new.generation/server"})
+    public void shouldUnsubscribeSharedResubscribeNewGeneration() throws Exception
+    {
+        k3po.finish();
+    }
 }

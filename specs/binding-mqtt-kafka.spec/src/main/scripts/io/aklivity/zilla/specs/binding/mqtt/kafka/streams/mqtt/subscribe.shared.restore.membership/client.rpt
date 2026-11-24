@@ -23,6 +23,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                                 .clientId("client")
                                 .qos("AT_LEAST_ONCE")
                                 .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                                .generation(2)
                                 .build()
                             .build()}
 

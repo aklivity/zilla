@@ -580,6 +580,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.subscribe.hash.key/client",
+        "${mqtt}/session.subscribe.hash.key/server"})
+    public void shouldSaveSessionStateWithHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.reject.non.compacted.sessions.topic/client",
         "${mqtt}/session.reject.non.compacted.sessions.topic/server"})
     public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
@@ -592,6 +601,15 @@ public class MqttIT
         "${mqtt}/session.subscribe.via.session.state/client",
         "${mqtt}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.subscribe.via.session.state.multiple.partitions/client",
+        "${mqtt}/session.subscribe.via.session.state.multiple.partitions/server"})
+    public void shouldRestoreSessionStateFromMultiplePartitions() throws Exception
     {
         k3po.finish();
     }
@@ -1316,15 +1334,6 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/session.capabilities.shared.unavailable.without.store/client",
-        "${mqtt}/session.capabilities.shared.unavailable.without.store/server"})
-    public void shouldSessionCapabilitiesSharedUnavailableWithoutStore() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.publish.qos.max.0/client",
         "${mqtt}/session.publish.qos.max.0/server"})
     public void shouldAdvertisePublishQosMax0() throws Exception
@@ -1627,6 +1636,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.reject.unreadable.metadata/client",
+        "${mqtt}/subscribe.shared.reject.unreadable.metadata/server"})
+    public void shouldSubscribeSharedRejectUnreadableMetadata() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.reject.unsupported.version/client",
         "${mqtt}/subscribe.shared.reject.unsupported.version/server"})
     public void shouldSubscribeSharedRejectUnsupportedVersion() throws Exception
@@ -1870,27 +1888,9 @@ public class MqttIT
 
     @Test
     @Specification({
-        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client",
-        "${mqtt}/subscribe.shared.reject.unreadable.tickets/server"})
-    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${mqtt}/session.unsubscribe.shared/client",
         "${mqtt}/session.unsubscribe.shared/server"})
     public void shouldUnsubscribeSharedAndLeave() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${mqtt}/session.unsubscribe.shared.state.write.reset/client",
-        "${mqtt}/session.unsubscribe.shared.state.write.reset/server"})
-    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
     {
         k3po.finish();
     }

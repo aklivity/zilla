@@ -38,6 +38,8 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.Array32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttBinaryFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttExpirySignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttExpirySignalLongFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPacketFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPacketState;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormat;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPayloadFormatFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttPublishFlags;
@@ -401,6 +403,71 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExBuilder generation(
+                long generation)
+            {
+                subscribeBeginExRW.generation(generation);
+                return this;
+            }
+
+            public MqttSubscribeBeginExBuilder packet(
+                int packetId,
+                String state,
+                String qosName,
+                String filter,
+                String metadata)
+            {
+                final int packetState = MqttPacketState.valueOf(state).value();
+                final int qos = MqttQoS.valueOf(qosName).ordinal();
+                subscribeBeginExRW.packetsItem(p -> p
+                    .packetId(packetId)
+                    .state(packetState)
+                    .qos(qos)
+                    .filter(filter)
+                    .metadata(m -> m.bytes(b -> b.set(metadata.getBytes(UTF_8)))));
+                return this;
+            }
+
+            public MqttSubscribeBeginExBuilder sharedPacket(
+                int packetId,
+                String state,
+                String qosName,
+                String shareName,
+                String filter,
+                String metadata)
+            {
+                final int packetState = MqttPacketState.valueOf(state).value();
+                final int qos = MqttQoS.valueOf(qosName).ordinal();
+                subscribeBeginExRW.packetsItem(p -> p
+                    .packetId(packetId)
+                    .state(packetState)
+                    .qos(qos)
+                    .shareName(shareName)
+                    .filter(filter)
+                    .metadata(m -> m.bytes(b -> b.set(metadata.getBytes(UTF_8)))));
+                return this;
+            }
+
+            public MqttSubscribeBeginExBuilder sharedPacketBytes(
+                int packetId,
+                String state,
+                String qosName,
+                String shareName,
+                String filter,
+                byte[] metadata)
+            {
+                final int packetState = MqttPacketState.valueOf(state).value();
+                final int qos = MqttQoS.valueOf(qosName).ordinal();
+                subscribeBeginExRW.packetsItem(p -> p
+                    .packetId(packetId)
+                    .state(packetState)
+                    .qos(qos)
+                    .shareName(shareName)
+                    .filter(filter)
+                    .metadata(m -> m.bytes(b -> b.set(metadata))));
+                return this;
+            }
+
             public MqttBeginExBuilder build()
             {
                 final MqttSubscribeBeginExFW subscribeBeginEx = subscribeBeginExRW.build();
@@ -609,6 +676,20 @@ public final class MqttFunctions
                 String value)
             {
                 subscribeDataExRW.propertiesItem(p -> p.key(name).value(value));
+                return this;
+            }
+
+            public MqttSubscribeDataExBuilder metadata(
+                String metadata)
+            {
+                subscribeDataExRW.metadata(m -> m.bytes(b -> b.set(metadata.getBytes(UTF_8))));
+                return this;
+            }
+
+            public MqttSubscribeDataExBuilder metadataBytes(
+                byte[] metadata)
+            {
+                subscribeDataExRW.metadata(m -> m.bytes(b -> b.set(metadata)));
                 return this;
             }
 
@@ -1828,6 +1909,8 @@ public final class MqttFunctions
             private String16FW clientId;
             private Integer qos;
             private Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filters;
+            private Long generation;
+            private Array32FW.Builder<MqttPacketFW.Builder, MqttPacketFW> packets;
 
             private MqttSubscribeBeginExMatcherBuilder()
             {
@@ -1924,9 +2007,90 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExMatcherBuilder generation(
+                long generation)
+            {
+                this.generation = generation;
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder packet(
+                int packetId,
+                String state,
+                String qosName,
+                String filter,
+                String metadata)
+            {
+                final int packetState = MqttPacketState.valueOf(state).value();
+                final int qos = MqttQoS.valueOf(qosName).ordinal();
+                supplyPackets().item(i -> i
+                    .packetId(packetId)
+                    .state(packetState)
+                    .qos(qos)
+                    .filter(filter)
+                    .metadata(m -> m.bytes(b -> b.set(metadata.getBytes(UTF_8)))));
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder sharedPacket(
+                int packetId,
+                String state,
+                String qosName,
+                String shareName,
+                String filter,
+                String metadata)
+            {
+                final int packetState = MqttPacketState.valueOf(state).value();
+                final int qos = MqttQoS.valueOf(qosName).ordinal();
+                supplyPackets().item(i -> i
+                    .packetId(packetId)
+                    .state(packetState)
+                    .qos(qos)
+                    .shareName(shareName)
+                    .filter(filter)
+                    .metadata(m -> m.bytes(b -> b.set(metadata.getBytes(UTF_8)))));
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder noPackets()
+            {
+                supplyPackets();
+                return this;
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder sharedPacketBytes(
+                int packetId,
+                String state,
+                String qosName,
+                String shareName,
+                String filter,
+                byte[] metadata)
+            {
+                final int packetState = MqttPacketState.valueOf(state).value();
+                final int qos = MqttQoS.valueOf(qosName).ordinal();
+                supplyPackets().item(i -> i
+                    .packetId(packetId)
+                    .state(packetState)
+                    .qos(qos)
+                    .shareName(shareName)
+                    .filter(filter)
+                    .metadata(m -> m.bytes(b -> b.set(metadata))));
+                return this;
+            }
+
             public MqttBeginExMatcherBuilder build()
             {
                 return MqttBeginExMatcherBuilder.this;
+            }
+
+            private Array32FW.Builder<MqttPacketFW.Builder, MqttPacketFW> supplyPackets()
+            {
+                if (packets == null)
+                {
+                    this.packets = new Array32FW.Builder<>(new MqttPacketFW.Builder(), new MqttPacketFW())
+                        .wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+                }
+                return packets;
             }
 
             private boolean match(
@@ -1935,7 +2099,21 @@ public final class MqttFunctions
                 final MqttSubscribeBeginExFW subscribeBeginEx = beginEx.subscribe();
                 return matchClientId(subscribeBeginEx) &&
                     matchQos(subscribeBeginEx) &&
-                    matchFilters(subscribeBeginEx);
+                    matchFilters(subscribeBeginEx) &&
+                    matchGeneration(subscribeBeginEx) &&
+                    matchPackets(subscribeBeginEx);
+            }
+
+            private boolean matchGeneration(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                return generation == null || generation == subscribeBeginEx.generation();
+            }
+
+            private boolean matchPackets(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                return packets == null || packets.build().equals(subscribeBeginEx.packets());
             }
 
             private boolean matchClientId(
@@ -2194,6 +2372,8 @@ public final class MqttFunctions
         {
             private MqttBinaryFW.Builder correlationRW;
             private final DirectBufferEx correlationRO = new UnsafeBufferEx(0, 0);
+            private MqttBinaryFW.Builder metadataRW;
+            private final DirectBufferEx metadataRO = new UnsafeBufferEx(0, 0);
             private String16FW topic;
             private Integer packetId;
             private Integer qos;
@@ -2315,6 +2495,30 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeDataExMatcherBuilder metadata(
+                String metadata)
+            {
+                assert metadataRW == null;
+                metadataRW = new MqttBinaryFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+
+                metadataRO.wrap(metadata.getBytes(UTF_8));
+                metadataRW.bytes(metadataRO, 0, metadataRO.capacity());
+
+                return this;
+            }
+
+            public MqttSubscribeDataExMatcherBuilder metadataBytes(
+                byte[] metadata)
+            {
+                assert metadataRW == null;
+                metadataRW = new MqttBinaryFW.Builder().wrap(new UnsafeBufferEx(new byte[1024]), 0, 1024);
+
+                metadataRO.wrap(metadata);
+                metadataRW.bytes(metadataRO, 0, metadataRO.capacity());
+
+                return this;
+            }
+
             public MqttSubscribeDataExMatcherBuilder userProperty(
                 String name,
                 String value)
@@ -2349,7 +2553,8 @@ public final class MqttFunctions
                     matchFormat(subscribeDataEx) &&
                     matchResponseTopic(subscribeDataEx) &&
                     matchCorrelation(subscribeDataEx) &&
-                    matchUserProperties(subscribeDataEx);
+                    matchUserProperties(subscribeDataEx) &&
+                    matchMetadata(subscribeDataEx);
             }
 
             private boolean matchDeferred(
@@ -2416,6 +2621,12 @@ public final class MqttFunctions
                 final MqttSubscribeDataExFW data)
             {
                 return correlationRW == null || correlationRW.build().equals(data.correlation());
+            }
+
+            private boolean matchMetadata(
+                final MqttSubscribeDataExFW data)
+            {
+                return metadataRW == null || metadataRW.build().equals(data.metadata());
             }
 
             private boolean matchUserProperties(

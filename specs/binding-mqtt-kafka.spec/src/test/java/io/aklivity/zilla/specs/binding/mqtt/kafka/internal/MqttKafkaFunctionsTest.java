@@ -31,6 +31,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetMetadataFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttKafkaSessionOffsetsFW;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttPublishOffsetMetadataFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSharedRecordFW;
+import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSharedRecordVersion;
 import io.aklivity.zilla.specs.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 
 public class MqttKafkaFunctionsTest
@@ -358,5 +360,22 @@ public class MqttKafkaFunctionsTest
             .build();
 
         assertThrows(Exception.class, () -> matcher.match(ByteBuffer.allocate(0)));
+    }
+
+    @Test
+    public void shouldBuildSharedRecord()
+    {
+        final byte[] bytes = MqttKafkaFunctions.sharedRecord()
+            .topic("mqtt-messages")
+            .partition(3, 42L)
+            .build();
+
+        MqttSharedRecordFW sharedRecord = new MqttSharedRecordFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals(MqttSharedRecordVersion.V1, sharedRecord.kind());
+        assertEquals("mqtt-messages", sharedRecord.recordV1().topic().asString());
+        assertEquals(3, sharedRecord.recordV1().partitionId());
+        assertEquals(42L, sharedRecord.recordV1().partitionOffset());
+        assertEquals(sharedRecord.limit(), bytes.length);
     }
 }

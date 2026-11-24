@@ -173,7 +173,7 @@ public class MqttKafkaProxyBM
     private static final int SHARED_SUBSCRIBERS = 5;
     private static final int EXPIRY_SECONDS = 24 * 60 * 60;
     private static final String SHARE_NAME = "benchmark";
-    private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.store.yaml";
+    private static final String SHARED_CONFIGURATION = "io/aklivity/zilla/specs/binding/mqtt/kafka/config/proxy.yaml";
     private static final int QOS2_PACKET_ID = 1;
     private static final long WILL_TIMEOUT_NANOS = SECONDS.toNanos(30L);
     private static final long SETTLE_NANOS = SECONDS.toNanos(1L);

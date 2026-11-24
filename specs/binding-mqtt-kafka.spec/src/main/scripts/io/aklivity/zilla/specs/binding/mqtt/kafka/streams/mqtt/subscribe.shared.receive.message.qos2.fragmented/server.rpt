@@ -40,12 +40,25 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
+                                .metadataBytes(mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 5)
+                                    .build())
                                 .build()
                             .build()}
 write "mess"
 
 write option zilla:flags "fin"
 write "age"
+
+read advised zilla:flush ${mqtt:flushEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .qos("EXACTLY_ONCE")
+                                .packetId(1)
+                                .state("RECORDED")
+                                .build()
+                            .build()}
 
 read advised zilla:flush ${mqtt:flushEx()
                             .typeId(zilla:id("mqtt"))

@@ -25,6 +25,10 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .clientId("client")
                                 .qos("EXACTLY_ONCE")
                                 .sharedFilter("consumers", "sensor/one", 1, "EXACTLY_ONCE")
+                                .sharedPacketBytes(1, "PUBLISH_SENT", "EXACTLY_ONCE", "consumers", "sensor/one", mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 5)
+                                    .build())
                                 .build()
                             .build()}
 
@@ -39,6 +43,10 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .flags("DUP")
                                 .subscriptionId(1)
                                 .format("TEXT")
+                                .metadataBytes(mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 5)
+                                    .build())
                                 .build()
                             .build()}
 write "message"
@@ -51,9 +59,22 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
+                                .metadataBytes(mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 6)
+                                    .build())
                                 .build()
                             .build()}
 write "update"
+
+read advised zilla:flush ${mqtt:flushEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .qos("EXACTLY_ONCE")
+                                .packetId(2)
+                                .state("RECORDED")
+                                .build()
+                            .build()}
 
 read advised zilla:flush ${mqtt:flushEx()
                             .typeId(zilla:id("mqtt"))

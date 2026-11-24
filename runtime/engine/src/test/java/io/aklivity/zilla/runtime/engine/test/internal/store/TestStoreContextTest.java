@@ -18,7 +18,9 @@ package io.aklivity.zilla.runtime.engine.test.internal.store;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
@@ -29,13 +31,14 @@ import io.aklivity.zilla.config.engine.StoreConfig;
 import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig;
 import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
 public class TestStoreContextTest
 {
     @Test
     public void shouldDetachWhenNoAssertionsConfigured()
     {
-        TestStoreContext context = new TestStore(new Configuration()).supply(mock(EngineContext.class));
+        TestStoreContext context = new TestStore(new Configuration()).supply(newEngineContext());
         StoreConfig store = newStore(TestStoreOptionsConfig.builder().build());
 
         context.attach(store);
@@ -45,7 +48,7 @@ public class TestStoreContextTest
     @Test
     public void shouldDetachWhenAllExpectedOperationsConsumed()
     {
-        TestStoreContext context = new TestStore(new Configuration()).supply(mock(EngineContext.class));
+        TestStoreContext context = new TestStore(new Configuration()).supply(newEngineContext());
         StoreConfig store = newStore(TestStoreOptionsConfig.builder()
             .assertion("put", "key", "value", null)
             .build());
@@ -58,7 +61,7 @@ public class TestStoreContextTest
     @Test
     public void shouldFailDetachWhenExpectedOperationsMissing()
     {
-        TestStoreContext context = new TestStore(new Configuration()).supply(mock(EngineContext.class));
+        TestStoreContext context = new TestStore(new Configuration()).supply(newEngineContext());
         StoreConfig store = newStore(TestStoreOptionsConfig.builder()
             .assertion("put", "key", "value", Duration.ofMinutes(1))
             .assertion("delete", "key", null, null)
@@ -75,11 +78,19 @@ public class TestStoreContextTest
     @Test
     public void shouldDetachWhenEmptyAssertionsExpectNoOperations()
     {
-        TestStoreContext context = new TestStore(new Configuration()).supply(mock(EngineContext.class));
+        TestStoreContext context = new TestStore(new Configuration()).supply(newEngineContext());
         StoreConfig store = newStore(TestStoreOptionsConfig.builder().assertions(List.of()).build());
 
         context.attach(store);
         context.detach(store);
+    }
+
+    private static EngineContext newEngineContext()
+    {
+        EngineContext context = mock(EngineContext.class);
+        when(context.clock()).thenReturn(Clock.systemUTC());
+        when(context.signaler()).thenReturn(mock(Signaler.class));
+        return context;
     }
 
     private static StoreConfig newStore(

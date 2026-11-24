@@ -38,9 +38,22 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
+                                .metadataBytes(mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 5)
+                                    .build())
                                 .build()
                             .build()}
 write "message1"
+
+read advised zilla:flush ${mqtt:flushEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .qos("EXACTLY_ONCE")
+                                .packetId(1)
+                                .state("RECORDED")
+                                .build()
+                            .build()}
 
 write zilla:data.ext ${mqtt:dataEx()
                             .typeId(zilla:id("mqtt"))
@@ -50,9 +63,22 @@ write zilla:data.ext ${mqtt:dataEx()
                                 .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
+                                .metadataBytes(mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 6)
+                                    .build())
                                 .build()
                             .build()}
 write "message2"
+
+read advised zilla:flush ${mqtt:flushEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .qos("EXACTLY_ONCE")
+                                .packetId(2)
+                                .state("RECORDED")
+                                .build()
+                            .build()}
 
 read closed
 write close

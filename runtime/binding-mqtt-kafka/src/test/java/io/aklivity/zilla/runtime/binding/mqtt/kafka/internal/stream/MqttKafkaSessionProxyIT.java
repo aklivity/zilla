@@ -59,6 +59,7 @@ public class MqttKafkaSessionProxyIT
         .countersBufferCapacity(8192)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
+        .configure(SHARED_SUBSCRIPTION_AVAILABLE_NAME, "false")
         .configure(SESSION_ID_NAME,
             "io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaSessionProxyIT::supplySessionId")
         .configure(INSTANCE_ID_NAME,
@@ -102,6 +103,18 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.hash.key/client",
+        "${kafka}/session.subscribe.hash.key/server"})
+    public void shouldSaveSessionStateWithHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("proxy.log.event.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
@@ -133,6 +146,18 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.subscribe.via.session.state/client",
         "${kafka}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.subscribe.via.session.state.multiple.partitions/client",
+        "${kafka}/session.subscribe.via.session.state.multiple.partitions/server"})
+    public void shouldRestoreSessionStateFromMultiplePartitions() throws Exception
     {
         k3po.finish();
     }
@@ -466,57 +491,6 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.session.discard.yaml")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.will.message.clean.start/client",
-        "${kafka}/session.will.message.clean.start/server"})
-    public void shouldDiscardTicketsOnSessionCleanStart() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.session.discard.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.close.expiry.zero/client",
-        "${kafka}/session.close.expiry.zero/server"})
-    public void shouldDiscardTicketsOnSessionCloseWithoutExpiry() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.session.discard.yaml")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.close.expire.session.state/client",
-        "${kafka}/session.close.expire.session.state/server"})
-    public void shouldDiscardTicketsOnSessionExpiry() throws Exception
-    {
-        k3po.start();
-        k3po.awaitBarrier("RECEIVED_EXPIRE_AT_SIGNAL");
-        clock.advanceTo(2001L);
-        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
-        {
-            k3po.finish();
-        }
-    }
-
-    @Test
-    @Configuration("proxy.store.session.keep.yaml")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.will.message.normal.disconnect/client",
-        "${kafka}/session.will.message.normal.disconnect/server"})
-    public void shouldKeepTicketsOnSessionCloseWithExpiry() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
@@ -592,6 +566,22 @@ public class MqttKafkaSessionProxyIT
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.start();
+        clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1073741824L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
+    @Specification({
+        "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/server"})
+    public void shouldExpireSessionAfterSignalStreamRestartFromMultiplePartitions() throws Exception
     {
         k3po.start();
         clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
@@ -985,9 +975,23 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Specification({
+        "${mqtt}/session.close.expiry.zero/client",
+        "${kafka}/session.close.expiry.zero/server"})
+    public void shouldCloseSessionWithoutExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Specification({
         "${mqtt}/session.capabilities.shared.available/client",
         "${kafka}/session.capabilities/server"})
@@ -1009,18 +1013,6 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.capabilities.shared.unavailable.without.store/client",
-        "${kafka}/session.capabilities/server"})
-    public void shouldReceiveSessionCapabilitiesSharedUnavailableWithoutStore() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.when.subscribe.topic.with.messages.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
@@ -1033,7 +1025,7 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "false")
@@ -1046,9 +1038,10 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Specification({
         "${mqtt}/session.subscribe.shared.granted.qos2/client",
         "${kafka}/session.subscribe.shared.granted.qos2/server"})
@@ -1058,9 +1051,10 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Specification({
         "${mqtt}/session.reconnect.shared.subscription/client",
         "${kafka}/session.reconnect.shared.subscription/server"})
@@ -1070,9 +1064,10 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.session.shared.unsubscribe.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Specification({
         "${mqtt}/session.unsubscribe.shared/client",
         "${kafka}/session.unsubscribe.shared/server"})
@@ -1082,33 +1077,10 @@ public class MqttKafkaSessionProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.session.shared.unsubscribe.write.reset.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.unsubscribe.shared.state.write.reset/client",
-        "${kafka}/session.unsubscribe.shared.state.write.reset/server"})
-    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.session.shared.unsubscribe.second.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
-    @Specification({
-        "${mqtt}/session.unsubscribe.shared/client",
-        "${kafka}/session.unsubscribe.shared/server"})
-    public void shouldLeaveSharedSubscriptionOnUnsubscribeWithOtherMember() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.session.shared.resubscribe.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SHARED_SUBSCRIPTION_AVAILABLE_NAME, value = "true")
     @Specification({
         "${mqtt}/session.resubscribe.shared/client",
         "${kafka}/session.resubscribe.shared/server"})

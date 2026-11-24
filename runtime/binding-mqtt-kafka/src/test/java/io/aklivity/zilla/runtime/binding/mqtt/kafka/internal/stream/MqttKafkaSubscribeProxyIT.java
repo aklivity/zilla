@@ -836,7 +836,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.and.non.shared.receive.messages/client",
@@ -858,7 +858,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.client.sent.abort/client",
@@ -880,7 +880,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.client.sent.reset/client",
@@ -902,7 +902,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.join.distinct.filters.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.distinct.filters/client",
@@ -924,7 +924,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.join.distinct.share.names.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.distinct.share.names/client",
@@ -946,7 +946,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.expire.message/client",
@@ -957,7 +957,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.message.expiry.interval.reduced/client",
@@ -968,7 +968,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.expire.message.fragmented/client",
@@ -979,7 +979,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos0/client",
@@ -990,7 +990,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos0.fragmented/client",
@@ -1001,7 +1001,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1/client",
@@ -1012,7 +1012,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.fragmented/client",
@@ -1023,7 +1023,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/client",
@@ -1034,7 +1034,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.no.tickets.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.published.qos2/client",
@@ -1045,7 +1045,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode/client",
@@ -1056,7 +1056,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.reject.with.reasoncode.fragmented/client",
@@ -1067,7 +1067,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.reject.filter.mismatch/client",
@@ -1078,7 +1078,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.reject.before.begin/client",
@@ -1089,7 +1089,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.expired.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.expire.message.qos2/client",
@@ -1100,7 +1100,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos2/client",
@@ -1111,7 +1111,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.existing.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos2.existing.tickets/client",
@@ -1122,7 +1122,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.pubrel.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.pubrel.pending/client",
@@ -1133,7 +1133,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.publish.sent/client",
@@ -1144,7 +1144,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.unsubscribe.inflight.qos2.disconnect.recover.pubrel.pending/client",
@@ -1155,7 +1155,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.unsubscribe.release.qos1/client",
@@ -1166,7 +1166,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.release.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.unsubscribe.release.qos2/client",
@@ -1177,7 +1177,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.unsubscribe.inflight.then.release/client",
@@ -1188,7 +1188,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent/client",
@@ -1199,7 +1199,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.publish.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent.fragmented/client",
@@ -1210,7 +1210,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent.offset.mismatch/client",
@@ -1221,7 +1221,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent.expired/client",
@@ -1232,7 +1232,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent.missing/client",
@@ -1243,7 +1243,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.drop.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.publish.sent.beyond.end/client",
@@ -1254,7 +1254,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.recover.then.receive.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.recover.qos2.then.receive.message/client",
@@ -1265,7 +1265,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos2.fragmented/client",
@@ -1276,7 +1276,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.reject.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos2.reject.with.reasoncode/client",
@@ -1287,7 +1287,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.messages.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.receive.messages.qos2/client",
@@ -1298,17 +1298,17 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.qos2.unreadable.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
-        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client"})
-    public void shouldSubscribeSharedRejectUnreadableTickets() throws Exception
+        "${mqtt}/subscribe.shared.reject.unreadable.metadata/client"})
+    public void shouldSubscribeSharedRejectUnreadableMetadata() throws Exception
     {
         k3po.finish();
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.reject.unsupported.version/client",
@@ -1319,7 +1319,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.resubscribe.change.qos/client",
@@ -1330,7 +1330,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.server.sent.abort/client",
@@ -1373,29 +1373,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.join.first.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Specification({
-        "${mqtt}/subscribe.shared.receive.message.qos1/client",
-        "${kafka}/subscribe.shared.receive.message.qos1/server"})
-    public void shouldSubscribeSharedJoinFirstSubscriber() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.shared.join.second.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Specification({
-        "${mqtt}/subscribe.shared.receive.message.qos1/client",
-        "${kafka}/subscribe.shared.receive.message.qos1/server"})
-    public void shouldSubscribeSharedJoinSecondSubscriber() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.shared.join.restored.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.restore.membership/client",
@@ -1406,17 +1384,7 @@ public class MqttKafkaSubscribeProxyIT
     }
 
     @Test
-    @Configuration("proxy.store.shared.join.unreadable.registry.yaml")
-    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
-    @Specification({
-        "${mqtt}/subscribe.shared.reject.unreadable.tickets/client"})
-    public void shouldSubscribeSharedRejectUnreadableRegistry() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("proxy.store.shared.join.new.life.yaml")
+    @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.shared.join.new.life/client",

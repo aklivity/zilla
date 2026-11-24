@@ -25,6 +25,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .clientId("client")
                                 .qos("AT_LEAST_ONCE")
                                 .sharedFilter("consumers", "sensor/one", 1, "AT_LEAST_ONCE")
+                                .generation(1)
                                 .build()
                             .build()}
 

@@ -749,6 +749,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.subscribe.hash.key/client",
+        "${kafka}/session.subscribe.hash.key/server"})
+    public void shouldSaveSessionStateWithHashKey() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.reject.non.compacted.sessions.topic/client",
         "${kafka}/session.reject.non.compacted.sessions.topic/server"})
     public void shouldRejectSessionNonCompactedSessionsTopic() throws Exception
@@ -761,6 +770,15 @@ public class KafkaIT
         "${kafka}/session.subscribe.via.session.state/client",
         "${kafka}/session.subscribe.via.session.state/server"})
     public void shouldReceiveMessageSubscribedViaSessionState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.subscribe.via.session.state.multiple.partitions/client",
+        "${kafka}/session.subscribe.via.session.state.multiple.partitions/server"})
+    public void shouldRestoreSessionStateFromMultiplePartitions() throws Exception
     {
         k3po.finish();
     }
@@ -1096,6 +1114,15 @@ public class KafkaIT
         "${kafka}/session.expiry.after.signal.stream.restart/client",
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/client",
+        "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/server"})
+    public void shouldExpireSessionAfterSignalStreamRestartFromMultiplePartitions() throws Exception
     {
         k3po.finish();
     }
@@ -2113,15 +2140,6 @@ public class KafkaIT
         "${kafka}/session.unsubscribe.shared/client",
         "${kafka}/session.unsubscribe.shared/server"})
     public void shouldUnsubscribeSharedAndLeave() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
-        "${kafka}/session.unsubscribe.shared.state.write.reset/client",
-        "${kafka}/session.unsubscribe.shared.state.write.reset/server"})
-    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
     {
         k3po.finish();
     }

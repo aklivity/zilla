@@ -30,7 +30,7 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                             .typeId(zilla:id("mqtt"))
                             .session()
                                 .expiry(1)
-                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD", "SHARED_SUBSCRIPTIONS")
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD", "SHARED_SUBSCRIPTIONS", "SHARED_GENERATION")
                                 .clientId("client-1")
                                 .build()
                             .build()}

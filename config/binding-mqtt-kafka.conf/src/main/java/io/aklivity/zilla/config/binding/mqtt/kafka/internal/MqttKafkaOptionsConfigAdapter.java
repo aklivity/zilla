@@ -32,7 +32,6 @@ import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public class MqttKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
 {
-    private static final String STORE_NAME = "store";
     private static final String TOPICS_NAME = "topics";
     private static final String CLIENTS_NAME = "clients";
     private static final String SESSIONS_NAME = "sessions";
@@ -50,14 +49,8 @@ public class MqttKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
 
         JsonObjectBuilder object = Json.createObjectBuilder();
 
-        String store = mqttKafkaOptions.store;
         MqttKafkaTopicsConfig topics = mqttKafkaOptions.topics;
         List<String> clients = mqttKafkaOptions.clients;
-
-        if (store != null)
-        {
-            object.add(STORE_NAME, store);
-        }
 
         if (topics != null)
         {
@@ -110,11 +103,6 @@ public class MqttKafkaOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
             }
         }
         options.clients(clients);
-
-        if (object.containsKey(STORE_NAME))
-        {
-            options.store(object.getString(STORE_NAME));
-        }
 
         options.topics(MqttKafkaTopicsConfig.builder()
             .sessions(topics.getString(SESSIONS_NAME))
