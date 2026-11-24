@@ -44,6 +44,7 @@ public class MqttConfiguration extends Configuration
     public static final BooleanPropertyDef WILDCARD_SUBSCRIPTION;
     public static final BooleanPropertyDef SUBSCRIPTION_IDENTIFIERS;
     public static final BooleanPropertyDef NO_LOCAL;
+    public static final BooleanPropertyDef SESSION_STATE_STORE_ENABLED;
     public static final PropertyDef<String> CLIENT_ID;
     public static final PropertyDef<MqttQoS> PUBLISH_QOS_MAX;
     public static final PropertyDef<StringSupplier> INSTANCE_ID;
@@ -65,6 +66,7 @@ public class MqttConfiguration extends Configuration
         WILDCARD_SUBSCRIPTION = config.property("wildcard.subscription.available", true);
         SUBSCRIPTION_IDENTIFIERS = config.property("subscription.identifiers.available", true);
         NO_LOCAL = config.property("no.local", true);
+        SESSION_STATE_STORE_ENABLED = config.property("session.state.store.enabled", false);
         CLIENT_ID = config.property("client.id");
         PUBLISH_QOS_MAX = config.property(MqttQoS.class, "publish.qos.max",
             MqttConfiguration::decodePublishQosMax, MqttQoS.EXACTLY_ONCE);
@@ -136,6 +138,11 @@ public class MqttConfiguration extends Configuration
     public boolean noLocal()
     {
         return NO_LOCAL.get(this);
+    }
+
+    public boolean sessionStateStoreEnabled()
+    {
+        return SESSION_STATE_STORE_ENABLED.get(this);
     }
 
     public String clientId()
