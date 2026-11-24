@@ -646,7 +646,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             if (sessionStateStored)
             {
-                onMessageAckedStored(traceId, authorization, budgetId, reserved, packetId, state);
+                onMessageAckedStored(traceId, authorization, packetId, state);
             }
             else
             {
@@ -657,8 +657,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private void onMessageAckedStored(
             long traceId,
             long authorization,
-            long budgetId,
-            int reserved,
             int packetId,
             MqttOffsetStateFlags state)
         {
@@ -667,7 +665,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final Flyweight mqttSubscribeFlushEx = mqttFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(mqttTypeId)
                     .subscribe(b -> b.packetId(packetId)).build();
-                doMqttFlush(traceId, authorization, budgetId, reserved, mqttSubscribeFlushEx);
+                doMqttFlush(traceId, authorization, 0, 0, mqttSubscribeFlushEx);
             }
             else
             {
