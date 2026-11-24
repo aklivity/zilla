@@ -800,7 +800,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 doMqttWindow(authorization, traceId, 0, 0, 0);
                 this.metadata = new MqttKafkaPublishMetadata(
                     new Long2ObjectHashMap<>(), new MqttKafkaPacketPartitions(), leaderEpochs);
-                this.metadata.sessionsTopic = sessionsTopic;
+                this.metadata.sessionsTopic = isSessionStateStored() ? null : sessionsTopic;
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
             }
@@ -1971,7 +1971,6 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             final long partitionKey = partitionKey(topic, partitionId);
             final KafkaOffsetMetadata offsetMetadata = metadata.offsets.get(partitionKey);
             offsetMetadata.packetIds.remove((Integer) packetId);
-            offsetMetadata.sequence++;
 
             if (isSessionStateStored())
             {
@@ -1980,6 +1979,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
             else
             {
+                offsetMetadata.sequence++;
                 unackedPacketIds.add(packetId);
                 doProduceSessionOffsets(traceId, authorization, 0);
                 unackedSeqs.addLong(offsetCommit.initialSeq);
