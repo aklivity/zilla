@@ -58,4 +58,13 @@ public class MqttSubscribeApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.message.recorded/client",
+        "${app}/subscribe.shared.message.recorded/server"})
+    public void shouldReceiveSharedMessageRecorded() throws Exception
+    {
+        k3po.finish();
+    }
 }

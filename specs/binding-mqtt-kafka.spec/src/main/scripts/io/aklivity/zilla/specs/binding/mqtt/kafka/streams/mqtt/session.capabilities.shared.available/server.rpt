@@ -34,7 +34,7 @@ write zilla:begin.ext ${mqtt:beginEx()
                                 .expiry(1)
                                 .subscribeQosMax(2)
                                 .publishQosMax(2)
-                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD", "SHARED_SUBSCRIPTIONS")
+                                .capabilities("RETAIN", "SUBSCRIPTION_IDS", "WILDCARD", "SHARED_SUBSCRIPTIONS", "SHARED_GENERATION")
                                 .clientId("client-1")
                                 .build()
                             .build()}

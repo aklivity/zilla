@@ -25,6 +25,10 @@ read zilla:begin.ext ${mqtt:matchBeginEx()
                                 .clientId("client")
                                 .qos("EXACTLY_ONCE")
                                 .sharedFilter("consumers", "sensor/one", 1, "EXACTLY_ONCE")
+                                .sharedPacketBytes(1, "PUBREL_PENDING", "EXACTLY_ONCE", "consumers", "sensor/one", mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 5)
+                                    .build())
                                 .build()
                             .build()}
 

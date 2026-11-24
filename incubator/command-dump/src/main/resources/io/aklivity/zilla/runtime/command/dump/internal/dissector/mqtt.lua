@@ -59,6 +59,13 @@ local mqtt_ext_data_kinds = {
 local mqtt_ext_offset_state_flags = {
     [0] = "COMPLETE",
     [1] = "INCOMPLETE",
+    [2] = "RECORDED",
+    [3] = "ABANDONED",
+}
+
+local mqtt_ext_packet_states = {
+    [1] = "PUBLISH_SENT",
+    [2] = "PUBREL_PENDING",
 }
 
 add_field("mqtt_ext_kind", ProtoField.uint8("zilla.mqtt_ext.kind", "Kind", base.DEC, mqtt_ext_kinds))
@@ -108,6 +115,18 @@ add_field("mqtt_ext_filters_array_size", ProtoField.int8("zilla.mqtt_ext.filters
 add_field("mqtt_ext_filter_subscription_id", ProtoField.int32("zilla.mqtt_ext.filter_subscription_id", "Subscription ID", base.DEC))
 add_field("mqtt_ext_filter_qos", ProtoField.uint8("zilla.mqtt_ext.filter_qos", "QoS", base.DEC, mqtt_ext_qos_types))
 add_field("mqtt_ext_filter_reason_code", ProtoField.uint8("zilla.mqtt_ext.filter_reason_code", "Reason Code", base.DEC))
+--     generation and packets
+add_field("mqtt_ext_generation", ProtoField.uint32("zilla.mqtt_ext.generation", "Generation", base.DEC))
+add_field("mqtt_ext_packets_array_length", ProtoField.int8("zilla.mqtt_ext.packets_array_length", "Length", base.DEC))
+add_field("mqtt_ext_packets_array_size", ProtoField.int8("zilla.mqtt_ext.packets_array_size", "Size", base.DEC))
+add_field("mqtt_ext_packet_state", ProtoField.uint8("zilla.mqtt_ext.packet_state", "State", base.DEC, mqtt_ext_packet_states))
+add_field("mqtt_ext_packet_share_name_length", ProtoField.int16("zilla.mqtt_ext.packet_share_name_length", "Length", base.DEC))
+add_field("mqtt_ext_packet_share_name", ProtoField.string("zilla.mqtt_ext.packet_share_name", "Share Name", base.NONE))
+add_field("mqtt_ext_packet_filter_length", ProtoField.int16("zilla.mqtt_ext.packet_filter_length", "Length", base.DEC))
+add_field("mqtt_ext_packet_filter", ProtoField.string("zilla.mqtt_ext.packet_filter", "Filter", base.NONE))
+--     metadata
+add_field("mqtt_ext_metadata_length", ProtoField.int32("zilla.mqtt_ext.metadata_length", "Length", base.DEC))
+add_field("mqtt_ext_metadata", ProtoField.bytes("zilla.mqtt_ext.metadata", "Metadata", base.NONE))
 add_field("mqtt_ext_filter_pattern_length", ProtoField.int16("zilla.mqtt_ext.filter_pattern_length", "Length", base.DEC))
 add_field("mqtt_ext_filter_pattern", ProtoField.string("zilla.mqtt_ext.filter_pattern", "Pattern", base.NONE))
 add_field("mqtt_ext_filter_share_name_length", ProtoField.int16("zilla.mqtt_ext.filter_share_name_length", "Length", base.DEC))
@@ -196,6 +215,66 @@ function handle_mqtt_begin_subscribe_extension(buffer, offset, ext_subtree)
     -- topic_filters
     local topic_filters_offset = qos_offset + qos_length
     dissect_and_add_mqtt_topic_filters(buffer, topic_filters_offset, ext_subtree)
+    -- generation
+    local generation_offset = topic_filters_offset + resolve_length_of_array(buffer, topic_filters_offset)
+    local generation_length = 4
+    local slice_generation = buffer(generation_offset, generation_length)
+    ext_subtree:add_le(fields.mqtt_ext_generation, slice_generation)
+    -- packets
+    local packets_offset = generation_offset + generation_length
+    dissect_and_add_mqtt_packets(buffer, packets_offset, ext_subtree)
+end
+
+function dissect_and_add_mqtt_packets(buffer, offset, tree)
+    local length, array_size = dissect_and_add_array_header_as_subtree(buffer, offset, tree, "Packets (%d items)",
+        fields.mqtt_ext_packets_array_length, fields.mqtt_ext_packets_array_size)
+    local item_offset = offset + length
+    for i = 1, array_size do
+        -- packet_id
+        local packet_id_offset = item_offset
+        local packet_id_length = 2
+        local slice_packet_id = buffer(packet_id_offset, packet_id_length)
+        -- state
+        local state_offset = packet_id_offset + packet_id_length
+        local state_length = 1
+        local slice_state = buffer(state_offset, state_length)
+        -- qos
+        local qos_offset = state_offset + state_length
+        local qos_length = 1
+        local slice_qos = buffer(qos_offset, qos_length)
+        -- share_name
+        local share_name_offset = qos_offset + qos_length
+        local share_name_length, slice_share_name_length, slice_share_name_text =
+            dissect_length_value(buffer, share_name_offset, 2)
+        -- filter
+        local filter_offset = share_name_offset + share_name_length
+        local filter_length, slice_filter_length, slice_filter_text = dissect_length_value(buffer, filter_offset, 2)
+        -- metadata
+        local metadata_offset = filter_offset + filter_length
+        local metadata_slice_length = buffer(metadata_offset, 4):le_int()
+        local metadata_length = 4 + math.max(metadata_slice_length, 0)
+        -- add fields
+        local record_length = packet_id_length + state_length + qos_length + share_name_length + filter_length +
+            metadata_length
+        local label = string.format("Packet: 0x%04x", slice_packet_id:le_uint())
+        local item_subtree = tree:add(zilla_protocol, buffer(item_offset, record_length), label)
+        item_subtree:add_le(fields.mqtt_ext_packet_id, slice_packet_id)
+        item_subtree:add_le(fields.mqtt_ext_packet_state, slice_state)
+        item_subtree:add_le(fields.mqtt_ext_qos, slice_qos)
+        if (slice_share_name_length:le_int() >= 0) then
+            add_string_as_subtree(buffer(share_name_offset, share_name_length), item_subtree, "Share Name: %s",
+                slice_share_name_length, slice_share_name_text, fields.mqtt_ext_packet_share_name_length,
+                fields.mqtt_ext_packet_share_name)
+        end
+        if (slice_filter_length:le_int() >= 0) then
+            add_string_as_subtree(buffer(filter_offset, filter_length), item_subtree, "Filter: %s",
+                slice_filter_length, slice_filter_text, fields.mqtt_ext_packet_filter_length, fields.mqtt_ext_packet_filter)
+        end
+        add_mqtt_binary_as_subtree(buffer, metadata_offset, item_subtree, "Metadata",
+            fields.mqtt_ext_metadata_length, fields.mqtt_ext_metadata)
+        -- next
+        item_offset = item_offset + record_length
+    end
 end
 
 function dissect_and_add_mqtt_topic_filters(buffer, offset, tree)
@@ -498,6 +577,10 @@ function handle_mqtt_data_subscribe_extension(buffer, offset, ext_subtree)
     -- properties
     local properties_offset = correlation_offset + correlation_length
     dissect_and_add_mqtt_properties(buffer, properties_offset, ext_subtree)
+    -- metadata
+    local metadata_offset = properties_offset + resolve_length_of_array(buffer, properties_offset)
+    add_mqtt_binary_as_subtree(buffer, metadata_offset, ext_subtree, "Metadata",
+        fields.mqtt_ext_metadata_length, fields.mqtt_ext_metadata)
 end
 
 function dissect_and_add_mqtt_subscription_ids(buffer, offset, tree)

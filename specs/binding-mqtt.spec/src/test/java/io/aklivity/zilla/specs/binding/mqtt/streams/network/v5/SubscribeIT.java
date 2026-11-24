@@ -1476,4 +1476,58 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.unreceived.message/client",
+        "${net}/subscribe.shared.reconnect.replay.qos2.unreceived.message/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2UnreceivedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.incomplete.message/client",
+        "${net}/subscribe.shared.reconnect.replay.qos2.incomplete.message/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2IncompleteMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.abandon.qos2.unreceived.message/client",
+        "${net}/subscribe.shared.reconnect.abandon.qos2.unreceived.message/server"})
+    public void shouldSubscribeSharedReconnectAbandonQos2UnreceivedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.clean.start.discard.qos2.packets/client",
+        "${net}/subscribe.shared.reconnect.clean.start.discard.qos2.packets/server"})
+    public void shouldSubscribeSharedReconnectCleanStartDiscardQos2Packets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.session.end.discard.qos2.packets/client",
+        "${net}/subscribe.shared.reconnect.session.end.discard.qos2.packets/server"})
+    public void shouldSubscribeSharedReconnectSessionEndDiscardQos2Packets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.rejoin.after.disconnect.new.generation/client",
+        "${net}/subscribe.shared.rejoin.after.disconnect.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterDisconnectNewGeneration() throws Exception
+    {
+        k3po.finish();
+    }
 }

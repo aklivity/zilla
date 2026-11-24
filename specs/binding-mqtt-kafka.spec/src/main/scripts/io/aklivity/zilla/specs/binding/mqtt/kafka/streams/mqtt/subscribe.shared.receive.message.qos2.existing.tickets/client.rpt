@@ -23,6 +23,10 @@ write zilla:begin.ext ${mqtt:beginEx()
                                 .clientId("client")
                                 .qos("EXACTLY_ONCE")
                                 .sharedFilter("consumers", "sensor/one", 1, "EXACTLY_ONCE")
+                                .sharedPacketBytes(1, "PUBREL_PENDING", "EXACTLY_ONCE", "others", "sensor/one", mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 2)
+                                    .build())
                                 .build()
                             .build()}
 
@@ -32,13 +36,26 @@ read zilla:data.ext ${mqtt:matchDataEx()
                             .typeId(zilla:id("mqtt"))
                             .subscribe()
                                 .topic("sensor/one")
-                                .packetId(1)
+                                .packetId(2)
                                 .qos("EXACTLY_ONCE")
                                 .subscriptionId(1)
                                 .format("TEXT")
+                                .metadataBytes(mqtt_kafka:sharedRecord()
+                                    .topic("mqtt-messages")
+                                    .partition(0, 5)
+                                    .build())
                                 .build()
                             .build()}
 read "message"
+
+write advise zilla:flush ${mqtt:flushEx()
+                            .typeId(zilla:id("mqtt"))
+                            .subscribe()
+                                .qos("EXACTLY_ONCE")
+                                .packetId(2)
+                                .state("RECORDED")
+                                .build()
+                            .build()}
 
 write close
 read closed

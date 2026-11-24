@@ -1,0 +1,69 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc.
+ *
+ * Aklivity licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+package io.aklivity.zilla.runtime.binding.mqtt.internal.stream;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
+import org.junit.Test;
+
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPacketState;
+
+public class MqttClientStatesTest
+{
+    private final MqttClientStates states = new MqttClientStates();
+
+    @Test
+    public void shouldDecodeAbsentValueAsEmpty()
+    {
+        final MqttClientStateRecord record = states.decode(null);
+
+        assertTrue(record.packets.isEmpty());
+        assertTrue(record.memberships.isEmpty());
+    }
+
+    @Test
+    public void shouldRoundTripPacketsAndMemberships()
+    {
+        final List<MqttPacketRecord> packets = List.of(
+            new MqttPacketRecord(7, MqttPacketState.PUBLISH_SENT, 2, "consumers", "sensor/one", new byte[] {1, 2, 3}),
+            new MqttPacketRecord(8, MqttPacketState.PUBREL_PENDING, 2, null, null, new byte[0]));
+        final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one"));
+
+        final MqttClientStateRecord record = states.decode(states.encode(memberships, packets));
+
+        assertEquals(memberships, record.memberships);
+        assertEquals(2, record.packets.size());
+        assertEquals(7, record.packets.get(0).packetId);
+        assertEquals(MqttPacketState.PUBLISH_SENT, record.packets.get(0).state);
+        assertEquals("consumers", record.packets.get(0).shareName);
+        assertEquals("sensor/one", record.packets.get(0).filter);
+        assertArrayEquals(new byte[] {1, 2, 3}, record.packets.get(0).metadata);
+        assertEquals(MqttPacketState.PUBREL_PENDING, record.packets.get(1).state);
+        assertNull(record.packets.get(1).shareName);
+        assertEquals(0, record.packets.get(1).metadata.length);
+    }
+
+    @Test
+    public void shouldNotDecodeUnknownVersion()
+    {
+        assertNull(states.decode("AgAAAA"));
+    }
+}

@@ -52,86 +52,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyWithStoreSharedQos2()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedQos2ExistingTickets()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.existing.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedQos2RecoverPubrel()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.pubrel.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedQos2RecoverPublish()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.publish.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedQos2RecoverDrop()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.drop.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedQos2RecoverThenReceive()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.recover.then.receive.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSessionTicketsDiscard()
-    {
-        JsonObject config = schema.validate("proxy.store.session.discard.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSessionTicketsKeep()
-    {
-        JsonObject config = schema.validate("proxy.store.session.keep.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedUnreadableTickets()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.qos2.unreadable.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedNoTickets()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.no.tickets.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateProxyWithPublishQosMax()
     {
         JsonObject config = schema.validate("proxy.publish.qos.max.yaml");
@@ -184,14 +104,6 @@ public class SchemaTest
     }
 
     @Test
-    public void shouldValidateProxyWithStore()
-    {
-        JsonObject config = schema.validate("proxy.store.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
     public void shouldValidateProxyWhenSubscribeShare()
     {
         JsonObject config = schema.validate("proxy.when.subscribe.share.yaml");
@@ -221,83 +133,9 @@ public class SchemaTest
         schema.validate("proxy.when.subscribe.share.invalid.yaml");
     }
 
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinFirst()
+    @Test(expected = JsonException.class)
+    public void shouldRejectProxyWithOptionsStore()
     {
-        JsonObject config = schema.validate("proxy.store.shared.join.first.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinSecond()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.join.second.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinRestored()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.join.restored.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinUnreadableRegistry()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.join.unreadable.registry.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinDistinctFilters()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.join.distinct.filters.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinDistinctShareNames()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.join.distinct.share.names.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSessionSharedUnsubscribe()
-    {
-        JsonObject config = schema.validate("proxy.store.session.shared.unsubscribe.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSessionSharedUnsubscribeSecond()
-    {
-        JsonObject config = schema.validate("proxy.store.session.shared.unsubscribe.second.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSessionSharedResubscribe()
-    {
-        JsonObject config = schema.validate("proxy.store.session.shared.resubscribe.yaml");
-
-        assertThat(config, not(nullValue()));
-    }
-
-    @Test
-    public void shouldValidateProxyWithStoreSharedJoinNewLife()
-    {
-        JsonObject config = schema.validate("proxy.store.shared.join.new.life.yaml");
-
-        assertThat(config, not(nullValue()));
+        schema.validate("proxy.options.store.invalid.yaml");
     }
 }

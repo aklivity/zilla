@@ -2146,15 +2146,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.unsubscribe.shared.state.write.reset/client",
-        "${kafka}/session.unsubscribe.shared.state.write.reset/server"})
-    public void shouldRetainSharedMembershipWhenStateWriteFails() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.resubscribe.shared/client",
         "${kafka}/session.resubscribe.shared/server"})
     public void shouldResubscribeSharedAfterLeaving() throws Exception
