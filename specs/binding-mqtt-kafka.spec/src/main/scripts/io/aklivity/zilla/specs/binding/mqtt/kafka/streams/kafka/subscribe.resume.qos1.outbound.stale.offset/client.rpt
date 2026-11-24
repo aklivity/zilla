@@ -78,10 +78,6 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write abort
-
-read abort
-
 connect "zilla://streams/kafka0"
          option zilla:window 8192
          option zilla:transmission "duplex"
