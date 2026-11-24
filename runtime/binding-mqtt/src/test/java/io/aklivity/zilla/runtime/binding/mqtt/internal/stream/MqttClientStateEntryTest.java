@@ -338,4 +338,44 @@ public class MqttClientStateEntryTest
         assertEquals(1, completions);
         assertEquals(held, stored());
     }
+
+    @Test
+    public void shouldHoldAfterSharedWriteAgainstLatestStoredValue()
+    {
+        final MqttMembershipRecord other = new MqttMembershipRecord("consumers", "sensor/two");
+        final String loaded = encode(null, MEMBERSHIP);
+        final String shared = encode(null, MEMBERSHIP, other);
+        final String held = encode("replica-a", MEMBERSHIP, other);
+        entries.put(KEY, new TestEntry(loaded, Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry(new Assertion("put", KEY, shared, TTL), replace(shared, held));
+        runTasks();
+        entry.memberships().add(other);
+        entry.write(this::completed);
+        runTasks();
+
+        entry.hold("replica-a", this::completed);
+        runTasks();
+
+        assertEquals(2, completions);
+        assertEquals(held, stored());
+    }
+
+    @Test
+    public void shouldHoldAfterSharedDeleteWithPutIfAbsent()
+    {
+        final String held = encode("replica-a");
+        entries.put(KEY, new TestEntry(encode(null, MEMBERSHIP), Long.MAX_VALUE));
+        final MqttClientStateEntry entry = newEntry(
+            new Assertion("delete", KEY, null, null), new Assertion("putIfAbsent", KEY, held, TTL));
+        runTasks();
+        entry.discard();
+        entry.write(this::completed);
+        runTasks();
+
+        entry.hold("replica-a", this::completed);
+        runTasks();
+
+        assertEquals(2, completions);
+        assertEquals(held, stored());
+    }
 }

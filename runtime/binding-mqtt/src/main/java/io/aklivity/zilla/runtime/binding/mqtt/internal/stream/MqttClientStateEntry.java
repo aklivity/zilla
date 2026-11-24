@@ -310,15 +310,23 @@ final class MqttClientStateEntry
     {
         if (empty())
         {
-            store.delete(key, v -> onWriteCompleted());
+            store.delete(key, v -> onSharedWriteCompleted(null));
         }
         else
         {
             final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions,
                 record.outbound, record.inbound);
 
-            store.put(key, value, ttl.get(), v -> onWriteCompleted());
+            store.put(key, value, ttl.get(), v -> onSharedWriteCompleted(value));
         }
+    }
+
+    private void onSharedWriteCompleted(
+        String value)
+    {
+        stored = value;
+
+        onWriteCompleted();
     }
 
     private void doWriteHeld()
