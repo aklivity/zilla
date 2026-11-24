@@ -988,6 +988,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.session.store/client",
+        "${mqtt}/publish.qos2.session.store/server"})
+    public void shouldPublishQoS2SessionStore() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.complete.after.acknowledge/client",
         "${mqtt}/publish.qos2.complete.after.acknowledge/server"})
     public void shouldPublishQoS2CompleteAfterAcknowledge() throws Exception
