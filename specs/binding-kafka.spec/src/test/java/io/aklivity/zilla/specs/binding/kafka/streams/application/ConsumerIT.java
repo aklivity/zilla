@@ -84,6 +84,24 @@ public class ConsumerIT
 
     @Test
     @Specification({
+        "${app}/acknowledge.message.offset.before.join/client",
+        "${app}/acknowledge.message.offset.before.join/server"})
+    public void shouldAcknowledgeMessageOffsetBeforeJoin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/commit.acknowledge.message.offset.before.join/client",
+        "${app}/commit.acknowledge.message.offset.before.join/server"})
+    public void shouldCommitAcknowledgeMessageOffsetBeforeJoin() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/acknowledge.message.offsets.coalesced/client",
         "${app}/acknowledge.message.offsets.coalesced/server"})
     public void shouldAcknowledgeMessageOffsetsCoalesced() throws Exception
