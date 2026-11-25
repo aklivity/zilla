@@ -1671,6 +1671,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound.unacked/client",
+        "${kafka}/subscribe.resume.qos1.outbound.unacked/server"})
+    public void shouldResumeSubscribeQoS1OutboundUnacked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/client",
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
     public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception

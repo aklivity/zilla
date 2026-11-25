@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.NO_PACKET_ID;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.PUBLISH_SENT;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags.DUP;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.NO_LOCAL;
@@ -194,6 +195,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private OctetsFW dataKey;
     private int dataPacketId;
     private int dataQos;
+    private int dataReplayFlags;
     private long dataFilters;
     private long dataExpireInterval;
     private KafkaProxy dataProxy;
@@ -337,7 +339,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             final int matchedFlags = dataProxy.buildSubscriptionIds(dataFilters);
             final boolean retainAsPublished = (matchedFlags & RETAIN_AS_PUBLISHED_FLAG) != 0;
-            b.flags(helper.retained && retainAsPublished ? RETAIN_FLAG : 0);
+            b.flags((helper.retained && retainAsPublished ? RETAIN_FLAG : 0) | dataReplayFlags);
             b.subscriptionIds(subscriptionIdsRW.build());
 
             if (dataExpireInterval != -1)
@@ -481,6 +483,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int qos;
         private boolean retainAvailable;
         private final Map<String, Long2LongHashMap> resumeOffsetsByTopic = new HashMap<>();
+        private final Map<String, Long2LongHashMap> deliveredOffsetsByTopic = new HashMap<>();
+        private final Map<String, Int2ObjectHashMap<Long2LongHashMap>> unackedPacketIdsByTopic = new HashMap<>();
 
         private MqttSubscribeProxy(
             MessageConsumer mqtt,
@@ -620,7 +624,36 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         resumeOffsetsByTopic
                             .computeIfAbsent(p.topic().asString(), t -> new Long2LongHashMap(NO_RESUME_OFFSET))
                             .put(p.partitionId(), p.nextOffset());
+                        deliveredOffsetsByTopic
+                            .computeIfAbsent(p.topic().asString(), t -> new Long2LongHashMap(NO_RESUME_OFFSET))
+                            .put(p.partitionId(), p.nextOffset());
                     }
+                });
+
+                resumed.outboundV1().packets().forEach(p ->
+                {
+                    final String topicName = p.topic().asString();
+                    final Long2LongHashMap resume = resumeOffsetsByTopic.get(topicName);
+                    if (p.qos() == qos && p.state() == PUBLISH_SENT && resume != null &&
+                        !topicName.equals(retained.topic.asString()) &&
+                        p.partitionOffset() < resume.get((long) p.partitionId()))
+                    {
+                        unackedPacketIdsByTopic
+                            .computeIfAbsent(topicName, t -> new Int2ObjectHashMap<>())
+                            .computeIfAbsent(p.partitionId(), id -> new Long2LongHashMap(NO_PACKET_ID))
+                            .put(p.partitionOffset(), p.packetId());
+                    }
+                });
+
+                unackedPacketIdsByTopic.forEach((topicName, byPartition) ->
+                {
+                    final Long2LongHashMap resume = resumeOffsetsByTopic.get(topicName);
+                    byPartition.forEach((partitionId, unacked) ->
+                    {
+                        final long partitionKey = partitionId.longValue();
+                        unacked.keySet().forEach(offset ->
+                            resume.put(partitionKey, Math.min(resume.get(partitionKey), offset)));
+                    });
                 });
             }
         }
@@ -695,6 +728,27 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             return resumeOffsetsByTopic.get(topic.asString());
         }
 
+        private int unackedPacketId(
+            String16FW topic,
+            int partitionId,
+            long offset)
+        {
+            final Int2ObjectHashMap<Long2LongHashMap> byPartition = unackedPacketIdsByTopic.get(topic.asString());
+            final Long2LongHashMap unacked = byPartition != null ? byPartition.get(partitionId) : null;
+
+            return unacked != null ? (int) unacked.get(offset) : NO_PACKET_ID;
+        }
+
+        private boolean deliveredBeforeResume(
+            String16FW topic,
+            int partitionId,
+            long offset)
+        {
+            final Long2LongHashMap delivered = deliveredOffsetsByTopic.get(topic.asString());
+
+            return delivered != null && offset < delivered.get(partitionId);
+        }
+
         private boolean resumeStale(
             String16FW topic,
             KafkaMergedBeginExFW kafkaMergedBeginEx)
@@ -705,6 +759,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             if (stale)
             {
+                deliveredOffsetsByTopic.remove(topic.asString());
+                unackedPacketIdsByTopic.remove(topic.asString());
                 kafkaMergedBeginEx.partitions().forEach(p ->
                 {
                     if (staleResumeOffset(resume, p))
@@ -1806,10 +1862,32 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                     final int messageQos = helper.qos != -1 ? helper.qos : MqttQoS.AT_MOST_ONCE.value();
                     final boolean acknowledged = messageQos >= MqttQoS.AT_LEAST_ONCE.value();
-                    final int packetId = acknowledged ?
-                        mqtt.clientHighWaterMarks.inflight.allocate(
-                            topicKey, partition.partitionId(), partition.partitionOffset(), messageQos) :
-                        NO_PACKET_ID;
+                    final boolean replayable = acknowledged && sessionStateStored && mqtt.qos > 0;
+                    final int unackedPacketId = replayable ?
+                        mqtt.unackedPacketId(topic, partition.partitionId(), partition.partitionOffset()) : NO_PACKET_ID;
+
+                    if (replayable && unackedPacketId == NO_PACKET_ID &&
+                        mqtt.deliveredBeforeResume(topic, partition.partitionId(), partition.partitionOffset()))
+                    {
+                        nextOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
+                        expiredMessage = !hasFin(flags);
+                        break sendData;
+                    }
+
+                    final int packetId;
+                    if (unackedPacketId != NO_PACKET_ID)
+                    {
+                        mqtt.clientHighWaterMarks.inflight.reserve(unackedPacketId,
+                            topicKey, partition.partitionId(), partition.partitionOffset(), messageQos);
+                        packetId = unackedPacketId;
+                    }
+                    else
+                    {
+                        packetId = acknowledged ?
+                            mqtt.clientHighWaterMarks.inflight.allocate(
+                                topicKey, partition.partitionId(), partition.partitionOffset(), messageQos) :
+                            NO_PACKET_ID;
+                    }
 
                     if (acknowledged && packetId == NO_PACKET_ID)
                     {
@@ -1834,6 +1912,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     dataKey = key;
                     dataPacketId = packetId;
                     dataQos = messageQos;
+                    dataReplayFlags = unackedPacketId != NO_PACKET_ID ? DUP_FLAG : 0;
                     dataFilters = filters;
                     dataExpireInterval = expireInterval;
                     dataProxy = this;

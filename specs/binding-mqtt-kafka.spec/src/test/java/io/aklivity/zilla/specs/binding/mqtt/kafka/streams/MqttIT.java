@@ -1391,6 +1391,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.resume.qos1.outbound.unacked/client",
+        "${mqtt}/subscribe.resume.qos1.outbound.unacked/server"})
+    public void shouldResumeSubscribeQoS1OutboundUnacked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/client",
         "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/server"})
     public void shouldResumeSubscribeRetainedQoS1OutboundStaleOffset() throws Exception

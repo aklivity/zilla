@@ -92,6 +92,16 @@ final class MqttKafkaPacketIds
         store(packetId, topicKey, partitionId, offset, 0, PUBLISH_SENT);
     }
 
+    void reserve(
+        int packetId,
+        long topicKey,
+        int partitionId,
+        long offset,
+        int qos)
+    {
+        store(packetId, topicKey, partitionId, offset, qos, PUBLISH_SENT);
+    }
+
     boolean contains(
         int packetId)
     {
