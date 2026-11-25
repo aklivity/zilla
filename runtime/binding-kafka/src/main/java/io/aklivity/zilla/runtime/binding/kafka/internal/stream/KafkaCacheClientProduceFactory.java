@@ -43,8 +43,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.budget.KafkaCacheClientBudget;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheAckRecord;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheDoorbell;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
@@ -276,9 +278,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(clock, partitionId, localIndex);
+                final KafkaCacheDoorbell initialDoorbell = topic.supplyProduceDoorbell(partitionId);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName);
+                            partition, initialDoorbell, cacheRoute, topicName);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -522,6 +525,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     final class KafkaCacheClientProduceFan
     {
         private final KafkaCachePartition partition;
+        private final KafkaCacheDoorbell initialDoorbell;
+        private final KafkaCacheAckRecord.Snapshot ackSnapshot = new KafkaCacheAckRecord.Snapshot();
         private final KafkaCacheCursor cursor;
         private final KafkaOffsetType defaultOffset;
         private final Long2ObjectHashMap<KafkaCacheClientProduceStream> members;
@@ -570,9 +575,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long authorization,
             KafkaCacheClientBudget budget,
             KafkaCachePartition partition,
+            KafkaCacheDoorbell initialDoorbell,
             KafkaCacheRoute cacheRoute,
             String topicName)
         {
+            this.initialDoorbell = initialDoorbell;
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
@@ -919,6 +926,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (offsetHighWatermark > oldOffsetHighWaterMark)
             {
+                partition.commit(offsetHighWatermark);
                 doFlushClientInitialIfNecessary(traceId);
             }
         }
@@ -926,7 +934,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void doFlushClientInitialIfNecessary(
             long traceId)
         {
-            if (initialMax - (initialSeq - initialAck) >= SIZE_OF_FLUSH_WITH_EXTENSION)
+            if (initialMax - (initialSeq - initialAck) >= SIZE_OF_FLUSH_WITH_EXTENSION &&
+                initialDoorbell.ring(initialId))
             {
                 doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION, flushExtension);
@@ -1088,6 +1097,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void onClientFanInitialClosed()
         {
             state = StreamState.closeInitial(state);
+            initialDoorbell.release(initialId);
+            partition.replyDoorbell().release(replyId);
 
             if (partitionIndex != NO_CREDITOR_INDEX)
             {
@@ -1171,15 +1182,28 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final KafkaFlushExFW kafkaFlushEx = extension.get(kafkaFlushExRO::wrap);
             final KafkaProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.produce();
             final KafkaOffsetFW partition = kafkaProduceFlushEx.partition();
-            final long partitionOffset = partition.partitionOffset();
             final int error = kafkaProduceFlushEx.error();
-            final long timestamp = kafkaProduceFlushEx.timestamp();
-            final long ackOffset = kafkaProduceFlushEx.ackOffset();
+
+            long partitionOffset = partition.partitionOffset();
+            long timestamp = kafkaProduceFlushEx.timestamp();
+            long ackOffset = kafkaProduceFlushEx.ackOffset();
+
+            if (error == NO_ERROR)
+            {
+                this.partition.replyDoorbell().clear();
+
+                if (this.partition.ackRecord().read(ackSnapshot) && ackSnapshot.flushOffset() >= partitionOffset)
+                {
+                    partitionOffset = ackSnapshot.flushOffset();
+                    ackOffset = ackSnapshot.ackOffset();
+                    timestamp = ackSnapshot.timestamp();
+                }
+            }
 
             final long currentLastAckOffsetHighWatermark = lastAckOffsetHighWatermark;
             ackOffsetHighWatermark(error, traceId, partitionOffset, ackOffset, timestamp);
 
-            if (lastAckOffsetHighWatermark > currentLastAckOffsetHighWatermark)
+            if (error != NO_ERROR && lastAckOffsetHighWatermark > currentLastAckOffsetHighWatermark)
             {
                 doClientFanReplyWindow(traceId);
             }

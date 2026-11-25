@@ -50,6 +50,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheDoorbell;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -82,6 +83,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduc
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -116,6 +118,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
+    private final SignalFW signalRO = new SignalFW();
     private final WindowFW windowRO = new WindowFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
@@ -158,6 +161,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final CRC32C crc32c;
     private final int reconnectDelay;
     private static final int SIGNAL_RECONNECT = 1;
+    private static final int SIGNAL_REPLY_FLUSH = 2;
 
     private int produceDeferred;
     private long produceTimestamp;
@@ -360,7 +364,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     initialId,
                     leaderId,
                     authorization,
-                    partition)::onServerMessage;
+                    partition,
+                    topic.supplyProduceDoorbell(partitionId))::onServerMessage;
         }
 
         return newStream;
@@ -655,6 +660,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private int memberIndex;
 
         private long ackPartitionOffset = -1L;
+        private long replyFlushArmed;
+        private long replyFlushHandled;
         private long ackTimestamp = -1L;
 
         private KafkaCacheServerProduceFan(
@@ -687,6 +694,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 doServerFanReplyResetIfNecessary(traceId);
                 leaderId = member.leaderId;
 
+                members.forEach(KafkaCacheServerProduceStream::releaseDoorbells);
                 members.forEach(m -> m.cleanupServer(traceId,  ERROR_NOT_LEADER_FOR_PARTITION));
                 members.clear();
             }
@@ -713,6 +721,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             KafkaCacheServerProduceStream member)
         {
             members.remove(member);
+            member.releaseDoorbells();
 
             member.cursor.close();
 
@@ -1014,7 +1023,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             if (initialAck == initialSeq)
             {
-                members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+                doServerFanReplyFlushLater(traceId);
             }
             doServerFanInitialDataIfNecessary(traceId);
         }
@@ -1029,6 +1038,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             assert !StreamState.initialClosed(state);
             state = StreamState.closeInitial(state);
+            replyFlushHandled = replyFlushArmed;
 
             initialFlags = NONE;
             initialSeq = 0;
@@ -1069,8 +1079,35 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onServerFanInitialWindow(window);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onServerFanSignal(signal);
+                break;
             default:
                 break;
+            }
+        }
+
+        private void doServerFanReplyFlushLater(
+            long traceId)
+        {
+            if (replyFlushArmed == replyFlushHandled && !StreamState.initialClosed(state))
+            {
+                replyFlushArmed++;
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_REPLY_FLUSH, 0);
+            }
+        }
+
+        private void onServerFanSignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+
+            replyFlushHandled = replyFlushArmed;
+
+            if (!StreamState.initialClosed(state))
+            {
+                members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
             }
         }
 
@@ -1085,7 +1122,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             this.ackPartitionOffset = kafkaProduceFlushEx.partition().partitionOffset();
             this.ackTimestamp = kafkaProduceFlushEx.timestamp();
 
-            members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+            doServerFanReplyFlushLater(traceId);
         }
 
         private void onServerFanReplyBegin(
@@ -1218,6 +1255,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final class KafkaCacheServerProduceStream
     {
         private final KafkaCachePartition partition;
+        private final KafkaCacheDoorbell initialDoorbell;
         private final KafkaCacheCursor cursor;
         private final KafkaCacheServerProduceFan fan;
         private final MessageConsumer sender;
@@ -1253,9 +1291,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long initialId,
             long leaderId,
             long authorization,
-            KafkaCachePartition partition)
+            KafkaCachePartition partition,
+            KafkaCacheDoorbell initialDoorbell)
         {
             this.partition = partition;
+            this.initialDoorbell = initialDoorbell;
             this.cursor = cursorFactory.newCursor(
                     cursorFactory
                         .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
@@ -1358,6 +1398,9 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             assert partitionOffset >= this.partitionOffset;
             this.partitionOffset = partitionOffset;
+
+            initialDoorbell.clear();
+            fan.members.forEach(m -> m.partitionOffset = Math.max(m.partitionOffset, m.partition.committed()));
 
             // defer reply window credit until next tick
             assert reserved == KafkaCacheServerFetchFactory.SIZE_OF_FLUSH_WITH_EXTENSION;
@@ -1688,17 +1731,25 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 if (KafkaProduceFlush.required(error != NO_ERROR, flushOffset, flushedPartitionOffset))
                 {
-                    doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
-                            traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
-                        ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                                                                .typeId(kafkaTypeId)
-                                                                .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                                .partitionOffset(flushOffset))
-                                                                               .error(error)
-                                                                               .timestamp(ackTimestamp)
-                                                                               .ackOffset(ackOffset))
-                                                                .build()
-                                                                .sizeof()));
+                    if (error == NO_ERROR)
+                    {
+                        partition.ackRecord().publish(flushOffset, ackOffset, ackTimestamp);
+                    }
+
+                    if (error != NO_ERROR || partition.replyDoorbell().ring(replyId))
+                    {
+                        doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                                traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
+                            ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                                                                    .typeId(kafkaTypeId)
+                                                                    .produce(f -> f.partition(p -> p.partitionId(partition.id())
+                                                                                                    .partitionOffset(flushOffset))
+                                                                                   .error(error)
+                                                                                   .timestamp(ackTimestamp)
+                                                                                   .ackOffset(ackOffset))
+                                                                    .build()
+                                                                    .sizeof()));
+                    }
                     flushedPartitionOffset = flushOffset;
                 }
 
@@ -1707,6 +1758,12 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     flushedAckPartitionOffset = fan.ackPartitionOffset;
                 }
             }
+        }
+
+        private void releaseDoorbells()
+        {
+            initialDoorbell.release(initialId);
+            partition.replyDoorbell().release(replyId);
         }
 
         private void doServerReplyBeginIfNecessary(

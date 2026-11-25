@@ -38,6 +38,7 @@ public final class KafkaCacheTopic
     private final Map<Integer, KafkaCachePartition> partitionsById;
     private final Map<Long, KafkaCachePartition> partitionsByIndex;
     private IntFunction<long[]> sortSpaceRef;
+    private final Map<Integer, KafkaCacheDoorbell> produceDoorbellsById = new ConcurrentHashMap<>();
 
     public KafkaCacheTopic(
         Path location,
@@ -87,6 +88,12 @@ public final class KafkaCacheTopic
         String staging)
     {
         return new KafkaCachePartition(clock, location, stagingConfig, cache, name, staging, appendCapacity, sortSpaceRef);
+    }
+
+    public KafkaCacheDoorbell supplyProduceDoorbell(
+        int id)
+    {
+        return produceDoorbellsById.computeIfAbsent(id, i -> new KafkaCacheDoorbell());
     }
 
     public KafkaCachePartition supplyProducePartition(
