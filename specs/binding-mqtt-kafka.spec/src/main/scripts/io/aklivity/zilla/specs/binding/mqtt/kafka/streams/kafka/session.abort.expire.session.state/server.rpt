@@ -248,5 +248,5 @@ read ${mqtt:sessionSignal()
 
 write notify RECEIVED_EXPIRE_AT_SIGNAL
 
-read aborted
-write abort
+read closed
+write close

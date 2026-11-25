@@ -1241,7 +1241,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 session.sendExpirySignal(authorization, traceId, expirySignal); // expire at expireAt
             }
 
-            if (isSetWillFlag(sessionFlags))
+            if (isSetWillFlag(sessionFlags) || isSessionExpiring())
             {
                 session.doKafkaEnd(traceId, authorization);
                 doMqttAbort(traceId, authorization);
