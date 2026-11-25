@@ -913,6 +913,33 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.clean.start/client",
+        "${kafka}/session.store.clean.start/server"})
+    public void shouldSessionStoreCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.clean.start.abort/client",
+        "${kafka}/session.store.clean.start.abort/server"})
+    public void shouldSessionStoreCleanStartAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.clean.start.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldSessionStoreCleanStartQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.expire.session.state/client",
         "${kafka}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
@@ -1249,6 +1276,15 @@ public class KafkaIT
         "${kafka}/publish.qos2.in.flight.reverse.release/client",
         "${kafka}/publish.qos2.in.flight.reverse.release/server"})
     public void shouldPublishQoS2InFlightReverseRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store/client",
+        "${kafka}/publish.qos2.session.store/server"})
+    public void shouldPublishQoS2SessionStore() throws Exception
     {
         k3po.finish();
     }
