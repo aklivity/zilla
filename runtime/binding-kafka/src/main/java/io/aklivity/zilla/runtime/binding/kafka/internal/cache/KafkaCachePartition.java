@@ -154,6 +154,9 @@ public final class KafkaCachePartition
 
     private KafkaCacheEntryFW ancestorEntry;
     private final AtomicLong produceCapacity;
+    private final KafkaCacheDoorbell replyDoorbell = new KafkaCacheDoorbell();
+    private final KafkaCacheAckRecord ackRecord = new KafkaCacheAckRecord();
+    private volatile long committedOffset = -1L;
     private final OctetsFW octetsRO = new OctetsFW();
     private final KafkaKeyFW keyRO = new KafkaKeyFW();
     private final Flyweight.Visitor<KafkaKeyFW> keyWrapper = keyRO::wrap;
@@ -1092,6 +1095,30 @@ public final class KafkaCachePartition
         logFile.writeLong(entryMark.value + FIELD_OFFSET_ACKNOWLEDGE, acknowledge);
         logFile.writeInt(entryMark.value + FIELD_OFFSET_FLAGS,
             trailersOverflowed ? CACHE_ENTRY_FLAGS_ABORTED : CACHE_ENTRY_FLAGS_COMPLETED);
+    }
+
+    public void commit(
+        long offset)
+    {
+        if (offset > committedOffset)
+        {
+            committedOffset = offset;
+        }
+    }
+
+    public long committed()
+    {
+        return committedOffset;
+    }
+
+    public KafkaCacheDoorbell replyDoorbell()
+    {
+        return replyDoorbell;
+    }
+
+    public KafkaCacheAckRecord ackRecord()
+    {
+        return ackRecord;
     }
 
     public void deleteAll()
