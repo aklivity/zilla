@@ -1698,6 +1698,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.close.qos1.outbound.idle/client",
+        "${kafka}/subscribe.close.qos1.outbound.idle/server"})
+    public void shouldCloseSubscribeQoS1OutboundIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.abort.qos1.outbound/client",
         "${kafka}/subscribe.abort.qos1.outbound/server"})
     public void shouldAbortSubscribeQoS1Outbound() throws Exception

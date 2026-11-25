@@ -632,17 +632,17 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             if (qos > 0)
             {
-                messages.values().forEach(m -> snapshotSentOffsets(m.topic, m.sentOffsets));
-                snapshotSentOffsets(retained.topic, retained.sentOffsets);
+                messages.values().forEach(m -> snapshotSentOffsets(m.topic, m.nextOffsets));
+                snapshotSentOffsets(retained.topic, retained.nextOffsets);
             }
         }
 
         private void snapshotSentOffsets(
             String16FW topic,
-            Long2LongHashMap sentOffsets)
+            Long2LongHashMap nextOffsets)
         {
             final String topicName = topic.asString();
-            sentOffsets.forEach((partitionId, nextOffset) ->
+            nextOffsets.forEach((partitionId, nextOffset) ->
                 clientHighWaterMarks.outbound.add(new OutboundPartition(qos, topicName, partitionId.intValue(), nextOffset)));
         }
 
@@ -1614,7 +1614,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int replyPad;
         private boolean expiredMessage;
         private byte[] beginFilters;
-        private final Long2LongHashMap sentOffsets = new Long2LongHashMap(NO_RESUME_OFFSET);
+        private final Long2LongHashMap nextOffsets = new Long2LongHashMap(NO_RESUME_OFFSET);
+
+        private long startOffset(
+            Long2LongHashMap resume,
+            KafkaOffsetFW partition)
+        {
+            final long stored = resume != null ? resume.get(partition.partitionId()) : NO_RESUME_OFFSET;
+
+            return stored != NO_RESUME_OFFSET ? stored : partition.latestOffset() + 1;
+        }
 
         private KafkaMessagesProxy(
             long originId,
@@ -1705,6 +1714,13 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             }
             else
             {
+                if (kafkaMergedBeginEx != null && sessionStateStored && mqtt.qos > 0)
+                {
+                    final Long2LongHashMap resume = mqtt.resumeOffsets(topic);
+                    kafkaMergedBeginEx.partitions().forEach(p ->
+                        nextOffsets.put(p.partitionId(), startOffset(resume, p)));
+                }
+
                 if (kafkaMergedBeginEx != null && !sessionStateStored)
                 {
                     kafkaMergedBeginEx.partitions().forEach(p ->
@@ -1811,7 +1827,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                     if (sessionStateStored && mqtt.qos > 0)
                     {
-                        sentOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
+                        nextOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
                     }
 
                     dataDeferred = deferred;
@@ -2331,7 +2347,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int unAckedPackets;
         private boolean expiredMessage;
         private List<Subscription> beginFilters;
-        private final Long2LongHashMap sentOffsets = new Long2LongHashMap(NO_RESUME_OFFSET);
+        private final Long2LongHashMap nextOffsets = new Long2LongHashMap(NO_RESUME_OFFSET);
 
         private KafkaRetainedProxy(
             long originId,
@@ -2535,7 +2551,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                     if (sessionStateStored && mqtt.qos > 0)
                     {
-                        sentOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
+                        nextOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
                     }
 
                     mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())

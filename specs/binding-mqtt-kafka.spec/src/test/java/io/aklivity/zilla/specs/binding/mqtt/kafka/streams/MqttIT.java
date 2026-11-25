@@ -1410,6 +1410,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.close.qos1.outbound.idle/client",
+        "${mqtt}/subscribe.close.qos1.outbound.idle/server"})
+    public void shouldCloseSubscribeQoS1OutboundIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.abort.qos1.outbound/client",
         "${mqtt}/subscribe.abort.qos1.outbound/server"})
     public void shouldAbortSubscribeQoS1Outbound() throws Exception
