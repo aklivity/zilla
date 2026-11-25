@@ -22,7 +22,7 @@ services:
       ZILLA_INCUBATOR_ENABLED: "true"
     volumes:
       - ./etc:/etc/zilla
-    command: start -v -e
+    command: start -v -e -Pzilla.binding.mqtt.session.state.store.enabled=true
 
   kafka:
     image: apache/kafka:4.1.1

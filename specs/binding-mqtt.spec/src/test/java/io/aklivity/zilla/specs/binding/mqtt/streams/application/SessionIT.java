@@ -58,6 +58,33 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.reconnect.non.clean.start.stored.outbound/client",
+        "${app}/session.reconnect.non.clean.start.stored.outbound/server"})
+    public void shouldReconnectNonCleanStartStoredOutbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.reconnect.non.clean.start.stored.outbound.stale/client",
+        "${app}/session.reconnect.non.clean.start.stored.outbound.stale/server"})
+    public void shouldReconnectNonCleanStartStoredOutboundStale() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.reconnect.non.clean.start.stored.outbound.reply.reset/client",
+        "${app}/session.reconnect.non.clean.start.stored.outbound.reply.reset/server"})
+    public void shouldReconnectNonCleanStartStoredOutboundReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start/client",
         "${app}/session.connect.non.clean.start/server"})
     public void shouldConnectNonCleanStart() throws Exception

@@ -656,6 +656,30 @@ public class MqttKafkaSubscribeProxyIT
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
+        "${mqtt}/subscribe.resume.qos1.outbound.unacked/client",
+        "${kafka}/subscribe.resume.qos1.outbound.unacked/server"})
+    public void shouldResumeSubscribeQoS1OutboundUnacked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.resume.qos2.outbound.pubrel/client",
+        "${kafka}/subscribe.resume.qos2.outbound.pubrel/server"})
+    public void shouldResumeSubscribeQoS2OutboundPubrel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
         "${mqtt}/subscribe.resume.qos1.outbound/client",
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
     public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception
@@ -683,6 +707,30 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.close.qos1.outbound/client",
         "${kafka}/subscribe.close.qos1.outbound/server"})
     public void shouldCloseSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.close.qos1.outbound.idle/client",
+        "${kafka}/subscribe.close.qos1.outbound.idle/server"})
+    public void shouldCloseSubscribeQoS1OutboundIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.abort.qos1.outbound/client",
+        "${kafka}/subscribe.abort.qos1.outbound/server"})
+    public void shouldAbortSubscribeQoS1Outbound() throws Exception
     {
         k3po.finish();
     }
