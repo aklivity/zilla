@@ -45,6 +45,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaBin
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.config.MqttKafkaHeaderHelper;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaOffsetMetadata;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.KafkaSessionOffsetsHelper;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPublishMetadata.OffsetsListener;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Array32FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.KafkaAckMode;
@@ -294,6 +295,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int queueSlotOffset;
         private int queueSlotProgress;
         private int queueSlotReserved;
+        private final OffsetsListener offsetsListener = this::drainQueue;
         private final IntArrayList unackedPacketIds = new IntArrayList();
         private final List<Function<String, String>> clients;
 
@@ -333,6 +335,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private long publishSequence;
         private int qos;
         private KafkaOffsetCommitStream offsetCommit;
+        private MqttKafkaPublishMetadata clientMetadata;
         private Long2ObjectHashMap<KafkaOffsetMetadata> offsets;
         private List<KafkaOffsetMetadata> orderedOffsets;
         private MqttKafkaPacketPartitions partitions;
@@ -516,7 +519,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
             if (qos == MqttQoS.EXACTLY_ONCE.value())
             {
-                final MqttKafkaPublishMetadata clientMetadata = supplyClientMetadata.apply(affinity);
+                this.clientMetadata = supplyClientMetadata.apply(affinity);
                 this.offsets = clientMetadata.offsets;
                 this.orderedOffsets = clientMetadata.orderedOffsets;
                 this.partitions = clientMetadata.partitions;
@@ -545,7 +548,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     rejectMqttData : publishMqttData;
             }
 
-            if (offsetCommit != null && (queueSlot != NO_SLOT || !offsetCommit.unfinishedKafkas.isEmpty()))
+            if (offsetCommit != null &&
+                (queueSlot != NO_SLOT || !offsetCommit.unfinishedKafkas.isEmpty() || !offsetsReady()))
             {
                 onMqttDataQueued(data);
             }
@@ -576,6 +580,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             if (queueSlot == NO_SLOT)
             {
                 queueSlot = queuePool.acquire(initialId);
+
+                if (queueSlot != NO_SLOT && !offsetsReady())
+                {
+                    clientMetadata.offsetsListeners.add(offsetsListener);
+                }
             }
 
             if (queueSlot == NO_SLOT || queueSlotOffset + length > queuePool.slotCapacity())
@@ -623,6 +632,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             offsetCommit.doKafkaAbort(traceId, authorization);
         }
 
+        private boolean offsetsReady()
+        {
+            return offsets.get(offsetKey(messages.topicString, messages.qos2PartitionId)) != null;
+        }
+
         private void onKafkaFinished(
             long traceId,
             long authorization)
@@ -641,7 +655,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             {
                 final MutableDirectBufferEx queue = queuePool.buffer(queueSlot);
 
-                while (queueSlotProgress < queueSlotOffset && offsetCommit.unfinishedKafkas.isEmpty())
+                while (queueSlotProgress < queueSlotOffset && offsetCommit.unfinishedKafkas.isEmpty() && offsetsReady())
                 {
                     final int offset = queueSlotProgress;
                     final int length = queue.getInt(offset + QUEUED_FRAME_LENGTH_OFFSET);
@@ -684,6 +698,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         {
             if (queueSlot != NO_SLOT)
             {
+                clientMetadata.offsetsListeners.remove(offsetsListener);
                 queuePool.release(queueSlot);
                 queueSlot = NO_SLOT;
                 queueSlotOffset = 0;

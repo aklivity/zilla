@@ -362,6 +362,17 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.before.session.offsets/client",
+        "${kafka}/publish.qos2.before.session.offsets/server"})
+    public void shouldSendMessageQos2BeforeSessionOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos2.pipelined/client",
         "${kafka}/publish.qos2.pipelined/server"})
     public void shouldSendMessagesQos2Pipelined() throws Exception

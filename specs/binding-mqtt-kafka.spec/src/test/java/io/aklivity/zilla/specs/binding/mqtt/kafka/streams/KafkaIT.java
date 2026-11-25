@@ -1183,6 +1183,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.before.session.offsets/client",
+        "${kafka}/publish.qos2.before.session.offsets/server"})
+    public void shouldPublishQoS2MessageBeforeSessionOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.pipelined/client",
         "${kafka}/publish.qos2.pipelined/server"})
     public void shouldPublishQoS2MessagesPipelined() throws Exception

@@ -961,6 +961,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.before.session.offsets/client",
+        "${mqtt}/publish.qos2.before.session.offsets/server"})
+    public void shouldPublishQoS2MessageBeforeSessionOffsets() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.pipelined/client",
         "${mqtt}/publish.qos2.pipelined/server"})
     public void shouldPublishQoS2MessagesPipelined() throws Exception
