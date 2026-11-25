@@ -29,6 +29,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -122,6 +123,17 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             .wrap(new UnsafeBufferEx(new byte[64]), 0, 64).build();
 
     private static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
+    static final AtomicLong SPIKE_ATTEMPTS = new AtomicLong();
+    static final AtomicLong SPIKE_SENT = new AtomicLong();
+
+    static
+    {
+        if (Boolean.getBoolean("zilla.spike.counters"))
+        {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> System.err.format(
+                "SPIKE doorbell attempts=%d sent=%d%n", SPIKE_ATTEMPTS.get(), SPIKE_SENT.get())));
+        }
+    }
 
     private static final String TRANSACTION_NONE = null;
 
@@ -276,9 +288,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCache cache = supplyCache.apply(cacheName);
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(clock, partitionId, localIndex);
+                final AtomicLong doorbell = topic.supplyProduceDoorbell(partitionId);
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
-                            partition, cacheRoute, topicName);
+                            partition, doorbell, cacheRoute, topicName);
 
                 cacheRoute.clientProduceFansByTopicPartition.put(partitionKey, newFan);
                 fan = newFan;
@@ -522,6 +535,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     final class KafkaCacheClientProduceFan
     {
         private final KafkaCachePartition partition;
+        private final AtomicLong doorbell;
         private final KafkaCacheCursor cursor;
         private final KafkaOffsetType defaultOffset;
         private final Long2ObjectHashMap<KafkaCacheClientProduceStream> members;
@@ -570,9 +584,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long authorization,
             KafkaCacheClientBudget budget,
             KafkaCachePartition partition,
+            AtomicLong doorbell,
             KafkaCacheRoute cacheRoute,
             String topicName)
         {
+            this.doorbell = doorbell;
             this.originId = originId;
             this.routedId = routedId;
             this.authorization = authorization;
@@ -919,6 +935,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (offsetHighWatermark > oldOffsetHighWaterMark)
             {
+                partition.commit(offsetHighWatermark);
                 doFlushClientInitialIfNecessary(traceId);
             }
         }
@@ -926,8 +943,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void doFlushClientInitialIfNecessary(
             long traceId)
         {
-            if (initialMax - (initialSeq - initialAck) >= SIZE_OF_FLUSH_WITH_EXTENSION)
+            SPIKE_ATTEMPTS.incrementAndGet();
+            if (initialMax - (initialSeq - initialAck) >= SIZE_OF_FLUSH_WITH_EXTENSION &&
+                doorbell.compareAndSet(0L, initialId))
             {
+                SPIKE_SENT.incrementAndGet();
                 doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION, flushExtension);
             }
@@ -1088,6 +1108,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void onClientFanInitialClosed()
         {
             state = StreamState.closeInitial(state);
+            doorbell.compareAndSet(initialId, 0L);
 
             if (partitionIndex != NO_CREDITOR_INDEX)
             {

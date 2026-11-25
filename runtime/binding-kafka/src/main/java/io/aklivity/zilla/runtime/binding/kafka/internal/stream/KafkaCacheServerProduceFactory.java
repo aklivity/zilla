@@ -35,6 +35,7 @@ import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -360,7 +361,8 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     initialId,
                     leaderId,
                     authorization,
-                    partition)::onServerMessage;
+                    partition,
+                    topic.supplyProduceDoorbell(partitionId))::onServerMessage;
         }
 
         return newStream;
@@ -687,6 +689,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 doServerFanReplyResetIfNecessary(traceId);
                 leaderId = member.leaderId;
 
+                members.forEach(m -> m.doorbell.compareAndSet(m.initialId, 0L));
                 members.forEach(m -> m.cleanupServer(traceId,  ERROR_NOT_LEADER_FOR_PARTITION));
                 members.clear();
             }
@@ -713,6 +716,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             KafkaCacheServerProduceStream member)
         {
             members.remove(member);
+            member.doorbell.compareAndSet(member.initialId, 0L);
 
             member.cursor.close();
 
@@ -1218,6 +1222,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final class KafkaCacheServerProduceStream
     {
         private final KafkaCachePartition partition;
+        private final AtomicLong doorbell;
         private final KafkaCacheCursor cursor;
         private final KafkaCacheServerProduceFan fan;
         private final MessageConsumer sender;
@@ -1253,9 +1258,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             long initialId,
             long leaderId,
             long authorization,
-            KafkaCachePartition partition)
+            KafkaCachePartition partition,
+            AtomicLong doorbell)
         {
             this.partition = partition;
+            this.doorbell = doorbell;
             this.cursor = cursorFactory.newCursor(
                     cursorFactory
                         .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
@@ -1358,6 +1365,9 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             assert partitionOffset >= this.partitionOffset;
             this.partitionOffset = partitionOffset;
+
+            doorbell.set(0L);
+            fan.members.forEach(m -> m.partitionOffset = Math.max(m.partitionOffset, m.partition.committed()));
 
             // defer reply window credit until next tick
             assert reserved == KafkaCacheServerFetchFactory.SIZE_OF_FLUSH_WITH_EXTENSION;
