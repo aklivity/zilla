@@ -431,6 +431,12 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExBuilder outboundText(
+                String outbound)
+            {
+                return outbound(outbound.getBytes(UTF_8));
+            }
+
             public MqttSubscribeBeginExBuilder packet(
                 int packetId,
                 String state,
@@ -996,6 +1002,12 @@ public final class MqttFunctions
             {
                 subscribeFlushExRW.outbound(o -> o.set(outbound));
                 return this;
+            }
+
+            public MqttSubscribeFlushExBuilder outboundText(
+                String outbound)
+            {
+                return outbound(outbound.getBytes(UTF_8));
             }
 
             public MqttSubscribeFlushExBuilder reasonCode(
@@ -1953,6 +1965,7 @@ public final class MqttFunctions
             private Long generation;
             private Array32FW.Builder<MqttPacketFW.Builder, MqttPacketFW> packets;
             private byte[] outbound;
+            private boolean withoutOutbound;
 
             private MqttSubscribeBeginExMatcherBuilder()
             {
@@ -2063,6 +2076,18 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExMatcherBuilder outboundText(
+                String outbound)
+            {
+                return outbound(outbound.getBytes(UTF_8));
+            }
+
+            public MqttSubscribeBeginExMatcherBuilder withoutOutbound()
+            {
+                this.withoutOutbound = true;
+                return this;
+            }
+
             public MqttSubscribeBeginExMatcherBuilder packet(
                 int packetId,
                 String state,
@@ -2158,9 +2183,10 @@ public final class MqttFunctions
                 final MqttSubscribeBeginExFW subscribeBeginEx)
             {
                 final OctetsFW actual = subscribeBeginEx.outbound();
-                boolean match = outbound == null;
+                final boolean absent = actual == null || actual.sizeof() == 0;
+                boolean match = withoutOutbound ? absent : outbound == null;
 
-                if (!match && actual != null && actual.sizeof() == outbound.length)
+                if (!match && !withoutOutbound && !absent && actual.sizeof() == outbound.length)
                 {
                     final byte[] actualBytes = new byte[actual.sizeof()];
                     actual.buffer().getBytes(actual.offset(), actualBytes);
@@ -3085,6 +3111,12 @@ public final class MqttFunctions
             {
                 this.outbound = outbound;
                 return this;
+            }
+
+            public MqttSubscribeFlushExMatcherBuilder outboundText(
+                String outbound)
+            {
+                return outbound(outbound.getBytes(UTF_8));
             }
 
             public MqttFlushExMatcherBuilder build()

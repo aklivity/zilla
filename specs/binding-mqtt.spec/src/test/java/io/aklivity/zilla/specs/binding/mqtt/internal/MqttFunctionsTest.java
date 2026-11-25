@@ -2869,4 +2869,132 @@ public class MqttFunctionsTest
 
         assertNotNull(matcher.match(byteBuf));
     }
+
+    @Test
+    public void shouldEncodeMqttSubscribeBeginExtOutboundText()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .qos("AT_LEAST_ONCE")
+                .filter("sensor/one", 0)
+                .outboundText("state")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        final byte[] actual = new byte[mqttBeginEx.subscribe().outbound().sizeof()];
+        mqttBeginEx.subscribe().outbound().buffer().getBytes(mqttBeginEx.subscribe().outbound().offset(), actual);
+        assertArrayEquals("state".getBytes(UTF_8), actual);
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeFlushExtOutboundText()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+                .subscribe()
+                .outboundText("state")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        final byte[] actual = new byte[mqttFlushEx.subscribe().outbound().sizeof()];
+        mqttFlushEx.subscribe().outbound().buffer().getBytes(mqttFlushEx.subscribe().outbound().offset(), actual);
+        assertArrayEquals("state".getBytes(UTF_8), actual);
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionOutboundText() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .typeId(0)
+            .subscribe()
+                .outboundText("state")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .subscribe(b -> b
+                .clientId("client")
+                .qos(1)
+                .outbound(o -> o.set("state".getBytes(UTF_8))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMqttSubscribeFlushExOutboundText() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .outboundText("state")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.outbound(o -> o.set("state".getBytes(UTF_8))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionWithoutOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .typeId(0)
+            .subscribe()
+                .withoutOutbound()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .subscribe(b -> b.clientId("client").qos(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchSubscribeBeginExtensionWithoutOutboundWhenPresent() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .typeId(0)
+            .subscribe()
+                .withoutOutbound()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0)
+            .subscribe(b -> b
+                .clientId("client")
+                .qos(1)
+                .outbound(o -> o.set("state".getBytes(UTF_8))))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
 }

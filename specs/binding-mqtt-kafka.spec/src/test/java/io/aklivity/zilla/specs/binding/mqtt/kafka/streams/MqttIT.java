@@ -795,6 +795,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.persistent.clean.start.qos.max.1/client",
+        "${mqtt}/session.store.persistent.clean.start.qos.max.1/server"})
+    public void shouldKeepNoGroupOffsetsOnPersistentCleanStartWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.store.subscribe.qos.max.1/client",
         "${mqtt}/session.store.subscribe.qos.max.1/server"})
     public void shouldSessionStoreSubscribeQosMax1() throws Exception
@@ -1391,6 +1400,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.resume.qos1.outbound.unacked/client",
+        "${mqtt}/subscribe.resume.qos1.outbound.unacked/server"})
+    public void shouldResumeSubscribeQoS1OutboundUnacked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.resume.qos2.outbound.pubrel/client",
+        "${mqtt}/subscribe.resume.qos2.outbound.pubrel/server"})
+    public void shouldResumeSubscribeQoS2OutboundPubrel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/client",
         "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/server"})
     public void shouldResumeSubscribeRetainedQoS1OutboundStaleOffset() throws Exception
@@ -1405,6 +1432,24 @@ public class MqttIT
     public void shouldCloseSubscribeQoS1Outbound() throws Exception
     {
         k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.close.qos1.outbound.idle/client",
+        "${mqtt}/subscribe.close.qos1.outbound.idle/server"})
+    public void shouldCloseSubscribeQoS1OutboundIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.abort.qos1.outbound/client",
+        "${mqtt}/subscribe.abort.qos1.outbound/server"})
+    public void shouldAbortSubscribeQoS1Outbound() throws Exception
+    {
         k3po.finish();
     }
 

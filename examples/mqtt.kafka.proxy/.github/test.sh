@@ -150,4 +150,44 @@ fi
 
 rm -rf "$WORK"
 
+# GIVEN offline delivery for a persistent session
+OFFLINE_COUNT=3
+OFFLINE_ID="offline-$$"
+OFFLINE_TOPIC="offline/$$"
+WORK=$(mktemp -d)
+echo \# Testing offline delivery after reconnect
+echo OFFLINE_ID="$OFFLINE_ID"
+echo OFFLINE_COUNT="$OFFLINE_COUNT"
+echo
+
+for QOS in 1 2; do
+  # WHEN a persistent subscriber disconnects and messages are published while it is offline
+  docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli \
+    mosquitto_sub -V 5 -c -x 600 -q "$QOS" -i "$OFFLINE_ID-$QOS" -h zilla.examples.dev -p "$PORT" \
+      -t "$OFFLINE_TOPIC/$QOS" -W 2 > /dev/null 2>&1
+
+  for i in $(seq 1 "$OFFLINE_COUNT"); do
+    docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli \
+      mosquitto_pub -V 5 -q "$QOS" -h zilla.examples.dev -p "$PORT" -t "$OFFLINE_TOPIC/$QOS" --message "$i"
+  done
+
+  # THEN the reconnected subscriber receives each offline message exactly once
+  docker compose -p zilla-mqtt-kafka-proxy exec -T mosquitto-cli \
+    mosquitto_sub -V 5 -c -x 600 -q "$QOS" -i "$OFFLINE_ID-$QOS" -h zilla.examples.dev -p "$PORT" \
+      -t "$OFFLINE_TOPIC/$QOS" -W 3 > "$WORK/offline-$QOS.out" 2>/dev/null
+
+  seq 1 "$OFFLINE_COUNT" > "$WORK/offline-expected"
+  echo QOS="$QOS"
+  echo RECEIVED="$(tr '\n' ' ' < "$WORK/offline-$QOS.out")"
+  echo
+  if cmp -s "$WORK/offline-$QOS.out" "$WORK/offline-expected"; then
+    echo ✅
+  else
+    echo ❌
+    EXIT=1
+  fi
+done
+
+rm -rf "$WORK"
+
 exit $EXIT

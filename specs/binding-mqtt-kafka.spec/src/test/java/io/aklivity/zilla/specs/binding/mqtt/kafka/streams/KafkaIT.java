@@ -940,15 +940,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/client",
-        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
-    public void shouldSessionStorePersistentCleanStartResetGroupOffsetsCoordinatorNotAvailableQosMax1() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.store.persistent.clean.start.no.offsets.topic/client",
         "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
     public void shouldSessionStorePersistentCleanStartNoOffsetsTopic() throws Exception
@@ -1249,6 +1240,15 @@ public class KafkaIT
         "${kafka}/session.expiry.after.signal.stream.restart/client",
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.expire.legacy.session.signal/client",
+        "${kafka}/session.store.expire.legacy.session.signal/server"})
+    public void shouldExpireLegacySessionSignalWhenSessionStateStore() throws Exception
     {
         k3po.finish();
     }
@@ -1671,6 +1671,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound.unacked/client",
+        "${kafka}/subscribe.resume.qos1.outbound.unacked/server"})
+    public void shouldResumeSubscribeQoS1OutboundUnacked() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.qos2.outbound.pubrel/client",
+        "${kafka}/subscribe.resume.qos2.outbound.pubrel/server"})
+    public void shouldResumeSubscribeQoS2OutboundPubrel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/client",
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
     public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception
@@ -1692,6 +1710,24 @@ public class KafkaIT
         "${kafka}/subscribe.close.qos1.outbound/client",
         "${kafka}/subscribe.close.qos1.outbound/server"})
     public void shouldCloseSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.close.qos1.outbound.idle/client",
+        "${kafka}/subscribe.close.qos1.outbound.idle/server"})
+    public void shouldCloseSubscribeQoS1OutboundIdle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.abort.qos1.outbound/client",
+        "${kafka}/subscribe.abort.qos1.outbound/server"})
+    public void shouldAbortSubscribeQoS1Outbound() throws Exception
     {
         k3po.finish();
     }

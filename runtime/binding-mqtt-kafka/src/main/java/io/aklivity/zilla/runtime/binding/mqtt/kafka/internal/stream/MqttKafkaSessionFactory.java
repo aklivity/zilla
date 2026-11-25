@@ -842,7 +842,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             {
                 awaitedReset = groupOffsetsResets.get(clientId);
 
-                if (awaitedReset == null && publishQosMax != 2 && isSetCleanStart(sessionFlags))
+                if (awaitedReset == null && !sessionStateStoreEnabled && publishQosMax != 2 && isSetCleanStart(sessionFlags))
                 {
                     awaitedReset = newGroupOffsetsReset(routedId, resolvedId, clientId,
                         resolveMessagesTopics(binding), retainedTopic);
@@ -1708,7 +1708,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             }
             else
             {
-                if (!isInboundStored())
+                if (!sessionStateStoreEnabled)
                 {
                     offsetCommit = new KafkaOffsetCommitStream(routedId, resolvedId, this);
                     offsetCommit.doKafkaBegin(traceId, authorization, 0);
@@ -1716,14 +1716,17 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
 
                 if (isSetCleanStart(sessionFlags))
                 {
-                    final String groupId = groupIdPrefix + "-" + clientId.asString();
-                    findCoordinator = new KafkaFindCoordinatorStream(routedId, resolvedId, this, groupId);
-                    findCoordinator.doKafkaBegin(traceId, authorization, 0);
+                    if (!sessionStateStoreEnabled)
+                    {
+                        final String groupId = groupIdPrefix + "-" + clientId.asString();
+                        findCoordinator = new KafkaFindCoordinatorStream(routedId, resolvedId, this, groupId);
+                        findCoordinator.doKafkaBegin(traceId, authorization, 0);
+                    }
 
                     producerInit = new KafkaInitProducerStream(routedId, resolvedId, this);
                     producerInit.doKafkaBegin(traceId, authorization, 0);
                 }
-                else if (!isInboundStored())
+                else if (!sessionStateStoreEnabled)
                 {
                     offsetFetch = new KafkaOffsetFetchStream(routedId, resolvedId, this);
                     offsetFetch.doKafkaBegin(traceId, authorization, 0);
@@ -1963,7 +1966,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                         doDeleteGroupOffsets(traceId, authorization);
                     }
 
-                    if (isInboundStored())
+                    if (sessionStateStoreEnabled)
                     {
                         if (isInboundEstablishable())
                         {
@@ -2659,8 +2662,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doKafkaTombstone(clientIdOffsets, clientId);
             doKafkaExpirySignalTombstone(clientId);
 
-            newGroupOffsetsReset(originId, routedId, clientId, messagesTopics, retainedTopic)
-                .doOpenMetas(supplyTraceId.get(), 0L);
+            if (!sessionStateStoreEnabled)
+            {
+                newGroupOffsetsReset(originId, routedId, clientId, messagesTopics, retainedTopic)
+                    .doOpenMetas(supplyTraceId.get(), 0L);
+            }
         }
 
         private void doKafkaTombstone(

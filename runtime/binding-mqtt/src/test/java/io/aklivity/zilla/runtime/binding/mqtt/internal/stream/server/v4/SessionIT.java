@@ -182,6 +182,41 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.reconnect.non.clean.start.stored.outbound/client",
+        "${app}/session.reconnect.non.clean.start.stored.outbound/server"})
+    public void shouldReconnectNonCleanStartStoredOutbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.reconnect.non.clean.start.stored.outbound.stale/client",
+        "${app}/session.reconnect.non.clean.start.stored.outbound.stale/server"})
+    public void shouldReconnectNonCleanStartStoredOutboundStale() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.reconnect.non.clean.start.stored.outbound.reply.reset/client",
+        "${app}/session.reconnect.non.clean.start.stored.outbound.reply.reset/server"})
+    public void shouldReconnectNonCleanStartStoredOutboundReplyReset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.connect.non.clean.start/client",

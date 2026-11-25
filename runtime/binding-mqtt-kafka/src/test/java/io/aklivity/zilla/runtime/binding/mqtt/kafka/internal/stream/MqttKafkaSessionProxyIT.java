@@ -388,9 +388,9 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
-        "${mqtt}/session.clean.start.qos.max.1/client",
-        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
-    public void shouldResetGroupOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStoreAndPublishQosMax1() throws Exception
+        "${mqtt}/session.store.persistent.clean.start.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldKeepNoGroupOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStoreAndPublishQosMax1() throws Exception
     {
         k3po.finish();
     }
@@ -693,6 +693,23 @@ public class MqttKafkaSessionProxyIT
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart/server"})
     public void shouldExpireSessionAfterSignalStreamRestart() throws Exception
+    {
+        k3po.start();
+        clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1073741824L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
+    @Specification({
+        "${kafka}/session.store.expire.legacy.session.signal/server"})
+    public void shouldExpireLegacySessionSignalWithoutGroupOffsetsWhenSessionStateStore() throws Exception
     {
         k3po.start();
         clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
