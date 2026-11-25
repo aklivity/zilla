@@ -116,6 +116,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
     // per-consumer authorization to thread through the model pipeline
     private static final long NO_AUTHORIZATION = 0L;
 
+    private static final int FLUSH_EX_CAPACITY = 128;
     private static final DirectBufferEx EMPTY_BUFFER = new UnsafeBufferEx();
     private static final OctetsFW EMPTY_OCTETS = new OctetsFW().wrap(EMPTY_BUFFER, 0, 0);
     private static final Consumer<OctetsFW.Builder> EMPTY_EXTENSION = ex -> {};
@@ -515,6 +516,12 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         private final List<KafkaCacheServerFetchStream> members;
         private final IntFunction<KafkaCacheEntryFW> ancestorFinder = this::findAncestor;
         private final Consumer<KafkaCacheServerFetchStream> memberFlusher = this::flushMember;
+        private final MutableDirectBufferEx flushExBuffer = new UnsafeBufferEx(new byte[FLUSH_EX_CAPACITY]);
+
+        private long flushExPartitionOffset = -1L;
+        private long flushExStableOffset = -1L;
+        private long flushExLatestOffset = -1L;
+        private int flushExLength;
 
         private KafkaKeyFW ancestorKey;
         private KafkaCachePartition.Node ancestorHead;
@@ -1067,6 +1074,29 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
             KafkaCacheServerFetchStream member)
         {
             member.doServerReplyFlushIfNecessary(flushTraceId);
+        }
+
+        private int flushExLength()
+        {
+            if (flushExLength == 0 ||
+                flushExPartitionOffset != partitionOffset ||
+                flushExStableOffset != stableOffset ||
+                flushExLatestOffset != latestOffset)
+            {
+                flushExLength = kafkaFlushExRW.wrap(flushExBuffer, 0, flushExBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .fetch(f -> f.partition(p -> p.partitionId(partition.id())
+                                                  .partitionOffset(partitionOffset)
+                                                  .stableOffset(stableOffset)
+                                                  .latestOffset(latestOffset)))
+                    .build()
+                    .sizeof();
+                flushExPartitionOffset = partitionOffset;
+                flushExStableOffset = stableOffset;
+                flushExLatestOffset = latestOffset;
+            }
+
+            return flushExLength;
         }
 
         private KafkaCacheEntryFW findAndMarkAncestor(
@@ -1658,14 +1688,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
             doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                     traceId, authorization, 0L, reserved,
-                ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                        .typeId(kafkaTypeId)
-                        .fetch(f -> f.partition(p -> p.partitionId(group.partition.id())
-                                                      .partitionOffset(group.partitionOffset)
-                                                      .stableOffset(group.stableOffset)
-                                                      .latestOffset(group.latestOffset)))
-                        .build()
-                        .sizeof()));
+                ex -> ex.set(group.flushExBuffer, 0, group.flushExLength()));
 
             replySeq += reserved;
 
