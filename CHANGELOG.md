@@ -265,6 +265,15 @@
 - fix\(binding-kafka\): index active segment hash entries by key for ancestor lookup [\#3537](https://github.com/aklivity/zilla/pull/3537) ([jfallows](https://github.com/jfallows))
 - test\(engine\): gate store.expire and store.watch scripts on the delivered notification [\#3538](https://github.com/aklivity/zilla/pull/3538) ([jfallows](https://github.com/jfallows))
 - fix\(binding-kafka\): fold produce entry claim block into trailing padding [\#3540](https://github.com/aklivity/zilla/pull/3540) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add touch to StoreHandler [\#3542](https://github.com/aklivity/zilla/pull/3542) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): produce qos 2 messages in flight with distinct producer sequences [\#3544](https://github.com/aklivity/zilla/pull/3544) ([jfallows](https://github.com/jfallows))
+- feat\(engine\): add expiration to StoreHandler writes [\#3545](https://github.com/aklivity/zilla/pull/3545) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): serialize pipelined qos 2 publishes [\#3553](https://github.com/aklivity/zilla/pull/3553) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): restart a cursor filter conjunction at the largest condition result [\#3554](https://github.com/aklivity/zilla/pull/3554) ([jfallows](https://github.com/jfallows))
+- fix\(binding-mqtt-kafka\): hold a qos 2 publish until the session offsets exist [\#3555](https://github.com/aklivity/zilla/pull/3555) ([jfallows](https://github.com/jfallows))
+- fix\(binding-kafka\): initialize the cache client cursor when a filter change arrives before the reply opens [\#3557](https://github.com/aklivity/zilla/pull/3557) ([jfallows](https://github.com/jfallows))
+- perf\(binding-kafka\): build the cache server fetch flush extension once per progress [\#3558](https://github.com/aklivity/zilla/pull/3558) ([jfallows](https://github.com/jfallows))
+- docs\(engine\): clarify the store expiration mode [\#3559](https://github.com/aklivity/zilla/pull/3559) ([jfallows](https://github.com/jfallows))
 
 ## [2.7.1](https://github.com/aklivity/zilla/tree/2.7.1) (2026-11-16)
 
