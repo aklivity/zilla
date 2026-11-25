@@ -13,18 +13,12 @@
 # specific language governing permissions and limitations under the License.
 #
 
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accept "zilla://streams/kafka0"
+    option zilla:window 8192
+    option zilla:transmission "duplex"
 
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .describe()
-                                .topic("mqtt-retained")
-                                .config("cleanup.policy")
-                                .build()
-                            .build()}
+
+accepted
 
 read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
@@ -34,108 +28,78 @@ read zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
-connected
-
-read zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .describe()
-                               .config("cleanup.policy", "compact")
-                               .build()
-                           .build()}
-
-write close
-
-
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .meta()
-                                   .topic("mqtt-messages")
-                                   .build()
-                               .build()}
-connected
-
-read zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .partition(0, -2)
-                                  .partition(1, -2)
-                                  .build()
-                              .build()}
-
-write close
-
-
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                               .typeId(zilla:id("kafka"))
-                               .meta()
-                                   .topic("mqtt-retained")
-                                   .build()
-                               .build()}
-connected
-
-read zilla:data.ext ${kafka:dataEx()
-                              .typeId(zilla:id("kafka"))
-                              .meta()
-                                  .partition(0, -2)
-                                  .build()
-                              .build()}
-read notify RECEIVED_PARTITION_METADATA
-
-write close
-
-
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
 write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-sessions")
+                            .describe()
+                                .topic("mqtt-retained")
+                                .config("cleanup.policy")
                                 .build()
                             .build()}
 
 connected
 
-write await RECEIVED_PRODUCER
-
 write zilla:data.ext ${kafka:dataEx()
                            .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
+                           .describe()
+                               .config("cleanup.policy", "compact")
                                .build()
                            .build()}
-write ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 1, 1, 1, 0)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
 write flush
-write notify SENT_INITIAL_OFFSET_COMMIT
+
+read closed
+write close
 
 
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-messages")
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, -2)
+                                 .partition(1, -2)
+                                 .build()
+                             .build()}
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                               .typeId(zilla:id("kafka"))
+                               .meta()
+                                   .topic("mqtt-retained")
+                                   .build()
+                               .build()}
+
+connected
+
+write zilla:data.ext ${kafka:dataEx()
+                             .typeId(zilla:id("kafka"))
+                             .meta()
+                                 .partition(0, -2)
+                                 .build()
+                             .build()}
+write flush
+
+read closed
+write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .apiRequest()
                                 .length(27)
@@ -145,7 +109,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .apiResponse()
                                 .length(25)
@@ -155,12 +119,13 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write [0x00]                                    # request header tagged fields
+read option zilla:affinity 0x0000000000000000L
+read [0x00]                                    # request header tagged fields
       [0x18] "zilla:test-mqtt0-client"       # group id (key)
       [0x00]                                    # key type (group)
       [0x00]                                    # tagged fields
 
-read [0x00]                                    # tagged fields
+write [0x00]                                    # tagged fields
       [0x00 0x00 0x00 0x00]                     # throttle time ms
       [0x00 0x00]                               # error code
       [0x00]                                    # message (null)
@@ -168,19 +133,16 @@ read [0x00]                                    # tagged fields
       [0x08] "broker2"                          # host
       [0x00 0x00 0x23 0x84]                     # port
       [0x00]                                    # tagged fields
-read await RECEIVED_PARTITION_METADATA
-read notify RECEIVED_COORDINATOR
 
-write close
+write flush
+
 read closed
+write close
 
 
-connect
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .initProducerId()
                                 .producerId(0)
@@ -188,29 +150,23 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
-read zilla:begin.ext ${kafka:beginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .initProducerId()
                                 .producerId(1)
                                 .producerEpoch(1)
                                 .build()
                             .build()}
-read await RECEIVED_PARTITION_METADATA
-read notify RECEIVED_PRODUCER
 
 connected
 
-write close
 read closed
+write close
 
 
-connect await RECEIVED_COORDINATOR
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:affinity 0x0000000000000002L
-         option zilla:transmission "duplex"
+accepted
 
-write zilla:begin.ext ${kafka:beginEx()
+read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
                             .apiRequest()
                                 .length(79)
@@ -220,7 +176,7 @@ write zilla:begin.ext ${kafka:beginEx()
                                 .build()
                             .build()}
 
-read zilla:begin.ext ${kafka:matchBeginEx()
+write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .apiResponse()
                                 .length(66)
@@ -230,7 +186,8 @@ read zilla:begin.ext ${kafka:matchBeginEx()
 
 connected
 
-write [0x00 0x17] "zilla:test-mqtt0-client"  # group id
+read option zilla:affinity 0x0000000000000002L
+read [0x00 0x17] "zilla:test-mqtt0-client"  # group id
       [0x00 0x00 0x00 0x02]                     # topic count
         [0x00 0x0d] "mqtt-messages"             # topic name
         [0x00 0x00 0x00 0x02]                   # partition count
@@ -240,7 +197,7 @@ write [0x00 0x17] "zilla:test-mqtt0-client"  # group id
         [0x00 0x00 0x00 0x01]                   # partition count
           [0x00 0x00 0x00 0x00]                 # partition index
 
-read [0x00 0x00]                               # error code
+write [0x00 0x00]                               # error code
       [0x00 0x00 0x00 0x00]                     # throttle time ms
       [0x00 0x00 0x00 0x02]                     # topic count
         [0x00 0x0d] "mqtt-messages"             # topic name
@@ -250,8 +207,8 @@ read [0x00 0x00]                               # error code
         [0x00 0x0d] "mqtt-retained"             # topic name
         [0x00 0x00 0x00 0x01]                   # partition count
           [0x00 0x00 0x00 0x00] [0x00 0x00]     # partition index, error code
-read await SENT_INITIAL_OFFSET_COMMIT
-read notify RECEIVED_GROUP_OFFSETS_RESET
 
-write close
+write flush
+
 read closed
+write close

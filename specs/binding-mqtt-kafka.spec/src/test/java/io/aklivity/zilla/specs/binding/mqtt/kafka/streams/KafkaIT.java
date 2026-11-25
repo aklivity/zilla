@@ -949,9 +949,9 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.store.persistent.clean.start.discard.offsets/client",
-        "${kafka}/session.store.persistent.clean.start.discard.offsets/server"})
-    public void shouldSessionStorePersistentCleanStartDiscardOffsets() throws Exception
+        "${kafka}/session.store.persistent.clean.start.no.offsets.topic/client",
+        "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
+    public void shouldSessionStorePersistentCleanStartNoOffsetsTopic() throws Exception
     {
         k3po.finish();
     }
@@ -1384,6 +1384,42 @@ public class KafkaIT
         "${kafka}/publish.qos2.session.store.before.offsets/client",
         "${kafka}/publish.qos2.session.store.before.offsets/server"})
     public void shouldPublishQoS2SessionStoreBeforeOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.persistent.resume/client",
+        "${kafka}/publish.qos2.session.store.persistent.resume/server"})
+    public void shouldPublishQoS2SessionStorePersistentResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.persistent.no.inbound/client",
+        "${kafka}/publish.qos2.session.store.persistent.no.inbound/server"})
+    public void shouldPublishQoS2SessionStorePersistentNoInbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.persistent.close/client",
+        "${kafka}/publish.qos2.session.store.persistent.close/server"})
+    public void shouldPublishQoS2SessionStorePersistentClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.clean.start.close.unacknowledged/client",
+        "${kafka}/publish.qos2.session.store.clean.start.close.unacknowledged/server"})
+    public void shouldPublishQoS2SessionStoreCleanStartCloseUnacknowledged() throws Exception
     {
         k3po.finish();
     }

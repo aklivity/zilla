@@ -62,4 +62,17 @@ write flush
 read zilla:data.empty
 
 write abort
+
+# the acknowledged inbound state is handed back before the reply aborts
+read advised zilla:flush ${mqtt:flushEx()
+                                 .typeId(zilla:id("mqtt"))
+                                 .session()
+                                     .inboundBytes(mqtt_kafka:sessionOffsets()
+            .entry("mqtt-messages", 0, 1, 1, 1, 0)
+            .entry("mqtt-messages", 1, 1, 1, 1, 0)
+            .entry("mqtt-retained", 0, 1, 1, 1, 0)
+            .build())
+                                     .build()
+                                 .build()}
+
 read aborted

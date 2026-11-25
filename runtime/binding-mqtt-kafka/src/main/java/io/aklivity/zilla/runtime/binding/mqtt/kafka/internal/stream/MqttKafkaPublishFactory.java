@@ -297,6 +297,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int queueSlotReserved;
         private final OffsetsListener offsetsListener = this::drainQueue;
         private final IntArrayList unackedPacketIds = new IntArrayList();
+        private final LongArrayList inboundUnackedSeqs = new LongArrayList();
+        private final IntArrayList inboundUnackedPacketIds = new IntArrayList();
+        private final List<KafkaOffsetMetadata> inboundUnackedOffsets = new ArrayList<>();
         private final List<Function<String, String>> clients;
 
         private KafkaMessagesProxy messages;
@@ -1211,6 +1214,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     unackedPacketIds.removeAt(0);
                 }
 
+                while (!inboundUnackedSeqs.isEmpty() && inboundUnackedSeqs.getLong(0) <= initialAck)
+                {
+                    inboundUnackedSeqs.removeAt(0);
+                    inboundUnackedOffsets.remove(0).unackedPacketIds.removeInt(inboundUnackedPacketIds.removeAt(0));
+                }
+
                 int minimum = 0;
                 if (qos == MqttQoS.EXACTLY_ONCE.value())
                 {
@@ -1282,6 +1291,13 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 offsetCommit.doKafkaData(traceId, authorization, 0, COMPLETE, sessionOffsets, offsetsDataEx);
                 offsetCommit.unfinishedKafkas.add(kafka);
                 offsetCommit.unfinishedSeqs.addLong(offsetCommit.initialSeq);
+            }
+            else
+            {
+                metadata.unackedPacketIds.addInt(packetId);
+                inboundUnackedSeqs.addLong(initialSeq);
+                inboundUnackedPacketIds.addInt(packetId);
+                inboundUnackedOffsets.add(metadata);
             }
         }
 

@@ -376,7 +376,7 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
         "${mqtt}/session.clean.start.discard.offsets/client",
-        "${kafka}/session.store.persistent.clean.start.discard.offsets/server"})
+        "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
     public void shouldDiscardOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStore() throws Exception
     {
         k3po.finish();

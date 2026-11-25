@@ -101,35 +101,6 @@ accepted
 
 read zilla:begin.ext ${kafka:matchBeginEx()
                             .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-sessions")
-                                .build()
-                            .build()}
-
-connected
-
-read zilla:data.ext ${kafka:matchDataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-read ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 1, 1, 1, 0)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-
-
-accepted
-
-read zilla:begin.ext ${kafka:matchBeginEx()
-                            .typeId(zilla:id("kafka"))
                             .apiRequest()
                                 .length(27)
                                 .api(10)
@@ -241,3 +212,71 @@ write flush
 
 read closed
 write close
+
+
+accepted
+
+read zilla:begin.ext ${kafka:beginEx()
+                            .typeId(zilla:id("kafka"))
+                            .merged()
+                                .capabilities("PRODUCE_ONLY")
+                                .topic("mqtt-messages")
+                                .partition(-1, -2)
+                                .ackMode("IN_SYNC_REPLICAS")
+                                .build()
+                            .build()}
+
+connected
+
+read advised zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("sensor/one")
+                                  .build()
+                              .build()}
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .merged()
+                                .produce()
+                                  .hashKey("sensor/one")
+                                  .partitionId(0)
+                                  .build()
+                              .build()}
+
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                            .produce()
+                               .deferred(0)
+                               .producerId(1)
+                               .producerEpoch(1)
+                               .partition(-1, 1)
+                               .key("sensor/one")
+                               .header("zilla:filter", "sensor")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:qos", "2")
+                               .build()
+                           .build()}
+read "message"
+read notify RECEIVED_MESSAGE_ONE
+
+read await SESSION_ENDED
+read zilla:data.ext ${kafka:matchDataEx()
+                           .typeId(zilla:id("kafka"))
+                           .merged()
+                            .produce()
+                               .deferred(0)
+                               .producerId(1)
+                               .producerEpoch(1)
+                               .partition(-1, 2)
+                               .key("sensor/one")
+                               .header("zilla:filter", "sensor")
+                               .header("zilla:filter", "one")
+                               .header("zilla:local", "client")
+                               .header("zilla:qos", "2")
+                               .build()
+                           .build()}
+read "message2"

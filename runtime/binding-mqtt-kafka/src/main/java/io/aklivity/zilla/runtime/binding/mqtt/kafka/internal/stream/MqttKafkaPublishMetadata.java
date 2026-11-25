@@ -94,6 +94,7 @@ public class MqttKafkaPublishMetadata
         public final long producerId;
         public final short producerEpoch;
         public final IntArrayList packetIds;
+        public final IntArrayList unackedPacketIds = new IntArrayList();
 
         public long sequence;
         public String topic;
@@ -191,6 +192,7 @@ public class MqttKafkaPublishMetadata
         private final MqttKafkaSessionOffsetsFW.Builder sessionOffsetsRW = new MqttKafkaSessionOffsetsFW.Builder();
         private final MutableDirectBufferEx offsetBuffer;
         private final Consumer<MqttKafkaSessionOffsetMetadataFW.Builder> encodeEntry = this::encodeEntry;
+        private final Consumer<MqttKafkaSessionOffsetMetadataFW.Builder> encodeAcknowledgedEntry = this::encodeAcknowledgedEntry;
         private final IntConsumer appendPacketId = this::appendPacketId;
         private final Map<String, String16FW> encodedTopics = new HashMap<>();
         private final Function<String, String16FW> encodeTopic = String16FW::new;
@@ -213,6 +215,21 @@ public class MqttKafkaPublishMetadata
             {
                 encodingMetadata = entries.get(i);
                 sessionOffsetsRW.entriesItem(encodeEntry);
+            }
+            encodingMetadata = null;
+            encodingItem = null;
+            return sessionOffsetsRW.build();
+        }
+
+        public MqttKafkaSessionOffsetsFW encodeAcknowledged(
+            List<KafkaOffsetMetadata> entries)
+        {
+            sessionOffsetsRW.wrap(offsetBuffer, 0, offsetBuffer.capacity());
+            sessionOffsetsRW.version(SESSION_OFFSETS_VERSION);
+            for (int i = 0, size = entries.size(); i < size; i++)
+            {
+                encodingMetadata = entries.get(i);
+                sessionOffsetsRW.entriesItem(encodeAcknowledgedEntry);
             }
             encodingMetadata = null;
             encodingItem = null;
@@ -256,6 +273,27 @@ public class MqttKafkaPublishMetadata
             if (metadata.packetIds != null)
             {
                 metadata.packetIds.forEachInt(appendPacketId);
+            }
+        }
+
+        private void encodeAcknowledgedEntry(
+            MqttKafkaSessionOffsetMetadataFW.Builder item)
+        {
+            final KafkaOffsetMetadata metadata = encodingMetadata;
+            encodingItem = item;
+            item.topic(encodedTopics.computeIfAbsent(metadata.topic, encodeTopic));
+            item.partitionId(metadata.partitionId);
+            item.consumedOffset(metadata.sequence);
+            item.producerId(metadata.producerId);
+            item.producerEpoch(metadata.producerEpoch);
+            item.producerSequence(metadata.producerSequence);
+            for (int i = 0, size = metadata.packetIds.size(); i < size; i++)
+            {
+                final int packetId = metadata.packetIds.getInt(i);
+                if (!metadata.unackedPacketIds.containsInt(packetId))
+                {
+                    appendPacketId(packetId);
+                }
             }
         }
 
