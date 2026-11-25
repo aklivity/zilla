@@ -83,6 +83,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduc
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaProduceFlushExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.KafkaResetExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.ResetFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.SignalFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
@@ -117,6 +118,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final EndFW endRO = new EndFW();
     private final AbortFW abortRO = new AbortFW();
     private final ResetFW resetRO = new ResetFW();
+    private final SignalFW signalRO = new SignalFW();
     private final WindowFW windowRO = new WindowFW();
     private final ExtensionFW extensionRO = new ExtensionFW();
     private final KafkaBeginExFW kafkaBeginExRO = new KafkaBeginExFW();
@@ -159,6 +161,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
     private final CRC32C crc32c;
     private final int reconnectDelay;
     private static final int SIGNAL_RECONNECT = 1;
+    private static final int SIGNAL_FANOUT_REPLY = 2;
 
     private int produceDeferred;
     private long produceTimestamp;
@@ -657,6 +660,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private int memberIndex;
 
         private long ackPartitionOffset = -1L;
+        private long fanoutArmed;
+        private long fanoutHandled;
+        private long acksSinceArm;
+        private long windowsSinceArm;
+        private int trigger = KafkaCacheSpike.TRIGGER_OTHER;
         private long ackTimestamp = -1L;
 
         private KafkaCacheServerProduceFan(
@@ -1020,7 +1028,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
             if (initialAck == initialSeq)
             {
-                members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+                onServerFanAck(KafkaCacheSpike.TRIGGER_WINDOW, traceId);
             }
             doServerFanInitialDataIfNecessary(traceId);
         }
@@ -1035,6 +1043,9 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             assert !StreamState.initialClosed(state);
             state = StreamState.closeInitial(state);
+            fanoutHandled = fanoutArmed;
+            acksSinceArm = 0L;
+            windowsSinceArm = 0L;
 
             initialFlags = NONE;
             initialSeq = 0;
@@ -1075,9 +1086,87 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 final WindowFW window = windowRO.wrap(buffer, index, index + length);
                 onServerFanInitialWindow(window);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onServerFanReplySignal(signal);
+                break;
             default:
                 break;
             }
+        }
+
+        private void onServerFanAck(
+            int trigger,
+            long traceId)
+        {
+            if (KafkaCacheSpike.COUNTERS)
+            {
+                acksSinceArm += trigger == KafkaCacheSpike.TRIGGER_ACK ? 1 : 0;
+                windowsSinceArm += trigger == KafkaCacheSpike.TRIGGER_WINDOW ? 1 : 0;
+            }
+
+            if (KafkaCacheSpike.REPLY_DEFER)
+            {
+                armServerFanReply(traceId);
+            }
+            else
+            {
+                doServerFanReplyFlush(trigger, traceId);
+
+                if (KafkaCacheSpike.COUNTERS)
+                {
+                    armServerFanReply(traceId);
+                }
+            }
+        }
+
+        private void armServerFanReply(
+            long traceId)
+        {
+            if (fanoutArmed == fanoutHandled && !StreamState.initialClosed(state))
+            {
+                fanoutArmed++;
+                KafkaCacheSpike.FANOUT_ARMED.incrementAndGet();
+                signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_FANOUT_REPLY, 0);
+            }
+        }
+
+        private void onServerFanReplySignal(
+            SignalFW signal)
+        {
+            final long traceId = signal.traceId();
+
+            fanoutHandled = fanoutArmed;
+
+            if (KafkaCacheSpike.COUNTERS)
+            {
+                KafkaCacheSpike.ACKS_PER_CYCLE_HISTOGRAM.incrementAndGet(KafkaCacheSpike.bucket(acksSinceArm));
+                KafkaCacheSpike.WINDOWS_PER_CYCLE_HISTOGRAM.incrementAndGet(KafkaCacheSpike.bucket(windowsSinceArm));
+                acksSinceArm = 0L;
+                windowsSinceArm = 0L;
+            }
+
+            if (KafkaCacheSpike.REPLY_DEFER && !StreamState.initialClosed(state))
+            {
+                doServerFanReplyFlush(KafkaCacheSpike.TRIGGER_DEFERRED, traceId);
+            }
+        }
+
+        private void doServerFanReplyFlush(
+            int trigger,
+            long traceId)
+        {
+            this.trigger = trigger;
+
+            if (KafkaCacheSpike.COUNTERS)
+            {
+                KafkaCacheSpike.FANOUTS.incrementAndGet(trigger);
+                KafkaCacheSpike.MEMBERS_HISTOGRAM.incrementAndGet(KafkaCacheSpike.bucket(members.size()));
+            }
+
+            members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+
+            this.trigger = KafkaCacheSpike.TRIGGER_OTHER;
         }
 
         private void onServerFanReplyFlush(
@@ -1091,7 +1180,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             this.ackPartitionOffset = kafkaProduceFlushEx.partition().partitionOffset();
             this.ackTimestamp = kafkaProduceFlushEx.timestamp();
 
-            members.forEach(s -> s.doFlushServerReplyIfNecessary(NO_ERROR, traceId));
+            onServerFanAck(KafkaCacheSpike.TRIGGER_ACK, traceId);
         }
 
         private void onServerFanReplyBegin(
@@ -1710,6 +1799,11 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         partition.replyDoorbell().compareAndSet(0L, replyId))
                     {
                         KafkaCacheSpike.REPLY_SENT.incrementAndGet();
+                        if (KafkaCacheSpike.COUNTERS)
+                        {
+                            KafkaCacheSpike.FRAMES.incrementAndGet(
+                                error == NO_ERROR ? fan.trigger : KafkaCacheSpike.TRIGGER_OTHER);
+                        }
                         doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                             traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
                             ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
