@@ -42,6 +42,8 @@ public class MqttKafkaPublishMetadata
     final MqttKafkaPacketPartitions partitions;
     final Long2LongHashMap leaderEpochs;
 
+    final List<OffsetsListener> offsetsListeners = new ArrayList<>();
+
     String16FW sessionsTopic;
     String16FW clientId;
 
@@ -54,6 +56,23 @@ public class MqttKafkaPublishMetadata
         this.orderedOffsets = new ArrayList<>();
         this.partitions = partitions;
         this.leaderEpochs = leaderEpochs;
+    }
+
+    @FunctionalInterface
+    interface OffsetsListener
+    {
+        void onOffsetsAvailable(
+            long traceId,
+            long authorization);
+    }
+
+    void onOffsetsAvailable(
+        long traceId,
+        long authorization)
+    {
+        final List<OffsetsListener> listeners = new ArrayList<>(offsetsListeners);
+        offsetsListeners.clear();
+        listeners.forEach(listener -> listener.onOffsetsAvailable(traceId, authorization));
     }
 
     public static final class KafkaTopicPartition
