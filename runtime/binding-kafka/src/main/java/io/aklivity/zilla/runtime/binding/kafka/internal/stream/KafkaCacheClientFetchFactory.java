@@ -1372,11 +1372,19 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
             final KafkaFilterCondition condition = cursorFactory.asCondition(filters, evaluation);
 
             nextCursor = cursorFactory.newCursor(condition, deltaType);
-            nextCursor.init(cursor);
-            if (messageOffset == 0)
+            if (!StreamState.replyOpening(state))
             {
                 cursor = nextCursor;
                 nextCursor = null;
+            }
+            else
+            {
+                nextCursor.init(cursor);
+                if (messageOffset == 0)
+                {
+                    cursor = nextCursor;
+                    nextCursor = null;
+                }
             }
         }
 
