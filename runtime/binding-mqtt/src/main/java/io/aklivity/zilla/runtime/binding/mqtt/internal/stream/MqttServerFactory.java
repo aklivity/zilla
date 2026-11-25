@@ -5699,7 +5699,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     final byte[] reasonCodes = new byte[encodeProgress - encodeOffset];
                     encodeBuffer.getBytes(encodeOffset, reasonCodes);
-                    delivering.pendingUnsubacks.add(() ->
+                    delivering.pendingPackets.add(() ->
                         doEncodeUnsuback(traceId, authorization, packetId, new UnsafeBufferEx(reasonCodes), reasonCodes.length));
                 }
                 else
@@ -5955,6 +5955,49 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             assert encodeCredit == null;
             this.encodeCredit = context.supplyCredit(replyId, encodeBudgetId);
+        }
+
+        private void doNetworkControl(
+            long traceId,
+            long authorization,
+            Flyweight packet)
+        {
+            final MqttSubscribeStream delivering = deliveringSubscribe();
+
+            if (delivering != null)
+            {
+                final byte[] bytes = new byte[packet.sizeof()];
+                packet.buffer().getBytes(packet.offset(), bytes);
+                delivering.pendingPackets.add(() ->
+                    doNetworkData(traceId, authorization, 0L, new UnsafeBufferEx(bytes), 0, bytes.length));
+            }
+            else
+            {
+                doNetworkData(traceId, authorization, 0L, packet);
+            }
+        }
+
+        private MqttSubscribeStream deliveringSubscribe()
+        {
+            MqttSubscribeStream delivering = null;
+
+            for (Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes : subscribes.values())
+            {
+                for (MqttSubscribeStream stream : routeSubscribes.values())
+                {
+                    delivering = delivering == null && stream.deliveringMessage() ? stream : delivering;
+                }
+            }
+
+            for (Map<String, MqttSubscribeStream> routeShared : sharedSubscribes.values())
+            {
+                for (MqttSubscribeStream stream : routeShared.values())
+                {
+                    delivering = delivering == null && stream.deliveringMessage() ? stream : delivering;
+                }
+            }
+
+            return delivering;
         }
 
         private void doNetworkData(
@@ -6354,7 +6397,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .packetId(packetId)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, puback);
+            doNetworkControl(traceId, authorization, puback);
         }
 
         private void doEncodePubackV5(
@@ -6372,7 +6415,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .reasonCode(reasonCode & 0xff)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, puback);
+            doNetworkControl(traceId, authorization, puback);
         }
 
         private void doEncodePubrecV4(
@@ -6388,7 +6431,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .packetId(packetId)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, pubrec);
+            doNetworkControl(traceId, authorization, pubrec);
         }
 
         private void doEncodePubrecV5(
@@ -6406,7 +6449,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .reasonCode(reasonCode & 0xff)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, pubrec);
+            doNetworkControl(traceId, authorization, pubrec);
         }
 
         private void doEncodePubrelV4(
@@ -6422,7 +6465,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .packetId(packetId)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, pubrel);
+            doNetworkControl(traceId, authorization, pubrel);
         }
 
         private void doEncodePubrelV5(
@@ -6440,7 +6483,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .reasonCode(reasonCode & 0xff)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, pubrel);
+            doNetworkControl(traceId, authorization, pubrel);
         }
 
         private void doEncodePubcompV4(
@@ -6456,7 +6499,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .packetId(packetId)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, pubcomp);
+            doNetworkControl(traceId, authorization, pubcomp);
         }
 
         private void doEncodePubcompV5(
@@ -6474,7 +6517,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .reasonCode(reasonCode & 0xff)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, pubcomp);
+            doNetworkControl(traceId, authorization, pubcomp);
         }
 
         private int calculatePublishNetworkFlags(int applicationTypeAndFlags, int qos)
@@ -6717,7 +6760,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .payload(reasonCodes)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, suback);
+            doNetworkControl(traceId, authorization, suback);
         }
 
         private void doEncodeSubackV5(
@@ -6740,7 +6783,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 .payload(reasonCodes)
                 .build();
 
-            doNetworkData(traceId, authorization, 0L, suback);
+            doNetworkControl(traceId, authorization, suback);
         }
 
         private void doEncodeUnsubackV4(
@@ -6786,7 +6829,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                     .remainingLength(0x00)
                     .build();
 
-            doNetworkData(traceId, authorization, 0L, pingResp);
+            doNetworkControl(traceId, authorization, pingResp);
         }
 
         private void doEncodeDisconnect(
@@ -8709,7 +8752,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             private long replySeq;
             private long replyAck;
             private int replyMax;
-            private final List<Runnable> pendingUnsubacks;
+            private final List<Runnable> pendingPackets;
 
             private int state;
             private final List<Subscription> subscriptions;
@@ -8740,7 +8783,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 this.replyId = supplyReplyId.applyAsLong(initialId);
                 this.compositeId = compositeId;
                 this.subscriptions = new ArrayList<>();
-                this.pendingUnsubacks = new ArrayList<>();
+                this.pendingPackets = new ArrayList<>();
                 this.qos = qos;
                 this.deliveryQos = qos;
                 this.sharedFilter = sharedFilter;
@@ -9363,8 +9406,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (hasFin(flags))
                 {
                     subscribeDecoder = decodeSubscribeMessage;
-                    pendingUnsubacks.forEach(Runnable::run);
-                    pendingUnsubacks.clear();
+                    pendingPackets.forEach(Runnable::run);
+                    pendingPackets.clear();
                     doSubscribeDelivered(traceId);
                 }
                 else
