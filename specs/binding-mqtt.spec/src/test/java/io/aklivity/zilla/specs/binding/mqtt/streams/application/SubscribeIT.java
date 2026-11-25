@@ -354,6 +354,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.pubrel.while.publish.fragmented/client",
+        "${app}/subscribe.pubrel.while.publish.fragmented/server"})
+    public void shouldDeferPubrelWhilePublishFragmentedQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.pingresp.while.publish.fragmented/client",
+        "${app}/subscribe.pingresp.while.publish.fragmented/server"})
+    public void shouldDeferPingRespWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
         "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
     public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
@@ -708,6 +726,24 @@ public class SubscribeIT
         "${app}/subscribe.receive.message.qos2.v4/client",
         "${app}/subscribe.receive.message.qos2.v4/server"})
     public void shouldSubscribeReceiveMessageQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.pubrel.while.publish.fragmented.v4/client",
+        "${app}/subscribe.pubrel.while.publish.fragmented.v4/server"})
+    public void shouldDeferPubrelWhilePublishFragmentedQoS2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.pingresp.while.publish.fragmented.v4/client",
+        "${app}/subscribe.pingresp.while.publish.fragmented.v4/server"})
+    public void shouldDeferPingRespWhilePublishFragmentedV4() throws Exception
     {
         k3po.finish();
     }
