@@ -371,6 +371,24 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragmented/client",
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragmented/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBufferFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragment.completed/client",
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragment.completed/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBufferFragmentCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.filter.change.retain.no.local/client",
         "${mqtt}/subscribe.filter.change.retain.no.local/server"})
     public void shouldApplyConditionsToRetainedAfterFilterChange() throws Exception
