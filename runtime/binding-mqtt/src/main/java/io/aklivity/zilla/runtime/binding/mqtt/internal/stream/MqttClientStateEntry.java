@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 final class MqttClientStateEntry
 {
     private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
+    private static final byte[] NO_INBOUND = new byte[0];
 
     private final StoreHandler store;
     private final String key;
@@ -135,9 +136,21 @@ final class MqttClientStateEntry
         record.subscriptions = subscriptions;
     }
 
+    byte[] inbound()
+    {
+        return record.inbound;
+    }
+
+    void inbound(
+        byte[] inbound)
+    {
+        record.inbound = inbound;
+    }
+
     boolean empty()
     {
-        return record.packets.isEmpty() && record.memberships.isEmpty() && record.subscriptions.length == 0;
+        return record.packets.isEmpty() && record.memberships.isEmpty() && record.subscriptions.length == 0 &&
+            record.inbound.length == 0;
     }
 
     boolean held()
@@ -176,6 +189,7 @@ final class MqttClientStateEntry
         record.packets.clear();
         record.memberships.clear();
         record.subscriptions = NO_SUBSCRIPTIONS;
+        record.inbound = NO_INBOUND;
 
         return discarded;
     }
@@ -285,7 +299,7 @@ final class MqttClientStateEntry
         }
         else
         {
-            final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions);
+            final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions, record.inbound);
 
             store.put(key, value, ttl.get(), v -> onWriteCompleted());
         }
@@ -293,7 +307,7 @@ final class MqttClientStateEntry
 
     private void doWriteHeld()
     {
-        final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions);
+        final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions, record.inbound);
 
         if (stored != null)
         {

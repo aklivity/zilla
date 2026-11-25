@@ -695,9 +695,64 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.inbound.state.abort/client",
+        "${app}/session.inbound.state.abort/server"})
+    public void shouldSessionInboundStateAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state.end/client",
+        "${app}/session.inbound.state.end/server"})
+    public void shouldSessionInboundStateEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state/client",
+        "${app}/session.inbound.state/server"})
+    public void shouldSessionInboundState() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start.store.held.state/client",
         "${app}/session.connect.non.clean.start.store.held.state/server"})
     public void shouldConnectNonCleanStartStoreHeldState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state.oversize/client",
+        "${app}/session.inbound.state.oversize/server"})
+    public void shouldSessionInboundStateOversize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.non.clean.start.inbound.state/client",
+        "${app}/session.non.clean.start.inbound.state/server"})
+    public void shouldSessionNonCleanStartInboundState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.non.clean.start.store.held.inbound.state/client",
+        "${app}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
     {
         k3po.finish();
     }
