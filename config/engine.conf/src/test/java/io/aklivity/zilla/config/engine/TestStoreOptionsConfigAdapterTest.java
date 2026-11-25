@@ -120,6 +120,54 @@ public class TestStoreOptionsConfigAdapterTest
     }
 
     @Test
+    public void shouldReadAndWriteTouchAssertion()
+    {
+        String text = "{\"assertions\":[{\"op\":\"touch\",\"key\":\"key\",\"ttl\":\"PT1M\"}]}";
+
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
+        TestStoreOptionsConfig options = (TestStoreOptionsConfig) adapter.adaptFromJson(object);
+
+        assertThat(options.assertions, hasSize(1));
+        Assertion touch = options.assertions.get(0);
+        assertThat(touch.op, equalTo("touch"));
+        assertThat(touch.key, equalTo("key"));
+        assertThat(touch.ttl, equalTo(Duration.ofMinutes(1)));
+        assertThat(touch.value, nullValue());
+        assertThat(adapter.adaptToJson(options).toString(), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadAndWriteExpirationAssertions()
+    {
+        String text = "{\"assertions\":[" +
+            "{\"op\":\"put\",\"key\":\"key\",\"value\":\"value\",\"ttl\":\"PT1M\",\"expiration\":\"untracked\"}," +
+            "{\"op\":\"putIfAbsent\",\"key\":\"key\",\"value\":\"value\",\"expiration\":\"tracked\"}," +
+            "{\"op\":\"replace\",\"key\":\"key\",\"expected\":\"value\",\"value\":\"next\"," +
+            "\"expiration\":\"untracked\"}]}";
+
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
+        TestStoreOptionsConfig options = (TestStoreOptionsConfig) adapter.adaptFromJson(object);
+
+        assertThat(options.assertions, hasSize(3));
+        assertThat(options.assertions.get(0).expiration, equalTo("untracked"));
+        assertThat(options.assertions.get(1).expiration, equalTo("tracked"));
+        assertThat(options.assertions.get(2).expiration, equalTo("untracked"));
+        assertThat(adapter.adaptToJson(options).toString(), equalTo(text));
+    }
+
+    @Test
+    public void shouldReadAssertionWithoutExpiration()
+    {
+        String text = "{\"assertions\":[{\"op\":\"put\",\"key\":\"key\",\"value\":\"value\"}]}";
+
+        JsonObject object = Json.createReader(new StringReader(text)).readObject();
+        TestStoreOptionsConfig options = (TestStoreOptionsConfig) adapter.adaptFromJson(object);
+
+        assertThat(options.assertions.get(0).expiration, nullValue());
+        assertThat(adapter.adaptToJson(options).toString(), equalTo(text));
+    }
+
+    @Test
     public void shouldReadEmptyAssertions()
     {
         JsonObject object = Json.createReader(new StringReader("{\"assertions\": []}")).readObject();

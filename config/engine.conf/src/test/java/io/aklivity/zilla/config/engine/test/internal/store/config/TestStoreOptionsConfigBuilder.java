@@ -88,6 +88,24 @@ public final class TestStoreOptionsConfigBuilder<T> extends ConfigBuilder<T, Tes
         return this;
     }
 
+    public TestStoreOptionsConfigBuilder<T> assertion(
+        String op,
+        String key,
+        List<String> keys,
+        String value,
+        String expected,
+        long delta,
+        Duration ttl,
+        String expiration)
+    {
+        if (assertions == null)
+        {
+            assertions = new ArrayList<>();
+        }
+        assertions.add(new Assertion(op, key, keys, value, expected, delta, ttl, expiration));
+        return this;
+    }
+
     public TestStoreOptionsConfigBuilder<T> assertions(
         List<Assertion> assertions)
     {

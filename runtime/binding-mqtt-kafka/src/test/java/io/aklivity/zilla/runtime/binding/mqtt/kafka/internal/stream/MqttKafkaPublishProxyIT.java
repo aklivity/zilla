@@ -396,6 +396,28 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.in.flight/client",
+        "${kafka}/publish.qos2.in.flight/server"})
+    public void shouldSendMessagesQos2InFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.in.flight.reverse.release/client",
+        "${kafka}/publish.qos2.in.flight.reverse.release/server"})
+    public void shouldSendMessagesQos2InFlightReverseRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos2/client",
         "${kafka}/publish.qos2.offset.commit.credit.window/server"})
     public void shouldSendMessageQos2OffsetCommitCreditWindow() throws Exception
@@ -440,9 +462,31 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.retained.in.flight/client",
+        "${kafka}/publish.qos2.retained.in.flight/server"})
+    public void shouldSendMessagesQos2RetainedInFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos2.recovery/client",
         "${kafka}/publish.qos2.recovery/server"})
     public void shouldSendMessageQos2DuringRecovery() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.recovery.in.flight/client",
+        "${kafka}/publish.qos2.recovery.in.flight/server"})
+    public void shouldSendMessageQos2InFlightDuringRecovery() throws Exception
     {
         k3po.finish();
     }

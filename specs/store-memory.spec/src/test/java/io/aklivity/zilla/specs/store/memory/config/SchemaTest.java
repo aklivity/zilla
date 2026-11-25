@@ -72,4 +72,124 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateStoreTouch()
+    {
+        JsonObject config = schema.validate("store.touch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchAbsent()
+    {
+        JsonObject config = schema.validate("store.touch.absent.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchWatch()
+    {
+        JsonObject config = schema.validate("store.touch.watch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchExpire()
+    {
+        JsonObject config = schema.validate("store.touch.expire.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchExpired()
+    {
+        JsonObject config = schema.validate("store.touch.expired.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchShorter()
+    {
+        JsonObject config = schema.validate("store.touch.shorter.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchPersistent()
+    {
+        JsonObject config = schema.validate("store.touch.persistent.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationPut()
+    {
+        JsonObject config = schema.validate("store.expiration.put.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationPutIfAbsent()
+    {
+        JsonObject config = schema.validate("store.expiration.put.if.absent.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationReplace()
+    {
+        JsonObject config = schema.validate("store.expiration.replace.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationTouch()
+    {
+        JsonObject config = schema.validate("store.expiration.touch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationTrackedOverUntracked()
+    {
+        JsonObject config = schema.validate("store.expiration.tracked.over.untracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationUntrackedOverTracked()
+    {
+        JsonObject config = schema.validate("store.expiration.untracked.over.tracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationIncrement()
+    {
+        JsonObject config = schema.validate("store.expiration.increment.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreExpirationIncrementTracked()
+    {
+        JsonObject config = schema.validate("store.expiration.increment.tracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

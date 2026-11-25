@@ -1210,6 +1210,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.in.flight/client",
+        "${kafka}/publish.qos2.in.flight/server"})
+    public void shouldPublishQoS2InFlight() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.in.flight.reverse.release/client",
+        "${kafka}/publish.qos2.in.flight.reverse.release/server"})
+    public void shouldPublishQoS2InFlightReverseRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.offset.commit.credit.window/client",
         "${kafka}/publish.qos2.offset.commit.credit.window/server"})
     public void shouldPublishQoS2MessageOffsetCommitCreditWindow() throws Exception
@@ -1310,9 +1328,29 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.retained.in.flight/client",
+        "${kafka}/publish.qos2.retained.in.flight/server"})
+    public void shouldPublishQoS2RetainedInFlight() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.recovery/client",
         "${kafka}/publish.qos2.recovery/server"})
     public void shouldPublishQoS2MessageDuringRecovery() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.recovery.in.flight/client",
+        "${kafka}/publish.qos2.recovery.in.flight/server"})
+    public void shouldPublishQoS2RecoveryInFlight() throws Exception
     {
         k3po.start();
         k3po.finish();
