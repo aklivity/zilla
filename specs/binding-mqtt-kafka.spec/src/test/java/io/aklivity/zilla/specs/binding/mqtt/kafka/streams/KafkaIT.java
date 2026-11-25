@@ -940,15 +940,6 @@ public class KafkaIT
 
     @Test
     @Specification({
-        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/client",
-        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
-    public void shouldSessionStorePersistentCleanStartResetGroupOffsetsCoordinatorNotAvailableQosMax1() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${kafka}/session.store.persistent.clean.start.no.offsets.topic/client",
         "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
     public void shouldSessionStorePersistentCleanStartNoOffsetsTopic() throws Exception

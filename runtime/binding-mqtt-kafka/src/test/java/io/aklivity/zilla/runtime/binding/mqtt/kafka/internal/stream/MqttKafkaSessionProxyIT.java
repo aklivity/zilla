@@ -388,9 +388,9 @@ public class MqttKafkaSessionProxyIT
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Specification({
-        "${mqtt}/session.clean.start.qos.max.1/client",
-        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
-    public void shouldResetGroupOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStoreAndPublishQosMax1() throws Exception
+        "${mqtt}/session.store.persistent.clean.start.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldKeepNoGroupOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStoreAndPublishQosMax1() throws Exception
     {
         k3po.finish();
     }

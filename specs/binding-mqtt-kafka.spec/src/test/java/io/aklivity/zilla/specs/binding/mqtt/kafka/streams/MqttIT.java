@@ -795,6 +795,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.persistent.clean.start.qos.max.1/client",
+        "${mqtt}/session.store.persistent.clean.start.qos.max.1/server"})
+    public void shouldKeepNoGroupOffsetsOnPersistentCleanStartWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.store.subscribe.qos.max.1/client",
         "${mqtt}/session.store.subscribe.qos.max.1/server"})
     public void shouldSessionStoreSubscribeQosMax1() throws Exception
