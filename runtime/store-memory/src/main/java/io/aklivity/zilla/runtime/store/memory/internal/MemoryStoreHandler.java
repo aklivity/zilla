@@ -203,6 +203,16 @@ final class MemoryStoreHandler implements StoreHandler
     }
 
     @Override
+    public void touch(
+        String key,
+        Duration ttl,
+        Consumer<Boolean> completion)
+    {
+        final boolean touched = touchIfLive(key, ttl);
+        defer(() -> completion.accept(touched));
+    }
+
+    @Override
     public void lock(
         String key,
         Duration ttl,
@@ -354,6 +364,31 @@ final class MemoryStoreHandler implements StoreHandler
         }
         while (contended);
         return replaced;
+    }
+
+    private boolean touchIfLive(
+        String key,
+        Duration ttl)
+    {
+        MemoryEntry existing;
+        boolean live;
+        boolean touched;
+        boolean contended;
+        do
+        {
+            existing = entries.get(key);
+            live = existing != null && !existing.expired(clock.millis());
+            touched = live && entries.replace(key, existing, new MemoryEntry(existing.value(), expiresAt(ttl)));
+            contended = live && !touched;
+        }
+        while (contended);
+
+        if (existing != null && !live && entries.remove(key, existing))
+        {
+            expireReplaced(key, existing);
+        }
+
+        return touched;
     }
 
     private void expireReplaced(

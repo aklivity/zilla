@@ -72,4 +72,60 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test
+    public void shouldValidateStoreTouch()
+    {
+        JsonObject config = schema.validate("store.touch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchAbsent()
+    {
+        JsonObject config = schema.validate("store.touch.absent.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchWatch()
+    {
+        JsonObject config = schema.validate("store.touch.watch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchExpire()
+    {
+        JsonObject config = schema.validate("store.touch.expire.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchExpired()
+    {
+        JsonObject config = schema.validate("store.touch.expired.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchShorter()
+    {
+        JsonObject config = schema.validate("store.touch.shorter.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateStoreTouchPersistent()
+    {
+        JsonObject config = schema.validate("store.touch.persistent.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

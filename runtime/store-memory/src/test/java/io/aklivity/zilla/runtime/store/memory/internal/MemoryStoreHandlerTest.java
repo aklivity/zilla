@@ -193,6 +193,131 @@ public class MemoryStoreHandlerTest
     }
 
     @Test
+    public void shouldKeepTouchedEntryPastOriginalExpiryAndSweepAtNewExpiry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+
+        handler.touch("key", Duration.ofSeconds(5), touched::add);
+        assertEquals(List.of(), touched);
+        run(tasks);
+        assertEquals(List.of(true), touched);
+
+        clock.now += 2_000L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", entries.get("key").value());
+
+        clock.now += 4_000L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of("key=value"), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldShortenCountdownWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofHours(1), v -> {});
+
+        handler.touch("key", Duration.ofSeconds(1), touched::add);
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(true), touched);
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldGiveTimeToLiveToEntryWithoutOneWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", null, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(1), touched::add);
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(true), touched);
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldRemoveTimeToLiveWhenTouchedWithoutOne() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key));
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+
+        handler.touch("key", null, touched::add);
+        clock.now += 1_000_000L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(true), touched);
+        assertEquals(List.of(), expired);
+        assertEquals("value", entries.get("key").value());
+    }
+
+    @Test
+    public void shouldNotFindAbsentEntryWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+
+        handler.touch("key", Duration.ofSeconds(1), touched::add);
+        run(tasks);
+
+        assertEquals(List.of(false), touched);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotNotifyWatchersWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<String> changed = new ArrayList<>();
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+        handler.watch("key", (key, value) -> changed.add(key + "=" + value));
+        run(tasks);
+
+        handler.touch("key", Duration.ofSeconds(5), v -> {});
+        run(tasks);
+
+        assertEquals(List.of(), changed);
+    }
+
+    @Test
+    public void shouldReportExpiryAndNotFindExpiredEntryWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), v -> {});
+
+        clock.now += 1_001L;
+        handler.touch("key", Duration.ofSeconds(5), touched::add);
+        run(tasks);
+
+        assertEquals(List.of(false), touched);
+        assertEquals(List.of("key=value"), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
     public void shouldNotInvokeClosedRegistrant() throws Exception
     {
         MemoryStoreHandler handler = newHandler(tasks);

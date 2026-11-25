@@ -264,6 +264,39 @@ public final class TestStoreHandler implements StoreHandler
     }
 
     @Override
+    public void touch(
+        String key,
+        Duration ttl,
+        Consumer<Boolean> completion)
+    {
+        assertOperation(new Assertion("touch", key, null, ttl));
+        TestEntry existing;
+        TestEntry next;
+        boolean live;
+        boolean touched;
+        boolean contended;
+        do
+        {
+            existing = entries.get(key);
+            live = existing != null && !existing.expired(clock.getAsLong());
+            next = live ? new TestEntry(existing.value(), expiresAt(ttl)) : null;
+            touched = live && entries.replace(key, existing, next);
+            contended = live && !touched;
+        }
+        while (contended);
+        if (touched)
+        {
+            scheduleExpiry(key, next);
+        }
+        else if (existing != null)
+        {
+            expireIfCovered(key, existing);
+        }
+        final boolean result = touched;
+        defer(() -> completion.accept(result));
+    }
+
+    @Override
     public void lock(
         String key,
         Duration ttl,

@@ -1263,6 +1263,7 @@ final class TestBindingFactory implements BindingHandler
             case "delete.keys":
             case "increment":
             case "replace":
+            case "touch":
                 runStoreAtomicAssertion(traceId, a, dispatchThread, returned, fired, next);
                 break;
             case "get":
@@ -1468,6 +1469,20 @@ final class TestBindingFactory implements BindingHandler
                         !returned.value ||
                         fired.value ||
                         a.hasExpect && !Objects.equals(v, a.expectNumber))
+                    {
+                        doInitialReset(traceId);
+                    }
+                    fired.value = true;
+                    next.run();
+                });
+                break;
+            case "touch":
+                store.touch(a.key, a.ttl, v ->
+                {
+                    if (Thread.currentThread() != dispatchThread ||
+                        !returned.value ||
+                        fired.value ||
+                        a.hasExpect && !Objects.equals(v, a.expectBoolean))
                     {
                         doInitialReset(traceId);
                     }
