@@ -1713,6 +1713,65 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldMatchMqttSubscribeFlushExOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .outbound(new byte[] {1, 2, 3})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.outbound(o -> o.set(new byte[] {1, 2, 3})))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchMqttSubscribeFlushExDifferentOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .outbound(new byte[] {1, 2, 3})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.outbound(o -> o.set(new byte[] {1, 2, 4})))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMqttSubscribeFlushExAnyOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.packetId(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
     public void shouldMatchMqttSessionFlushExInbound() throws Exception
     {
         BytesMatcher matcher = MqttFunctions.matchFlushEx()

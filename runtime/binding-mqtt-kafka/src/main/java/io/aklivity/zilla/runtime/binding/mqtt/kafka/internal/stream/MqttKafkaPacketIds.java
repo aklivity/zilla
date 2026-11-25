@@ -22,6 +22,8 @@ final class MqttKafkaPacketIds
 {
     static final int NO_PACKET_ID = 0;
     static final int MAXIMUM_PACKET_ID = 0xFFFF;
+    static final int PUBLISH_SENT = 1;
+    static final int PUBREL_PENDING = 2;
 
     private static final int NO_SLOT = -1;
     private static final int INITIAL_CAPACITY = 16;
@@ -31,6 +33,8 @@ final class MqttKafkaPacketIds
     private long[] topicKeys;
     private int[] partitionIds;
     private long[] offsets;
+    private byte[] qoses;
+    private byte[] states;
     private int[] freeSlots;
     private int freeCount;
     private int slotCount;
@@ -42,6 +46,8 @@ final class MqttKafkaPacketIds
         this.topicKeys = new long[INITIAL_CAPACITY];
         this.partitionIds = new int[INITIAL_CAPACITY];
         this.offsets = new long[INITIAL_CAPACITY];
+        this.qoses = new byte[INITIAL_CAPACITY];
+        this.states = new byte[INITIAL_CAPACITY];
         this.freeSlots = new int[INITIAL_CAPACITY];
         this.nextPacketId = 1;
     }
@@ -50,6 +56,15 @@ final class MqttKafkaPacketIds
         long topicKey,
         int partitionId,
         long offset)
+    {
+        return allocate(topicKey, partitionId, offset, 0);
+    }
+
+    int allocate(
+        long topicKey,
+        int partitionId,
+        long offset,
+        int qos)
     {
         int packetId = NO_PACKET_ID;
 
@@ -62,7 +77,7 @@ final class MqttKafkaPacketIds
 
             packetId = nextPacketId;
             nextPacketId = advance(nextPacketId);
-            store(packetId, topicKey, partitionId, offset);
+            store(packetId, topicKey, partitionId, offset, qos, PUBLISH_SENT);
         }
 
         return packetId;
@@ -74,7 +89,7 @@ final class MqttKafkaPacketIds
         int partitionId,
         long offset)
     {
-        store(packetId, topicKey, partitionId, offset);
+        store(packetId, topicKey, partitionId, offset, 0, PUBLISH_SENT);
     }
 
     boolean contains(
@@ -101,6 +116,40 @@ final class MqttKafkaPacketIds
         return offsets[slots.get(packetId)];
     }
 
+    int qos(
+        int packetId)
+    {
+        return qoses[slots.get(packetId)];
+    }
+
+    int state(
+        int packetId)
+    {
+        return states[slots.get(packetId)];
+    }
+
+    void pubrelPending(
+        int packetId)
+    {
+        states[slots.get(packetId)] = (byte) PUBREL_PENDING;
+    }
+
+    int[] packetIds()
+    {
+        final int[] packetIds = new int[slots.size()];
+
+        int index = 0;
+        for (int packetId = 1; packetId <= MAXIMUM_PACKET_ID && index < packetIds.length; packetId++)
+        {
+            if (slots.containsKey(packetId))
+            {
+                packetIds[index++] = packetId;
+            }
+        }
+
+        return packetIds;
+    }
+
     boolean release(
         int packetId)
     {
@@ -119,7 +168,9 @@ final class MqttKafkaPacketIds
         int packetId,
         long topicKey,
         int partitionId,
-        long offset)
+        long offset,
+        int qos,
+        int state)
     {
         int slot = slots.get(packetId);
 
@@ -132,6 +183,8 @@ final class MqttKafkaPacketIds
         topicKeys[slot] = topicKey;
         partitionIds[slot] = partitionId;
         offsets[slot] = offset;
+        qoses[slot] = (byte) qos;
+        states[slot] = (byte) state;
     }
 
     private int newSlot()
@@ -142,6 +195,8 @@ final class MqttKafkaPacketIds
             topicKeys = Arrays.copyOf(topicKeys, capacity);
             partitionIds = Arrays.copyOf(partitionIds, capacity);
             offsets = Arrays.copyOf(offsets, capacity);
+            qoses = Arrays.copyOf(qoses, capacity);
+            states = Arrays.copyOf(states, capacity);
             freeSlots = Arrays.copyOf(freeSlots, capacity);
         }
 

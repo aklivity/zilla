@@ -2952,6 +2952,15 @@ public final class MqttFunctions
             return matcherBuilder;
         }
 
+        public MqttSubscribeFlushExMatcherBuilder subscribe()
+        {
+            final MqttSubscribeFlushExMatcherBuilder matcherBuilder = new MqttSubscribeFlushExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.SUBSCRIBE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public MqttSessionFlushExMatcherBuilder session()
         {
             final MqttSessionFlushExMatcherBuilder matcherBuilder = new MqttSessionFlushExMatcherBuilder();
@@ -3060,6 +3069,43 @@ public final class MqttFunctions
                 final MqttPublishFlushExFW flush)
             {
                 return reasonCode == null || reasonCode == flush.reasonCode();
+            }
+        }
+
+        public final class MqttSubscribeFlushExMatcherBuilder
+        {
+            private byte[] outbound;
+
+            private MqttSubscribeFlushExMatcherBuilder()
+            {
+            }
+
+            public MqttSubscribeFlushExMatcherBuilder outbound(
+                byte[] outbound)
+            {
+                this.outbound = outbound;
+                return this;
+            }
+
+            public MqttFlushExMatcherBuilder build()
+            {
+                return MqttFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttFlushExFW flushEx)
+            {
+                final OctetsFW actual = flushEx.subscribe().outbound();
+                boolean match = outbound == null;
+
+                if (!match && actual != null && actual.sizeof() == outbound.length)
+                {
+                    final byte[] actualBytes = new byte[actual.sizeof()];
+                    actual.buffer().getBytes(actual.offset(), actualBytes);
+                    match = Arrays.equals(outbound, actualBytes);
+                }
+
+                return match;
             }
         }
 
