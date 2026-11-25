@@ -1842,6 +1842,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.expire.message.then.deliver/client",
+        "${kafka}/subscribe.expire.message.then.deliver/server"})
+    public void shouldExpireMessageThenDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.expire.message.fragmented/client",
         "${kafka}/subscribe.expire.message.fragmented/server"})
     public void shouldExpireMessageFragmented() throws Exception
@@ -1872,6 +1881,15 @@ public class KafkaIT
         "${kafka}/subscribe.retained.expire.message/client",
         "${kafka}/subscribe.retained.expire.message/server"})
     public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.expire.message.then.deliver/client",
+        "${kafka}/subscribe.retained.expire.message.then.deliver/server"})
+    public void shouldExpireRetainedMessageThenDeliver() throws Exception
     {
         k3po.finish();
     }

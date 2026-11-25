@@ -868,6 +868,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.expire.message.then.deliver/client",
+        "${kafka}/subscribe.expire.message.then.deliver/server"})
+    public void shouldExpireMessageThenDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.expire.message/client",
         "${kafka}/subscribe.expire.message.fragmented/server"})
     public void shouldExpireMessageFragmented() throws Exception
@@ -904,6 +915,17 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.retained.expire.message/client",
         "${kafka}/subscribe.retained.expire.message/server"})
     public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.retained.expire.message.then.deliver/client",
+        "${kafka}/subscribe.retained.expire.message.then.deliver/server"})
+    public void shouldExpireRetainedMessageThenDeliver() throws Exception
     {
         k3po.finish();
     }

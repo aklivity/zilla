@@ -1760,7 +1760,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - clock.millis();
                         if (remainingMillis < 0)
                         {
-                            expiredMessage = true;
+                            expiredMessage = !hasFin(flags);
                             break sendData;
                         }
                         expireInterval = TimeUnit.MILLISECONDS.toSeconds(remainingMillis);
@@ -2484,7 +2484,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         final long remainingMillis = timestamp + TimeUnit.SECONDS.toMillis(helper.timeout) - clock.millis();
                         if (remainingMillis < 0)
                         {
-                            expiredMessage = true;
+                            expiredMessage = !hasFin(flags);
                             break sendData;
                         }
                         expireInterval = TimeUnit.MILLISECONDS.toSeconds(remainingMillis);

@@ -1545,6 +1545,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.expire.message.then.deliver/client",
+        "${mqtt}/subscribe.expire.message.then.deliver/server"})
+    public void shouldExpireMessageThenDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.message.expiry.interval.reduced/client",
         "${mqtt}/subscribe.message.expiry.interval.reduced/server"})
     public void shouldReceiveMessageWithReducedExpiryInterval() throws Exception
@@ -1566,6 +1575,15 @@ public class MqttIT
         "${mqtt}/subscribe.retained.expire.message/client",
         "${mqtt}/subscribe.retained.expire.message/server"})
     public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.retained.expire.message.then.deliver/client",
+        "${mqtt}/subscribe.retained.expire.message.then.deliver/server"})
+    public void shouldExpireRetainedMessageThenDeliver() throws Exception
     {
         k3po.finish();
     }
