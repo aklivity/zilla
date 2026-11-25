@@ -723,6 +723,16 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.disconnect.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start.store.held.state/client",
         "${app}/session.connect.non.clean.start.store.held.state/server"})
     public void shouldConnectNonCleanStartStoreHeldState() throws Exception

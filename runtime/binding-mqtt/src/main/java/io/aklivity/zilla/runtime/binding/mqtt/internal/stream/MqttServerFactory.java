@@ -6036,6 +6036,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long disconnectExpiry = properties != null
                     ? disconnectSessionExpiry(properties)
                     : NO_DISCONNECT_SESSION_EXPIRY;
+
+                if (disconnectExpiry != NO_DISCONNECT_SESSION_EXPIRY)
+                {
+                    sessionExpiry = (int) disconnectExpiry;
+                }
+
                 final Flyweight endEx = disconnectExpiry == NO_DISCONNECT_SESSION_EXPIRY
                     ? EMPTY_OCTETS
                     : mqttEndExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())

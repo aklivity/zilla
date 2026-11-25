@@ -106,6 +106,18 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.disconnect.raise.session.expiry.stored/client",
+        "${net}/session.disconnect.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.client.takeover.persistent.pipelined.subscribe/client",
         "${net}/session.client.takeover.persistent.pipelined.subscribe/server"})
     public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
