@@ -705,6 +705,23 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
+    @Specification({
+        "${kafka}/session.store.expire.legacy.session.signal/server"})
+    public void shouldExpireLegacySessionSignalWithoutGroupOffsetsWhenSessionStateStore() throws Exception
+    {
+        k3po.start();
+        clock.advanceTo(System.currentTimeMillis() + 1000L + 3L * 1073741824L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1073741824L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Configure(name = ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME, value = "1073741824")
     @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/server"})

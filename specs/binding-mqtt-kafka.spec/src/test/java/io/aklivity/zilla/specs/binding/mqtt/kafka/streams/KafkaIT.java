@@ -1246,6 +1246,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.expire.legacy.session.signal/client",
+        "${kafka}/session.store.expire.legacy.session.signal/server"})
+    public void shouldExpireLegacySessionSignalWhenSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/client",
         "${kafka}/session.expiry.after.signal.stream.restart.multiple.partitions/server"})
     public void shouldExpireSessionAfterSignalStreamRestartFromMultiplePartitions() throws Exception
