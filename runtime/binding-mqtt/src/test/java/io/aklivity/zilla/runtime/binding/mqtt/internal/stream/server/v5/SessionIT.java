@@ -371,6 +371,53 @@ public class SessionIT
 
     @Test
     @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.disconnect.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.raise.session.expiry.stored/server"})
+    public void shouldKeepStoredSessionWhenDisconnectRaisesSessionExpiry() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        Thread.sleep(2000L);
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.disconnect.zero.session.expiry/client",
+        "${app}/session.disconnect.zero.session.expiry/server"})
+    public void shouldDiscardStoredSessionWhenDisconnectSetsSessionExpiryToZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.disconnect.with.error.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.with.error.raise.session.expiry.stored/server"})
+    public void shouldKeepStoredSessionWhenDisconnectWithErrorRaisesSessionExpiry() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        Thread.sleep(2000L);
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
     @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")

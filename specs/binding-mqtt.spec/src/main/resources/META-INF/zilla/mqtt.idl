@@ -146,6 +146,13 @@ scope mqtt
         string16 filter;
     }
 
+    struct MqttMembershipV3
+    {
+        string16 shareName;
+        string16 filter;
+        string16 token = null;
+    }
+
     enum MqttClientStateVersion (uint8)
     {
         V1 (1),
@@ -168,7 +175,7 @@ scope mqtt
 
     struct MqttClientStateV3
     {
-        MqttMembership[] memberships;
+        MqttMembershipV3[] memberships;
         MqttPacket[] packets;
         string16 holder = null;
         MqttBinary subscriptions;

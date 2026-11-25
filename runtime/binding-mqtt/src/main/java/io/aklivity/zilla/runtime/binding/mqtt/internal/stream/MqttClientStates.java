@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateV2FW
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateV3FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttMembershipFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttMembershipV3FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPacketFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPacketState;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.OctetsFW;
@@ -33,6 +34,9 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 final class MqttClientStates
 {
+    static final String STATE_KEY_POSTFIX = "#state";
+    static final String OWNER_KEY_POSTFIX = "#owner";
+
     private static final byte[] NO_METADATA = new byte[0];
     private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
     private static final byte[] NO_OUTBOUND = new byte[0];
@@ -40,7 +44,7 @@ final class MqttClientStates
     private static final int SUBSCRIPTIONS_FIXED_SIZE = 8;
     private static final int HEADER_SIZE = 16;
     private static final int HOLDER_FIXED_SIZE = 8;
-    private static final int MEMBERSHIP_FIXED_SIZE = 8;
+    private static final int MEMBERSHIP_FIXED_SIZE = 10;
     private static final int PACKET_FIXED_SIZE = 32;
     private static final int MAXIMUM_UTF8_BYTES_PER_CHAR = 3;
 
@@ -67,7 +71,8 @@ final class MqttClientStates
         }
 
         final MqttClientStateFW.Builder builder = clientStateRW.wrap(encodeBuffer, 0, encodeBuffer.capacity());
-        final MqttClientStateFW encoded = subscriptions.length == 0 && outbound.length == 0 && inbound.length == 0
+        final MqttClientStateFW encoded = subscriptions.length == 0 && outbound.length == 0 && inbound.length == 0 &&
+            memberships.stream().noneMatch(m -> m.token != null)
             ? builder.kind(MqttClientStateVersion.V2)
                 .clientStateV2(v2 -> encodeV2(v2, memberships, packets, holder))
                 .build()
@@ -144,7 +149,8 @@ final class MqttClientStates
     {
         memberships.forEach(m -> v3.membershipsItem(i -> i
             .shareName(m.shareName)
-            .filter(m.filter)));
+            .filter(m.filter)
+            .token(m.token)));
         packets.forEach(p -> v3.packetsItem(i -> i
             .packetId(p.packetId)
             .state(p.state.value())
@@ -191,6 +197,13 @@ final class MqttClientStates
     }
 
     private static MqttMembershipRecord newMembership(
+        MqttMembershipV3FW membership)
+    {
+        return new MqttMembershipRecord(
+            membership.shareName().asString(), membership.filter().asString(), membership.token().asString());
+    }
+
+    private static MqttMembershipRecord newMembership(
         MqttMembershipFW membership)
     {
         return new MqttMembershipRecord(membership.shareName().asString(), membership.filter().asString());
@@ -232,7 +245,8 @@ final class MqttClientStates
         {
             final MqttMembershipRecord membership = memberships.get(i);
             capacity += MEMBERSHIP_FIXED_SIZE +
-                (membership.shareName.length() + membership.filter.length()) * MAXIMUM_UTF8_BYTES_PER_CHAR;
+                (membership.shareName.length() + membership.filter.length() + length(membership.token)) *
+                    MAXIMUM_UTF8_BYTES_PER_CHAR;
         }
 
         for (int i = 0; i < packets.size(); i++)

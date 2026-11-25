@@ -329,8 +329,8 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final Runnable REPLY_CLOSED = () -> {};
     private static final byte[] NO_INBOUND = new byte[0];
 
-    private static final String OWNER_KEY_POSTFIX = "#owner";
-    private static final String STATE_KEY_POSTFIX = "#state";
+    private static final String OWNER_KEY_POSTFIX = MqttClientStates.OWNER_KEY_POSTFIX;
+    private static final String STATE_KEY_POSTFIX = MqttClientStates.STATE_KEY_POSTFIX;
 
     private static final int PUBLISH_FRAMING = 255;
 
@@ -568,6 +568,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private final LongSupplier supplyTraceId;
     private final LongSupplier supplyBudgetId;
     private final Long2ObjectHashMap<MqttBindingConfig> bindings;
+    private final Long2ObjectHashMap<Closeable> sessionExpirers;
     private final int mqttTypeId;
 
     private final long publishTimeoutMillis;
@@ -627,6 +628,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         this.context = context;
         this.clock = context.clock();
         this.bindings = new Long2ObjectHashMap<>();
+        this.sessionExpirers = new Long2ObjectHashMap<>();
         this.mqttTypeId = context.supplyTypeId(MqttBinding.NAME);
         this.publishTimeoutMillis = SECONDS.toMillis(config.publishTimeout());
         this.connectTimeoutMillis = SECONDS.toMillis(config.connectTimeout());
@@ -666,6 +668,13 @@ public final class MqttServerFactory implements MqttStreamFactory
     {
         MqttBindingConfig mqttBinding = new MqttBindingConfig(binding, context);
         bindings.put(binding.id, mqttBinding);
+
+        if (context.index() == 0)
+        {
+            final StoreHandler store = mqttBinding.store;
+            final MqttSessionExpirer expirer = new MqttSessionExpirer(store, new MqttSharedRegistry(store));
+            sessionExpirers.put(binding.id, expirer.attach());
+        }
     }
 
     @Override
@@ -673,6 +682,20 @@ public final class MqttServerFactory implements MqttStreamFactory
         long bindingId)
     {
         bindings.remove(bindingId);
+
+        final Closeable expirer = sessionExpirers.remove(bindingId);
+
+        if (expirer != null)
+        {
+            try
+            {
+                expirer.close();
+            }
+            catch (IOException ex)
+            {
+                LangUtil.rethrowUnchecked(ex);
+            }
+        }
     }
 
     @Override
@@ -3824,11 +3847,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final List<MqttMembershipRecord> memberships = discard ? clientState.discard() : List.of();
             final Runnable stored = () -> leaveShared(memberships, () -> onClientStateReady(traceId));
 
-            if (ready && (sessionExpiry > 0 || storedSubscriptions()))
-            {
-                clientState.hold(ownerNonce(), stored);
-            }
-            else if (discard)
+            if (discard)
             {
                 clientState.write(stored);
             }
@@ -4005,7 +4024,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             LongConsumer joined,
             Runnable failed)
         {
-            final MqttMembershipRecord membership = new MqttMembershipRecord(shareName, filter);
+            final MqttMembershipRecord membership = new MqttMembershipRecord(shareName, filter, ownerNonce());
             final String key = MqttSharedRegistry.key(shareName, filter);
 
             if (clientState.memberships().contains(membership))
@@ -4014,7 +4033,8 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                registry.join(key, epoch -> onSharedJoined(membership, epoch, joined), failed);
+                registry.join(key, memberKey(membership), membership.token,
+                    epoch -> onSharedJoined(membership, epoch, joined), failed);
             }
         }
 
@@ -4025,7 +4045,7 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             if (StreamState.initialClosed(state) || StreamState.replyClosed(state))
             {
-                registry.leave(MqttSharedRegistry.key(membership.shareName, membership.filter), () -> {});
+                releaseShared(membership, () -> {});
             }
             else
             {
@@ -4044,10 +4064,30 @@ public final class MqttServerFactory implements MqttStreamFactory
             }
             else
             {
-                final MqttMembershipRecord membership = memberships.get(0);
-                registry.leave(MqttSharedRegistry.key(membership.shareName, membership.filter),
-                    () -> leaveShared(memberships.subList(1, memberships.size()), completed));
+                releaseShared(memberships.get(0), () -> leaveShared(memberships.subList(1, memberships.size()), completed));
             }
+        }
+
+        private void releaseShared(
+            MqttMembershipRecord membership,
+            Runnable completed)
+        {
+            final String key = MqttSharedRegistry.key(membership.shareName, membership.filter);
+
+            if (membership.token != null)
+            {
+                registry.release(key, memberKey(membership), membership.token, completed);
+            }
+            else
+            {
+                registry.leave(key, completed);
+            }
+        }
+
+        private String memberKey(
+            MqttMembershipRecord membership)
+        {
+            return MqttSharedRegistry.memberKey(membership.shareName, membership.filter, clientId);
         }
 
         private void onStealOwnership(
@@ -4135,11 +4175,15 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = renewTraceId;
             if (token != null)
             {
-                // the entry lifetime is independent of the lock lease, so it is rewritten with each renewal;
-                // StoreHandler.touch is expected to replace this rewrite
-                store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
-                renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
-                    originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+                if (owns && token.equals(ownerToken))
+                {
+                    // the entry lifetime is independent of the lock lease, so it is rewritten with each renewal;
+                    // StoreHandler.touch is expected to replace this rewrite
+                    store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
+                    clientState.touch();
+                    renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
+                        originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
+                }
             }
             else if (owns)
             {
@@ -4321,10 +4365,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             doCancelAwaitStateRelease();
 
-            if (owns && sessionExpiry == 0 && clientState != null && clientState.ready() && !clientState.empty())
+            if (owns && sessionExpiry == 0 && clientState != null && clientState.ready() &&
+                (!clientState.empty() || clientState.holding()))
             {
                 final List<MqttMembershipRecord> memberships = clientState.discard();
-                clientState.write(() -> leaveShared(memberships, () -> {}));
+                clientState.end(() -> leaveShared(memberships, () -> {}));
             }
 
             if (renewAt != NO_CANCEL_ID)
@@ -5992,6 +6037,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                 final long disconnectExpiry = properties != null
                     ? disconnectSessionExpiry(properties)
                     : NO_DISCONNECT_SESSION_EXPIRY;
+
+                if (disconnectExpiry != NO_DISCONNECT_SESSION_EXPIRY)
+                {
+                    sessionExpiry = (int) disconnectExpiry;
+                }
+
                 final Flyweight endEx = disconnectExpiry == NO_DISCONNECT_SESSION_EXPIRY
                     ? EMPTY_OCTETS
                     : mqttEndExRW.wrap(sessionExtBuffer, 0, sessionExtBuffer.capacity())
@@ -7869,6 +7920,12 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final PrimitiveIterator.OfInt packetIds = mqttSessionBeginEx.packetIds();
 
                     sessionExpiry = mqttSessionBeginEx.expiry();
+
+                    if (owns && (sessionExpiry > 0 || storedSubscriptions()) && clientState.ready())
+                    {
+                        clientState.hold(ownerNonce(), () -> {});
+                    }
+
                     capabilities = mqttSessionBeginEx.capabilities();
                     publishQosMax = MqttQoS.valueOf(mqttSessionBeginEx.publishQosMax());
                     subscribeQosMax = Math.min(subscribeQosMaxDefault, mqttSessionBeginEx.subscribeQosMax());
@@ -9467,10 +9524,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     final MqttMembershipRecord membership =
                         new MqttMembershipRecord(MqttValidator.shareName(sharedFilter), MqttValidator.sharePattern(sharedFilter));
+                    final List<MqttMembershipRecord> memberships = clientState.memberships();
+                    final int joined = memberships.indexOf(membership);
 
-                    if (clientState.memberships().remove(membership))
+                    if (joined >= 0)
                     {
-                        clientState.write(() -> leaveShared(List.of(membership), () -> {}));
+                        final MqttMembershipRecord stored = memberships.remove(joined);
+                        clientState.write(() -> leaveShared(List.of(stored), () -> {}));
                     }
                 }
             }

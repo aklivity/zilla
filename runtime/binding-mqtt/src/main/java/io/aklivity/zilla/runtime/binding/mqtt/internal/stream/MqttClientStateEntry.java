@@ -165,6 +165,14 @@ final class MqttClientStateEntry
             record.outbound.length == 0 && record.inbound.length == 0;
     }
 
+    void touch()
+    {
+        if (writer == writeHeld && idle())
+        {
+            store.touch(key, ttl.get(), touched -> onTouched(touched));
+        }
+    }
+
     boolean held()
     {
         return record.holder != null;
@@ -192,6 +200,23 @@ final class MqttClientStateEntry
         {
             awaitIdle(completion);
         }
+    }
+
+    boolean holding()
+    {
+        return writer == writeHeld;
+    }
+
+    void end(
+        Runnable completion)
+    {
+        if (writer == writeHeld)
+        {
+            holder = null;
+            writer = writeShared;
+        }
+
+        write(completion);
     }
 
     List<MqttMembershipRecord> discard()
@@ -274,7 +299,9 @@ final class MqttClientStateEntry
     {
         final List<Runnable> continuations = loading;
 
-        record = states.decode(value);
+        final MqttClientStateRecord decoded = states.decode(value);
+
+        record = decoded != null ? decoded : states.decode(null);
         stored = value;
         loading = null;
 
@@ -308,15 +335,23 @@ final class MqttClientStateEntry
     {
         if (empty())
         {
-            store.delete(key, v -> onWriteCompleted());
+            store.delete(key, v -> onSharedWriteCompleted(null));
         }
         else
         {
             final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions,
                 record.outbound, record.inbound);
 
-            store.put(key, value, ttl.get(), v -> onWriteCompleted());
+            store.put(key, value, ttl.get(), v -> onSharedWriteCompleted(value));
         }
+    }
+
+    private void onSharedWriteCompleted(
+        String value)
+    {
+        stored = value;
+
+        onWriteCompleted();
     }
 
     private void doWriteHeld()
@@ -331,6 +366,17 @@ final class MqttClientStateEntry
         else
         {
             store.putIfAbsent(key, value, ttl.get(), existing -> onHeldWriteCompleted(existing == null, value));
+        }
+    }
+
+    private void onTouched(
+        boolean touched)
+    {
+        if (!touched && writer == writeHeld)
+        {
+            stored = null;
+
+            write(() -> {});
         }
     }
 

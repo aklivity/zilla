@@ -1641,4 +1641,24 @@ public class SubscribeIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.rejoin.after.session.expiry.new.generation/client",
+        "${app}/subscribe.shared.rejoin.after.session.expiry.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterSessionExpiryNewGeneration() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/client",
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2AfterIdle() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("MESSAGE_ALLOWED");
+        k3po.finish();
+    }
 }
