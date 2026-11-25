@@ -1410,6 +1410,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.abort.qos1.outbound/client",
+        "${mqtt}/subscribe.abort.qos1.outbound/server"})
+    public void shouldAbortSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
     public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception

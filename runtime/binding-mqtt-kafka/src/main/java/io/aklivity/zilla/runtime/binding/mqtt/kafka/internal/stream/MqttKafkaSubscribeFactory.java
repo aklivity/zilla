@@ -1024,12 +1024,30 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            releaseHighWaterMarks();
+            if (sessionStateStored)
+            {
+                snapshotOutbound();
+
+                if (releaseHighWaterMarks())
+                {
+                    clientHighWaterMarks.outboundReply = this;
+                }
+            }
+            else
+            {
+                releaseHighWaterMarks();
+            }
+
             messages.values().forEach(m -> m.doKafkaAbort(traceId, authorization));
             messages.clear();
             if (retainAvailable)
             {
                 retained.doKafkaAbort(traceId, authorization);
+            }
+
+            if (sessionStateStored)
+            {
+                doMqttEnd(traceId, authorization);
             }
         }
 
