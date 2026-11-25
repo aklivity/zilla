@@ -961,6 +961,36 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.pipelined/client",
+        "${mqtt}/publish.qos2.pipelined/server"})
+    public void shouldPublishQoS2MessagesPipelined() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.pipelined.abort/client",
+        "${mqtt}/publish.qos2.pipelined.abort/server"})
+    public void shouldPublishQoS2MessagesPipelinedAbort() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/publish.qos2.pipelined.exhausted/client",
+        "${mqtt}/publish.qos2.pipelined.exhausted/server"})
+    public void shouldPublishQoS2MessagesPipelinedExhausted() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.in.flight/client",
         "${mqtt}/publish.qos2.in.flight/server"})
     public void shouldPublishQoS2InFlight() throws Exception

@@ -362,6 +362,40 @@ public class MqttKafkaPublishProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/publish.qos2.pipelined/client",
+        "${kafka}/publish.qos2.pipelined/server"})
+    public void shouldSendMessagesQos2Pipelined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/publish.qos2.pipelined.abort/client",
+        "${kafka}/publish.qos2.pipelined.abort/server"})
+    public void shouldAbortMessagesQos2PipelinedWhileQueued() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "128")
+    @Specification({
+        "${mqtt}/publish.qos2.pipelined.exhausted/client",
+        "${kafka}/publish.qos2.pipelined.exhausted/server"})
+    public void shouldResetMessagesQos2PipelinedWhenQueueExhausted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/publish.qos2.in.flight/client",
         "${kafka}/publish.qos2.in.flight/server"})
     public void shouldSendMessagesQos2InFlight() throws Exception
