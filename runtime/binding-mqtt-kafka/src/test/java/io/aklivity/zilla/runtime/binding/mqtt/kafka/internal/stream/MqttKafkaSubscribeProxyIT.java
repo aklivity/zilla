@@ -388,6 +388,28 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragmented/client",
+        "${kafka}/subscribe.filter.change.retain.buffer.fragmented/server"})
+    public void shouldReceiveBufferedMessagesWithOwnFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragment.completed/client",
+        "${kafka}/subscribe.filter.change.retain.buffer.fragment.completed/server"})
+    public void shouldReceiveBufferedFragmentCompletedWithOwnFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterDeferredFilterChange() throws Exception

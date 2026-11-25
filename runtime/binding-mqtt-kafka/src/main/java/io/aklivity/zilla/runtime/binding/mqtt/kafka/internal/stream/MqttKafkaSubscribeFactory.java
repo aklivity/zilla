@@ -1368,7 +1368,6 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int replyMax;
         private int replyPad;
         private boolean expiredMessage;
-        private int bufferedDataFlags;
 
         private KafkaMessagesProxy(
             long originId,
@@ -1592,11 +1591,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                         final MutableDirectBufferEx dataBuffer = bufferPool.buffer(dataSlot);
                         Flyweight message = mqttSubscribeMessageRW.wrap(dataBuffer, messageSlotLimit, dataBuffer.capacity())
+                            .flags(flags)
                             .extension(mqttSubscribeDataEx.buffer(), mqttSubscribeDataEx.offset(), mqttSubscribeDataEx.sizeof())
                             .payload(payload)
                             .build();
 
-                        bufferedDataFlags = flags;
                         messageSlotLimit = message.limit();
                         messageSlotReserved += reserved;
                     }
@@ -1962,7 +1961,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 final MutableDirectBufferEx dataBuffer = bufferPool.buffer(dataSlot);
                 final MqttSubscribeMessageFW message = mqttSubscribeMessageRO.wrap(dataBuffer, messageSlotOffset,
                     dataBuffer.capacity());
-                mqtt.doMqttData(traceId, authorization, budgetId, reserved, bufferedDataFlags, message.payload(),
+                mqtt.doMqttData(traceId, authorization, budgetId, reserved, message.flags(), message.payload(),
                     message.extension());
 
                 messageSlotOffset += message.sizeof();

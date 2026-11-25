@@ -18,6 +18,7 @@
      {
          struct MqttSubscribeMessage
          {
+            uint8 flags;
             uint32 extensionLength;
             octets[extensionLength] extension;
             uint32 payloadLength;
