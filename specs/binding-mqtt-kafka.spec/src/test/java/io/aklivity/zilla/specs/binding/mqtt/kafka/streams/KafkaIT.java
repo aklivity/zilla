@@ -2121,6 +2121,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.shared.receive.message.qos1.redelivered/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.redelivered/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Redelivered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.shared.receive.message.qos1.granted.qos0/client",
         "${kafka}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
     public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception

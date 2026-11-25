@@ -1912,6 +1912,15 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.redelivered/client",
+        "${mqtt}/subscribe.shared.receive.message.qos1.redelivered/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1Redelivered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/client",
         "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
     public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
