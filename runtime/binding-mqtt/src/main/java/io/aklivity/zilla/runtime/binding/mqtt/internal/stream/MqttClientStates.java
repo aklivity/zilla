@@ -21,6 +21,7 @@ import java.util.List;
 
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateV1FW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateV2FW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttMembershipFW;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPacketFW;
@@ -33,6 +34,7 @@ final class MqttClientStates
 {
     private static final byte[] NO_METADATA = new byte[0];
     private static final int HEADER_SIZE = 16;
+    private static final int HOLDER_FIXED_SIZE = 8;
     private static final int MEMBERSHIP_FIXED_SIZE = 8;
     private static final int PACKET_FIXED_SIZE = 32;
     private static final int MAXIMUM_UTF8_BYTES_PER_CHAR = 3;
@@ -46,9 +48,10 @@ final class MqttClientStates
 
     String encode(
         List<MqttMembershipRecord> memberships,
-        List<MqttPacketRecord> packets)
+        List<MqttPacketRecord> packets,
+        String holder)
     {
-        final int capacity = capacity(memberships, packets);
+        final int capacity = capacity(memberships, packets, holder);
 
         if (encodeBuffer.capacity() < capacity)
         {
@@ -56,8 +59,8 @@ final class MqttClientStates
         }
 
         final MqttClientStateFW encoded = clientStateRW.wrap(encodeBuffer, 0, encodeBuffer.capacity())
-            .kind(MqttClientStateVersion.V1)
-            .clientStateV1(v1 -> encodeV1(v1, memberships, packets))
+            .kind(MqttClientStateVersion.V2)
+            .clientStateV2(v2 -> encodeV2(v2, memberships, packets, holder))
             .build();
 
         final byte[] bytes = new byte[encoded.sizeof()];
@@ -71,6 +74,7 @@ final class MqttClientStates
     {
         final List<MqttMembershipRecord> memberships = new ArrayList<>();
         final List<MqttPacketRecord> packets = new ArrayList<>();
+        String holder = null;
         boolean decodable = true;
 
         if (value != null)
@@ -79,38 +83,47 @@ final class MqttClientStates
             final MqttClientStateVersion version = buffer.capacity() > 0
                 ? MqttClientStateVersion.valueOf(buffer.getByte(0) & 0xFF)
                 : null;
-            final MqttClientStateFW decoded = version == MqttClientStateVersion.V1
+            final MqttClientStateFW decoded = version == MqttClientStateVersion.V1 || version == MqttClientStateVersion.V2
                 ? clientStateRO.tryWrap(buffer, 0, buffer.capacity())
                 : null;
 
             decodable = decoded != null;
 
-            if (decodable)
+            if (decodable && version == MqttClientStateVersion.V1)
             {
                 final MqttClientStateV1FW v1 = decoded.clientStateV1();
                 v1.memberships().forEach(m -> memberships.add(newMembership(m)));
                 v1.packets().forEach(p -> packets.add(newPacket(p)));
             }
+            else if (decodable)
+            {
+                final MqttClientStateV2FW v2 = decoded.clientStateV2();
+                v2.memberships().forEach(m -> memberships.add(newMembership(m)));
+                v2.packets().forEach(p -> packets.add(newPacket(p)));
+                holder = v2.holder().asString();
+            }
         }
 
-        return decodable ? new MqttClientStateRecord(memberships, packets) : null;
+        return decodable ? new MqttClientStateRecord(memberships, packets, holder) : null;
     }
 
-    private static void encodeV1(
-        MqttClientStateV1FW.Builder v1,
+    private static void encodeV2(
+        MqttClientStateV2FW.Builder v2,
         List<MqttMembershipRecord> memberships,
-        List<MqttPacketRecord> packets)
+        List<MqttPacketRecord> packets,
+        String holder)
     {
-        memberships.forEach(m -> v1.membershipsItem(i -> i
+        memberships.forEach(m -> v2.membershipsItem(i -> i
             .shareName(m.shareName)
             .filter(m.filter)));
-        packets.forEach(p -> v1.packetsItem(i -> i
+        packets.forEach(p -> v2.packetsItem(i -> i
             .packetId(p.packetId)
             .state(p.state.value())
             .qos(p.qos)
             .shareName(p.shareName)
             .filter(p.filter)
             .metadata(m -> m.bytes(b -> b.set(p.metadata)))));
+        v2.holder(holder);
     }
 
     private static MqttMembershipRecord newMembership(
@@ -141,9 +154,10 @@ final class MqttClientStates
 
     private static int capacity(
         List<MqttMembershipRecord> memberships,
-        List<MqttPacketRecord> packets)
+        List<MqttPacketRecord> packets,
+        String holder)
     {
-        int capacity = HEADER_SIZE;
+        int capacity = HEADER_SIZE + HOLDER_FIXED_SIZE + length(holder) * MAXIMUM_UTF8_BYTES_PER_CHAR;
 
         for (int i = 0; i < memberships.size(); i++)
         {

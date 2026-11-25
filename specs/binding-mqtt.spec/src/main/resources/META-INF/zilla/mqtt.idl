@@ -148,7 +148,8 @@ scope mqtt
 
     enum MqttClientStateVersion (uint8)
     {
-        V1 (1)
+        V1 (1),
+        V2 (2)
     }
 
     struct MqttClientStateV1
@@ -157,9 +158,17 @@ scope mqtt
         MqttPacket[] packets;
     }
 
+    struct MqttClientStateV2
+    {
+        MqttMembership[] memberships;
+        MqttPacket[] packets;
+        string16 holder = null;
+    }
+
     union MqttClientState switch (MqttClientStateVersion)
     {
         case V1: mqtt::MqttClientStateV1 clientStateV1;
+        case V2: mqtt::MqttClientStateV2 clientStateV2;
     }
 
     enum MqttSessionSignalType (uint8)

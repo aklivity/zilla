@@ -132,58 +132,6 @@ write zilla:begin.ext ${kafka:beginEx()
                             .typeId(zilla:id("kafka"))
                             .merged()
                                 .capabilities("PRODUCE_ONLY")
-                                .topic("mqtt-sessions")
-                                .build()
-                            .build()}
-
-connected
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-write ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 1, 1, 1, 0)
-                .packetId(1)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-write flush
-
-write zilla:data.ext ${kafka:dataEx()
-                           .typeId(zilla:id("kafka"))
-                           .merged()
-                             .produce()
-                               .deferred(0)
-                               .partition(-1, -1)
-                               .key("client#offsets")
-                               .hashKey("client")
-                               .build()
-                           .build()}
-write ${mqtt_kafka:sessionOffsets()
-            .entry("mqtt-messages", 0, 2, 1, 1, 0)
-                .packetId(1)
-            .entry("mqtt-messages", 1, 1, 1, 1, 0)
-            .entry("mqtt-retained", 0, 1, 1, 1, 0)
-            .build()}
-write flush
-
-
-connect await RECEIVED_PRODUCER
-        "zilla://streams/kafka0"
-         option zilla:window 8192
-         option zilla:transmission "duplex"
-
-write zilla:begin.ext ${kafka:beginEx()
-                            .typeId(zilla:id("kafka"))
-                            .merged()
-                                .capabilities("PRODUCE_ONLY")
                                 .topic("mqtt-messages")
                                 .partition(-1, -2)
                                 .ackMode("IN_SYNC_REPLICAS")

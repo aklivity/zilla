@@ -20,11 +20,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Base64;
 import java.util.List;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateFW;
+import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttClientStateVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.internal.types.MqttPacketState;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 
 public class MqttClientStatesTest
 {
@@ -47,7 +51,7 @@ public class MqttClientStatesTest
             new MqttPacketRecord(8, MqttPacketState.PUBREL_PENDING, 2, null, null, new byte[0]));
         final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one"));
 
-        final MqttClientStateRecord record = states.decode(states.encode(memberships, packets));
+        final MqttClientStateRecord record = states.decode(states.encode(memberships, packets, null));
 
         assertEquals(memberships, record.memberships);
         assertEquals(2, record.packets.size());
@@ -59,6 +63,42 @@ public class MqttClientStatesTest
         assertEquals(MqttPacketState.PUBREL_PENDING, record.packets.get(1).state);
         assertNull(record.packets.get(1).shareName);
         assertEquals(0, record.packets.get(1).metadata.length);
+    }
+
+    @Test
+    public void shouldRoundTripHolder()
+    {
+        final MqttClientStateRecord record = states.decode(states.encode(List.of(), List.of(), "replica-1"));
+
+        assertEquals("replica-1", record.holder);
+        assertTrue(record.packets.isEmpty());
+        assertTrue(record.memberships.isEmpty());
+    }
+
+    @Test
+    public void shouldRoundTripReleasedAsNoHolder()
+    {
+        final MqttClientStateRecord record = states.decode(states.encode(List.of(), List.of(), null));
+
+        assertNull(record.holder);
+    }
+
+    @Test
+    public void shouldDecodeVersionOneWithoutHolder()
+    {
+        final UnsafeBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        final MqttClientStateFW version1 = new MqttClientStateFW.Builder()
+            .wrap(buffer, 0, buffer.capacity())
+            .kind(MqttClientStateVersion.V1)
+            .clientStateV1(v1 -> v1.membershipsItem(m -> m.shareName("consumers").filter("sensor/one")))
+            .build();
+        final byte[] bytes = new byte[version1.sizeof()];
+        buffer.getBytes(version1.offset(), bytes);
+
+        final MqttClientStateRecord record = states.decode(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
+
+        assertEquals(List.of(new MqttMembershipRecord("consumers", "sensor/one")), record.memberships);
+        assertNull(record.holder);
     }
 
     @Test

@@ -800,7 +800,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 doMqttWindow(authorization, traceId, 0, 0, 0);
                 this.metadata = new MqttKafkaPublishMetadata(
                     new Long2ObjectHashMap<>(), new MqttKafkaPacketPartitions(), leaderEpochs);
-                this.metadata.sessionsTopic = sessionsTopic;
+                this.metadata.sessionsTopic = isSessionStateStored() ? null : sessionsTopic;
                 this.metadata.clientId = clientId;
                 clientMetadata.put(affinity, metadata);
             }
@@ -2009,6 +2009,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doMqttSessionBegin(traceId, authorization, publishQosMax == 2 ? 0 : affinity);
             doMqttWindowStored(traceId, authorization);
             doMqttData(traceId, authorization, 0, 0, COMPLETE, EMPTY_OCTETS);
+
+            if (publishQosMax == 2)
+            {
+                this.metadata.onOffsetsAvailable(traceId, authorization);
+            }
         }
 
         private void doFlushProduceAndFetchWithFilter(

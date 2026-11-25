@@ -322,6 +322,7 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int SIGNAL_STEAL_SESSION_OWNERSHIP = 5;
     private static final int SIGNAL_ACQUIRE_SESSION_OWNERSHIP = 6;
     private static final int GUARD_SESSION_EXPIRING_SIGNAL = 7;
+    private static final int SIGNAL_AWAIT_STATE_RELEASE = 8;
 
     private static final String OWNER_KEY_POSTFIX = "#owner";
     private static final String STATE_KEY_POSTFIX = "#state";
@@ -2900,11 +2901,13 @@ public final class MqttServerFactory implements MqttStreamFactory
         private String ownerToken;
         private long renewAt = NO_CANCEL_ID;
         private long stealAt = NO_CANCEL_ID;
+        private long releaseAt = NO_CANCEL_ID;
         private long pendingOwnershipAuth;
         private boolean owns;
         private boolean claimed;
         private boolean ownershipResolved;
         private Closeable ownerWatch;
+        private Closeable stateWatch;
         private long renewTraceId;
         private long pendingSessionRoutedId;
         private long pendingSessionCompositeId;
@@ -3278,6 +3281,9 @@ public final class MqttServerFactory implements MqttStreamFactory
                 break;
             case SIGNAL_ACQUIRE_SESSION_OWNERSHIP:
                 onAcquireOwnership(signal.traceId());
+                break;
+            case SIGNAL_AWAIT_STATE_RELEASE:
+                onAwaitStateReleaseTimeout(signal.traceId());
                 break;
             default:
                 break;
@@ -3717,7 +3723,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (token != null)
             {
-                completeOwnership(traceId, token);
+                completeOwnership(traceId, token, this::onClientStateLoaded);
             }
             else if (claimed)
             {
@@ -3728,7 +3734,8 @@ public final class MqttServerFactory implements MqttStreamFactory
 
         private void completeOwnership(
             long traceId,
-            String token)
+            String token,
+            LongConsumer stateLoaded)
         {
             owns = true;
             ownerToken = token;
@@ -3740,20 +3747,105 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             registry = new MqttSharedRegistry(store);
             clientState = new MqttClientStateEntry(store, clientId + STATE_KEY_POSTFIX, clientStates, this::clientStateTtl);
-            clientState.awaitLoaded(() -> onClientStateLoaded(traceId));
+            clientState.awaitLoaded(() -> stateLoaded.accept(traceId));
         }
 
         private void onClientStateLoaded(
             long traceId)
         {
-            if (isCleanStart(connectFlags) && clientState.ready() && !clientState.empty())
+            final boolean ready = clientState.ready();
+
+            if (ready && !isCleanStart(connectFlags) && clientState.held())
             {
-                final List<MqttMembershipRecord> memberships = clientState.discard();
-                clientState.write(() -> leaveShared(memberships, () -> onClientStateReady(traceId)));
+                connectFlags |= CLEAN_START_FLAG_MASK;
+            }
+
+            final boolean discard = ready && isCleanStart(connectFlags) && (!clientState.empty() || clientState.held());
+            final List<MqttMembershipRecord> memberships = discard ? clientState.discard() : List.of();
+            final Runnable stored = () -> leaveShared(memberships, () -> onClientStateReady(traceId));
+
+            if (ready && sessionExpiry > 0)
+            {
+                clientState.hold(ownerNonce(), stored);
+            }
+            else if (discard)
+            {
+                clientState.write(stored);
             }
             else
             {
                 onClientStateReady(traceId);
+            }
+        }
+
+        private void onClientStateLoadedAfterSteal(
+            long traceId)
+        {
+            if (clientState.ready() && clientState.held() && !isCleanStart(connectFlags))
+            {
+                stateWatch = store.watch(clientId + STATE_KEY_POSTFIX, (key, value) -> onClientStateChanged(traceId));
+                releaseAt = signaler.signalAt(clock.millis() + sessionLease.toMillis(),
+                    originId, routedId, replyId, traceId, SIGNAL_AWAIT_STATE_RELEASE, 0);
+                clientState.reload(() -> onClientStateReloaded(traceId));
+            }
+            else
+            {
+                onClientStateLoaded(traceId);
+            }
+        }
+
+        private void onClientStateChanged(
+            long traceId)
+        {
+            if (stateWatch != null)
+            {
+                clientState.reload(() -> onClientStateReloaded(traceId));
+            }
+        }
+
+        private void onClientStateReloaded(
+            long traceId)
+        {
+            if (stateWatch != null && (!clientState.ready() || !clientState.held()))
+            {
+                doCancelAwaitStateRelease();
+                onClientStateLoaded(traceId);
+            }
+        }
+
+        private void onAwaitStateReleaseTimeout(
+            long traceId)
+        {
+            releaseAt = NO_CANCEL_ID;
+
+            if (stateWatch != null)
+            {
+                doCancelAwaitStateRelease();
+                onClientStateLoaded(traceId);
+            }
+        }
+
+        private void doCancelAwaitStateRelease()
+        {
+            if (releaseAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(releaseAt);
+                releaseAt = NO_CANCEL_ID;
+            }
+
+            final Closeable watch = stateWatch;
+            stateWatch = null;
+
+            if (watch != null)
+            {
+                try
+                {
+                    watch.close();
+                }
+                catch (IOException ex)
+                {
+                    LangUtil.rethrowUnchecked(ex);
+                }
             }
         }
 
@@ -3778,6 +3870,19 @@ public final class MqttServerFactory implements MqttStreamFactory
         private Duration clientStateTtl()
         {
             return sessionExpiry > 0 ? Duration.ofSeconds(sessionExpiry) : null;
+        }
+
+        private void releaseClientState(
+            Runnable continuation)
+        {
+            if (clientState != null)
+            {
+                clientState.release(continuation);
+            }
+            else
+            {
+                continuation.run();
+            }
         }
 
         private void awaitClientStateIdle(
@@ -3892,7 +3997,7 @@ public final class MqttServerFactory implements MqttStreamFactory
 
             if (token != null)
             {
-                completeOwnership(traceId, token);
+                completeOwnership(traceId, token, this::onClientStateLoadedAfterSteal);
             }
             else
             {
@@ -3929,6 +4034,9 @@ public final class MqttServerFactory implements MqttStreamFactory
             final long traceId = renewTraceId;
             if (token != null)
             {
+                // the entry lifetime is independent of the lock lease, so it is rewritten with each renewal;
+                // StoreHandler.touch is expected to replace this rewrite
+                store.put(ownerKey, ownershipRecord(token), sessionLease, ignored -> {});
                 renewAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
                     originId, routedId, replyId, traceId, SIGNAL_RENEW_SESSION_OWNERSHIP, 0);
             }
@@ -4096,7 +4204,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (ownerToken != null)
             {
                 final String token = ownerToken;
-                awaitClientStateIdle(() -> store.unlock(ownerKey, token, ignored -> {}));
+                releaseClientState(() -> store.unlock(ownerKey, token, ignored -> {}));
                 ownerToken = null;
             }
 
@@ -4110,6 +4218,8 @@ public final class MqttServerFactory implements MqttStreamFactory
         private void doReleaseOwnership(
             long traceId)
         {
+            doCancelAwaitStateRelease();
+
             if (owns && sessionExpiry == 0 && clientState != null && clientState.ready() && !clientState.empty())
             {
                 final List<MqttMembershipRecord> memberships = clientState.discard();
@@ -4144,7 +4254,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             if (owns && ownerToken != null)
             {
                 final String token = ownerToken;
-                awaitClientStateIdle(() -> store.unlock(ownerKey, token, ignored -> {}));
+                releaseClientState(() -> store.unlock(ownerKey, token, ignored -> {}));
             }
 
             if (claimed && owns)
