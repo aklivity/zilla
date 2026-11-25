@@ -3750,8 +3750,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             final OctetsFW topic = kafkaShareDataEx.key().value();
 
+            final int publishFlags = messageQos > 0 && kafkaShareDataEx.deliveryCount() > 1 ? DUP_FLAG : 0;
+
             final Flyweight mqttSubscribeDataEx = newSubscribeDataEx(topic, kafkaShareDataEx.deferred(),
-                recordPacketId, messageQos, 0, subscriptionId, expireInterval, metadata,
+                recordPacketId, messageQos, publishFlags, subscriptionId, expireInterval, metadata,
                 kafkaShareDataEx.buffer(), kafkaShareDataEx.limit());
 
             mqtt.doMqttData(traceId, authorization, budgetId, reserved, flags, payload, mqttSubscribeDataEx);
