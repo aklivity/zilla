@@ -318,8 +318,8 @@ read ${mqtt:sessionSignal()
                .build()
            .build()}
 
-read aborted
-write abort
+read closed
+write close
 
 
 accepted

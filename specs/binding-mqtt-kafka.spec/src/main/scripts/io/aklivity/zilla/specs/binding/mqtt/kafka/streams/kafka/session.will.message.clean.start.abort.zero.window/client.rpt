@@ -273,5 +273,5 @@ write ${mqtt:sessionSignal()
             .build()}
 write flush
 
-write abort
-read aborted
+write close
+read closed

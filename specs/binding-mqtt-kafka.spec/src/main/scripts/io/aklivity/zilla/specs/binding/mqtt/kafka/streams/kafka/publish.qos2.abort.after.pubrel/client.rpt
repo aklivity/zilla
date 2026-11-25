@@ -366,9 +366,9 @@ write ${mqtt:sessionSignal()
            .build()}
 write flush
 
-write abort
+write close
 
-read aborted
+read closed
 
 connect await KAFKA_8
         "zilla://streams/kafka0"

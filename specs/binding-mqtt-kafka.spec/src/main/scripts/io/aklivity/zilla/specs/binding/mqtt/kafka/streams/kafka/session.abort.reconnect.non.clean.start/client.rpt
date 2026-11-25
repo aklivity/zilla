@@ -161,8 +161,8 @@ write ${mqtt:sessionSignal()
                .build()
             .build()}
 
-write abort
-read aborted
+write close
+read closed
 
 write notify SESSION1_ABORTED
 
