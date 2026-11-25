@@ -123,17 +123,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             .wrap(new UnsafeBufferEx(new byte[64]), 0, 64).build();
 
     private static final int SIZE_OF_FLUSH_WITH_EXTENSION = 64;
-    static final AtomicLong SPIKE_ATTEMPTS = new AtomicLong();
-    static final AtomicLong SPIKE_SENT = new AtomicLong();
-
-    static
-    {
-        if (Boolean.getBoolean("zilla.spike.counters"))
-        {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> System.err.format(
-                "SPIKE doorbell attempts=%d sent=%d%n", SPIKE_ATTEMPTS.get(), SPIKE_SENT.get())));
-        }
-    }
 
     private static final String TRANSACTION_NONE = null;
 
@@ -567,6 +556,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final Flyweight.Builder.Visitor flushExtensionVisitor = this::writeFlushExtension;
         private final Consumer<OctetsFW.Builder> flushExtension = ex -> ex.set(flushExtensionVisitor);
 
+        private final long[] ackRecord = new long[3];
         private long lastAckOffsetHighWatermark;
         private long offsetHighWatermark = DEFAULT_LATEST_OFFSET;
         private int partitionOffset;
@@ -943,11 +933,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void doFlushClientInitialIfNecessary(
             long traceId)
         {
-            SPIKE_ATTEMPTS.incrementAndGet();
+            KafkaCacheSpike.INITIAL_ATTEMPTS.incrementAndGet();
             if (initialMax - (initialSeq - initialAck) >= SIZE_OF_FLUSH_WITH_EXTENSION &&
-                doorbell.compareAndSet(0L, initialId))
+                (!KafkaCacheSpike.INITIAL_DOORBELL || doorbell.compareAndSet(0L, initialId)))
             {
-                SPIKE_SENT.incrementAndGet();
+                KafkaCacheSpike.INITIAL_SENT.incrementAndGet();
                 doFlush(receiver, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                         traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION, flushExtension);
             }
@@ -1109,6 +1099,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             state = StreamState.closeInitial(state);
             doorbell.compareAndSet(initialId, 0L);
+            partition.replyDoorbell().compareAndSet(replyId, 0L);
 
             if (partitionIndex != NO_CREDITOR_INDEX)
             {
@@ -1192,17 +1183,34 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             final KafkaFlushExFW kafkaFlushEx = extension.get(kafkaFlushExRO::wrap);
             final KafkaProduceFlushExFW kafkaProduceFlushEx = kafkaFlushEx.produce();
             final KafkaOffsetFW partition = kafkaProduceFlushEx.partition();
-            final long partitionOffset = partition.partitionOffset();
             final int error = kafkaProduceFlushEx.error();
-            final long timestamp = kafkaProduceFlushEx.timestamp();
-            final long ackOffset = kafkaProduceFlushEx.ackOffset();
+
+            long partitionOffset = partition.partitionOffset();
+            long timestamp = kafkaProduceFlushEx.timestamp();
+            long ackOffset = kafkaProduceFlushEx.ackOffset();
+
+            if (KafkaCacheSpike.REPLY_DOORBELL && error == NO_ERROR)
+            {
+                this.partition.replyDoorbell().set(0L);
+                if (this.partition.readAck(ackRecord) && ackRecord[0] >= partitionOffset)
+                {
+                    partitionOffset = ackRecord[0];
+                    ackOffset = ackRecord[1];
+                    timestamp = ackRecord[2];
+                }
+            }
 
             final long currentLastAckOffsetHighWatermark = lastAckOffsetHighWatermark;
             ackOffsetHighWatermark(error, traceId, partitionOffset, ackOffset, timestamp);
 
             if (lastAckOffsetHighWatermark > currentLastAckOffsetHighWatermark)
             {
-                doClientFanReplyWindow(traceId);
+                KafkaCacheSpike.WINDOW_ATTEMPTS.incrementAndGet();
+                if (!KafkaCacheSpike.REPLY_WINDOW_DROP || error != NO_ERROR)
+                {
+                    KafkaCacheSpike.WINDOW_SENT.incrementAndGet();
+                    doClientFanReplyWindow(traceId);
+                }
             }
         }
 

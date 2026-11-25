@@ -155,6 +155,11 @@ public final class KafkaCachePartition
     private KafkaCacheEntryFW ancestorEntry;
     private final AtomicLong produceCapacity;
     private volatile long committedOffset = -1L;
+    private final AtomicLong replyDoorbell = new AtomicLong();
+    private volatile long ackVersion;
+    private volatile long ackFlushOffset = -1L;
+    private volatile long ackOffset = -1L;
+    private volatile long ackTimestamp = -1L;
     private final OctetsFW octetsRO = new OctetsFW();
     private final KafkaKeyFW keyRO = new KafkaKeyFW();
     private final Flyweight.Visitor<KafkaKeyFW> keyWrapper = keyRO::wrap;
@@ -1102,6 +1107,41 @@ public final class KafkaCachePartition
         {
             committedOffset = offset;
         }
+    }
+
+    public AtomicLong replyDoorbell()
+    {
+        return replyDoorbell;
+    }
+
+    public void publishAck(
+        long flushOffset,
+        long offset,
+        long timestamp)
+    {
+        final long version = ackVersion;
+        ackVersion = version + 1;
+        ackFlushOffset = flushOffset;
+        ackOffset = offset;
+        ackTimestamp = timestamp;
+        ackVersion = version + 2;
+    }
+
+    public boolean readAck(
+        long[] record)
+    {
+        long before;
+        long after;
+        do
+        {
+            before = ackVersion;
+            record[0] = ackFlushOffset;
+            record[1] = ackOffset;
+            record[2] = ackTimestamp;
+            after = ackVersion;
+        } while ((before & 1L) != 0L || before != after);
+
+        return record[0] >= 0L;
     }
 
     public long committed()

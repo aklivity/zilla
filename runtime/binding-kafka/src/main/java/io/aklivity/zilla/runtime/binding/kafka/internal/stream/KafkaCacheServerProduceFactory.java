@@ -690,6 +690,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 leaderId = member.leaderId;
 
                 members.forEach(m -> m.doorbell.compareAndSet(m.initialId, 0L));
+                members.forEach(m -> m.partition.replyDoorbell().compareAndSet(m.replyId, 0L));
                 members.forEach(m -> m.cleanupServer(traceId,  ERROR_NOT_LEADER_FOR_PARTITION));
                 members.clear();
             }
@@ -717,6 +718,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         {
             members.remove(member);
             member.doorbell.compareAndSet(member.initialId, 0L);
+            member.partition.replyDoorbell().compareAndSet(member.replyId, 0L);
 
             member.cursor.close();
 
@@ -1698,17 +1700,28 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 if (KafkaProduceFlush.required(error != NO_ERROR, flushOffset, flushedPartitionOffset))
                 {
-                    doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
+                    if (KafkaCacheSpike.REPLY_DOORBELL && error == NO_ERROR)
+                    {
+                        partition.publishAck(flushOffset, ackOffset, ackTimestamp);
+                        KafkaCacheSpike.REPLY_ATTEMPTS.incrementAndGet();
+                    }
+
+                    if (!KafkaCacheSpike.REPLY_DOORBELL || error != NO_ERROR ||
+                        partition.replyDoorbell().compareAndSet(0L, replyId))
+                    {
+                        KafkaCacheSpike.REPLY_SENT.incrementAndGet();
+                        doFlush(sender, originId, routedId, replyId, replySeq, replyAck, state, replyMax,
                             traceId, authorization, 0L, SIZE_OF_FLUSH_WITH_EXTENSION,
-                        ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
-                                                                .typeId(kafkaTypeId)
-                                                                .produce(f -> f.partition(p -> p.partitionId(partition.id())
-                                                                                                .partitionOffset(flushOffset))
-                                                                               .error(error)
-                                                                               .timestamp(ackTimestamp)
-                                                                               .ackOffset(ackOffset))
-                                                                .build()
-                                                                .sizeof()));
+                            ex -> ex.set((b, o, l) -> kafkaFlushExRW.wrap(b, o, l)
+                                                                    .typeId(kafkaTypeId)
+                                                                    .produce(f -> f.partition(p -> p.partitionId(partition.id())
+                                                                                                    .partitionOffset(flushOffset))
+                                                                                   .error(error)
+                                                                                   .timestamp(ackTimestamp)
+                                                                                   .ackOffset(ackOffset))
+                                                                    .build()
+                                                                    .sizeof()));
+                    }
                     flushedPartitionOffset = flushOffset;
                 }
 
