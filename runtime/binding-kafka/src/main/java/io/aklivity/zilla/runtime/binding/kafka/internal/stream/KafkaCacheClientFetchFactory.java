@@ -910,7 +910,8 @@ public final class KafkaCacheClientFetchFactory implements BindingHandler
         {
             assert state == 0;
 
-            this.initialId = context.supplyInitialId(routedId, context.resolveAffinityId(partitionKey));
+            this.initialId = context.supplyInitialId(routedId,
+                context.resolveAffinityId(KafkaCacheRoute.partitionPlacementKey(partition.topic(), partition.id())));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onClientFanoutMessage,

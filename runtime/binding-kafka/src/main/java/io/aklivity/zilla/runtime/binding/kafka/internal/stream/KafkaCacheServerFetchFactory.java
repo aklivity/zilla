@@ -1522,7 +1522,8 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
 
                 KafkaCacheServerMetaWatch.open(context, supplyCacheRoute.apply(group.routedId), group.originId, group.originId,
                     authorization, group.partition.topic(),
-                    context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(group.partition.topic(), group.partition.id())),
+                    context.resolveAffinityId(
+                        KafkaCacheRoute.partitionPlacementKey(group.partition.topic(), group.partition.id())),
                     traceId);
 
                 group.onServerFanoutMemberOpening(traceId, this);

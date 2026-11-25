@@ -692,7 +692,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             assert partitionIndex != NO_CREDITOR_INDEX;
 
             this.initialId = context.supplyInitialId(routedId,
-                context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(topicName, partitionId)));
+                context.resolveAffinityId(KafkaCacheRoute.partitionPlacementKey(topicName, partitionId)));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             state = StreamState.openingInitial(state);
             this.receiver = newStream(this::onClientFanMessage, originId, routedId, initialId, initialSeq, initialAck, state,

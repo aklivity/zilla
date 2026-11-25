@@ -1432,7 +1432,7 @@ public final class KafkaCacheBootstrapFactory implements BindingHandler
             state = StreamState.openingInitial(state);
 
             this.initialId = context.supplyInitialId(bootstrap.resolvedId,
-                context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(bootstrap.topic, partitionId)));
+                context.resolveAffinityId(KafkaCacheRoute.partitionPlacementKey(bootstrap.topic, partitionId)));
             this.replyId = supplyReplyId.applyAsLong(initialId);
             this.receiver = newStream(this::onFetchReply,
                 bootstrap.routedId, bootstrap.resolvedId, initialId, initialSeq, initialAck, state, initialMax,
