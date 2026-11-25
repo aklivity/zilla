@@ -283,6 +283,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.abort.while.publish.fragmented/client",
+        "${net}/subscribe.abort.while.publish.fragmented/server"})
+    public void shouldAbortNetworkWhenSubscribeAbortsWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.end.while.publish.fragmented/client",
+        "${net}/subscribe.end.while.publish.fragmented/server"})
+    public void shouldAbortNetworkWhenSubscribeEndsWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.redeliver.message.qos2/client",
         "${net}/subscribe.redeliver.message.qos2/server"})
     public void shouldRedeliverMessageQoS2() throws Exception

@@ -449,6 +449,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.end.while.publish.fragmented/client",
+        "${net}/subscribe.end.while.publish.fragmented/server"})
+    public void shouldAbortNetworkWhenSubscribeEndsWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.abort.while.publish.fragmented/client",
+        "${net}/subscribe.abort.while.publish.fragmented/server"})
+    public void shouldAbortNetworkWhenSubscribeAbortsWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
         "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
     public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception

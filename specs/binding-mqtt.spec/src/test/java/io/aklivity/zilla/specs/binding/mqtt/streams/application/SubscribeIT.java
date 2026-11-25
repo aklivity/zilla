@@ -372,6 +372,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.end.while.publish.fragmented/client",
+        "${app}/subscribe.end.while.publish.fragmented/server"})
+    public void shouldAbortNetworkWhenSubscribeEndsWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.abort.while.publish.fragmented/client",
+        "${app}/subscribe.abort.while.publish.fragmented/server"})
+    public void shouldAbortNetworkWhenSubscribeAbortsWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
         "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
     public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
@@ -744,6 +762,24 @@ public class SubscribeIT
         "${app}/subscribe.pingresp.while.publish.fragmented.v4/client",
         "${app}/subscribe.pingresp.while.publish.fragmented.v4/server"})
     public void shouldDeferPingRespWhilePublishFragmentedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.abort.while.publish.fragmented.v4/client",
+        "${app}/subscribe.abort.while.publish.fragmented.v4/server"})
+    public void shouldAbortNetworkWhenSubscribeAbortsWhilePublishFragmentedV4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.end.while.publish.fragmented.v4/client",
+        "${app}/subscribe.end.while.publish.fragmented.v4/server"})
+    public void shouldAbortNetworkWhenSubscribeEndsWhilePublishFragmentedV4() throws Exception
     {
         k3po.finish();
     }
