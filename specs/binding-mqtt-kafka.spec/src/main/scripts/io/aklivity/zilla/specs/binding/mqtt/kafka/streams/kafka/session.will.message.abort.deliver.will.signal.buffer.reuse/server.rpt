@@ -621,8 +621,8 @@ read ${mqtt:sessionSignal()
            .build()}
 write notify RECEIVED_SESSION_EXPIRE_AT_SIGNAL
 
-read aborted
-write abort
+read closed
+write close
 
 
 accepted
