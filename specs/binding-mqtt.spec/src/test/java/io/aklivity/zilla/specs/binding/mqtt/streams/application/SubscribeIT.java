@@ -354,6 +354,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${app}/subscribe.pubrel.while.publish.fragmented/client",
+        "${app}/subscribe.pubrel.while.publish.fragmented/server"})
+    public void shouldDeferPubrelWhilePublishFragmentedQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.pingresp.while.publish.fragmented/client",
+        "${app}/subscribe.pingresp.while.publish.fragmented/server"})
+    public void shouldDeferPingRespWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
         "${app}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
     public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
@@ -708,6 +726,24 @@ public class SubscribeIT
         "${app}/subscribe.receive.message.qos2.v4/client",
         "${app}/subscribe.receive.message.qos2.v4/server"})
     public void shouldSubscribeReceiveMessageQos2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.pubrel.while.publish.fragmented.v4/client",
+        "${app}/subscribe.pubrel.while.publish.fragmented.v4/server"})
+    public void shouldDeferPubrelWhilePublishFragmentedQoS2V4() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.pingresp.while.publish.fragmented.v4/client",
+        "${app}/subscribe.pingresp.while.publish.fragmented.v4/server"})
+    public void shouldDeferPingRespWhilePublishFragmentedV4() throws Exception
     {
         k3po.finish();
     }
@@ -1603,6 +1639,26 @@ public class SubscribeIT
         "${app}/subscribe.shared.rejoin.after.disconnect.new.generation/server"})
     public void shouldSubscribeSharedRejoinAfterDisconnectNewGeneration() throws Exception
     {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.rejoin.after.session.expiry.new.generation/client",
+        "${app}/subscribe.shared.rejoin.after.session.expiry.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterSessionExpiryNewGeneration() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/client",
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2AfterIdle() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("MESSAGE_ALLOWED");
         k3po.finish();
     }
 }

@@ -17,6 +17,8 @@ package io.aklivity.zilla.runtime.binding.mqtt.internal.stream.server.v5;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.PUBLISH_TIMEOUT;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.MAXIMUM_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.NO_LOCAL_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -451,6 +453,26 @@ public class SubscribeIT
         "${net}/subscribe.receive.message.qos2/client",
         "${app}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.pubrel.while.publish.fragmented/client",
+        "${app}/subscribe.pubrel.while.publish.fragmented/server"})
+    public void shouldDeferPubrelWhilePublishFragmentedQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.pingresp.while.publish.fragmented/client",
+        "${app}/subscribe.pingresp.while.publish.fragmented/server"})
+    public void shouldDeferPingRespWhilePublishFragmented() throws Exception
     {
         k3po.finish();
     }
@@ -1618,6 +1640,36 @@ public class SubscribeIT
         "${app}/subscribe.shared.rejoin.after.disconnect.new.generation/server"})
     public void shouldSubscribeSharedRejoinAfterDisconnectNewGeneration() throws Exception
     {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Specification({
+        "${net}/subscribe.shared.rejoin.after.session.expiry.new.generation/client",
+        "${app}/subscribe.shared.rejoin.after.session.expiry.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterSessionExpiryNewGeneration() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        Thread.sleep(1500L);
+        k3po.notifyBarrier("SESSION_EXPIRED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.after.idle/client",
+        "${app}/subscribe.shared.reconnect.replay.qos2.after.idle/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2AfterIdle() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("SUBSCRIBED");
+        Thread.sleep(2000L);
+        k3po.notifyBarrier("MESSAGE_ALLOWED");
         k3po.finish();
     }
 }

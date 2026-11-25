@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.reconnect.non.clean.start.stored/client",
+        "${app}/session.reconnect.non.clean.start.stored/server"})
+    public void shouldReconnectNonCleanStartStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start/client",
         "${app}/session.connect.non.clean.start/server"})
     public void shouldConnectNonCleanStart() throws Exception
@@ -242,6 +251,60 @@ public class SessionIT
         "${app}/session.client.takeover/client",
         "${app}/session.client.takeover/server"})
     public void shouldTakeOverSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent/server"})
+    public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.stored/client",
+        "${app}/session.client.takeover.persistent.stored/server"})
+    public void shouldTakeOverPersistentSessionStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${app}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectNonCleanStartStoreUnreadableState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/client",
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowAfterReady() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.stored.window.too.small/client",
+        "${app}/session.client.takeover.persistent.stored.window.too.small/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowTooSmall() throws Exception
     {
         k3po.finish();
     }
@@ -626,6 +689,100 @@ public class SessionIT
         "${app}/session.connect.non.clean.start.store.empty.state/client",
         "${app}/session.connect.non.clean.start.store.empty.state/server"})
     public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state.abort/client",
+        "${app}/session.inbound.state.abort/server"})
+    public void shouldSessionInboundStateAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state.end/client",
+        "${app}/session.inbound.state.end/server"})
+    public void shouldSessionInboundStateEnd() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state/client",
+        "${app}/session.inbound.state/server"})
+    public void shouldSessionInboundState() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.disconnect.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.disconnect.zero.session.expiry/client",
+        "${app}/session.disconnect.zero.session.expiry/server"})
+    public void shouldSessionDisconnectZeroSessionExpiry() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.disconnect.with.error.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.with.error.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectWithErrorRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.non.clean.start.store.held.state/client",
+        "${app}/session.connect.non.clean.start.store.held.state/server"})
+    public void shouldConnectNonCleanStartStoreHeldState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.inbound.state.oversize/client",
+        "${app}/session.inbound.state.oversize/server"})
+    public void shouldSessionInboundStateOversize() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.non.clean.start.inbound.state/client",
+        "${app}/session.non.clean.start.inbound.state/server"})
+    public void shouldSessionNonCleanStartInboundState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.non.clean.start.store.held.inbound.state/client",
+        "${app}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
     {
         k3po.finish();
     }

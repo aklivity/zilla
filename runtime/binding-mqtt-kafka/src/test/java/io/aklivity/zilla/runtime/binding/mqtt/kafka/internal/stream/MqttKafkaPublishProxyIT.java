@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.BOOTSTRAP_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.INSTANCE_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
@@ -354,6 +355,114 @@ public class MqttKafkaPublishProxyIT
         "${mqtt}/publish.qos2/client",
         "${kafka}/publish.qos2/server"})
     public void shouldSendMessageQos2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store/client",
+        "${kafka}/publish.qos2.session.store/server"})
+    public void shouldSendMessageQos2WithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.before.offsets/client",
+        "${kafka}/publish.qos2.session.store.before.offsets/server"})
+    public void shouldSendMessageQos2WithSessionStateStoreBeforeOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.in.flight/client",
+        "${kafka}/publish.qos2.session.store/server"})
+    public void shouldSendMessagesQos2InFlightWithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.persistent.resume/client",
+        "${kafka}/publish.qos2.session.store.persistent.resume/server"})
+    public void shouldSendMessageQos2ResumingInboundStateFromSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.persistent.no.inbound/client",
+        "${kafka}/publish.qos2.session.store.persistent.no.inbound/server"})
+    public void shouldSendMessageQos2WithoutStoredInboundStateFromSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.persistent.close/client",
+        "${kafka}/publish.qos2.session.store.persistent.close/server"})
+    public void shouldSendInboundStateWhenSessionEndsWithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.never.expires.close/client",
+        "${kafka}/publish.qos2.session.store.persistent.close/server"})
+    public void shouldHandBackInboundStateWhenNeverExpiringSessionEndsWithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.never.expires.resume/client",
+        "${kafka}/publish.qos2.session.store.persistent.resume/server"})
+    public void shouldSendMessageQos2ResumingInboundStateOfNeverExpiringSessionFromSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/publish.qos2.session.store.clean.start.close.unacknowledged/client",
+        "${kafka}/publish.qos2.session.store.clean.start.close.unacknowledged/server"})
+    public void shouldSendOnlyAcknowledgedInboundStateWhenSessionEndsWithSessionStateStore() throws Exception
     {
         k3po.finish();
     }

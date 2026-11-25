@@ -86,6 +86,98 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${net}/session.client.takeover.persistent/server"})
+    public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.inbound.state/client",
+        "${net}/session.inbound.state/server"})
+    public void shouldSessionInboundState() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.disconnect.raise.session.expiry.stored/client",
+        "${net}/session.disconnect.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.disconnect.zero.session.expiry/client",
+        "${net}/session.disconnect.zero.session.expiry/server"})
+    public void shouldSessionDisconnectZeroSessionExpiry() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.disconnect.with.error.raise.session.expiry.stored/client",
+        "${net}/session.disconnect.with.error.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectWithErrorRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${net}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.client.takeover.persistent.stored.window.too.small/client",
+        "${net}/session.client.takeover.persistent.stored.window.too.small/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowTooSmall() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${net}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectNonCleanStartStoreUnreadableState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.client.takeover.after.lease/client",
+        "${net}/session.client.takeover.after.lease/server"})
+    public void shouldTakeOverSessionAfterLease() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CONNECTED");
+        k3po.notifyBarrier("LEASE_ELAPSED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.will.message.takeover/client",
         "${net}/session.will.message.takeover/server"})
     public void shouldDeliverWillMessageOnSessionTakeover() throws Exception
@@ -455,6 +547,26 @@ public class SessionIT
         "${net}/session.connect.non.clean.start.store.empty.state/client",
         "${net}/session.connect.non.clean.start.store.empty.state/server"})
     public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.inbound.state.oversize/client",
+        "${net}/session.inbound.state.oversize/server"})
+    public void shouldSessionInboundStateOversize() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.inbound.state.abort/client",
+        "${net}/session.inbound.state.abort/server"})
+    public void shouldSessionInboundStateAbort() throws Exception
     {
         k3po.finish();
     }

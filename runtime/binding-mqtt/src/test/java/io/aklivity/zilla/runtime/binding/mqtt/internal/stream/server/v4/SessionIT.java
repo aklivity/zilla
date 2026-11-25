@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -170,6 +171,17 @@ public class SessionIT
     }
 
     @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.reconnect.non.clean.start.stored/client",
+        "${app}/session.reconnect.non.clean.start.stored/server"})
+    public void shouldReconnectNonCleanStartStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.yaml")
     @Specification({
         "${net}/session.connect.non.clean.start/client",
@@ -288,6 +300,33 @@ public class SessionIT
         "${net}/session.client.takeover.before.connack/client",
         "${app}/session.client.takeover.before.connack/server"})
     public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.non.clean.start.inbound.state/client",
+        "${app}/session.non.clean.start.inbound.state/server"})
+    public void shouldCarryInboundStateAcrossNonCleanStartSessions() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("ECHOED");
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.held.inbound.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.non.clean.start.store.held.inbound.state/client",
+        "${app}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
     {
         k3po.finish();
     }

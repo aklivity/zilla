@@ -24,13 +24,24 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MqttClientStateEntry
 {
+    private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
+    private static final byte[] NO_OUTBOUND = new byte[0];
+    private static final byte[] NO_INBOUND = new byte[0];
+
     private final StoreHandler store;
     private final String key;
     private final MqttClientStates states;
     private final Supplier<Duration> ttl;
+    private final Runnable writeShared = this::doWriteShared;
+    private final Runnable writeHeld = this::doWriteHeld;
+    private final Runnable writeSuperseded = this::doWriteSuperseded;
 
+    private Runnable writer = writeShared;
+    private String holder;
+    private String stored;
     private MqttClientStateRecord record;
     private List<Runnable> loading;
+    private List<Runnable> reloading;
     private List<Runnable> writing;
     private List<Runnable> pending;
     private List<Runnable> idling;
@@ -47,6 +58,22 @@ final class MqttClientStateEntry
         this.ttl = ttl;
         this.loading = new ArrayList<>();
         store.get(key, (k, value) -> onLoaded(value));
+    }
+
+    void reload(
+        Runnable continuation)
+    {
+        if (reloading == null)
+        {
+            reloading = new ArrayList<>();
+        }
+
+        reloading.add(continuation);
+
+        if (loading == null)
+        {
+            doLoad();
+        }
     }
 
     void awaitLoaded(
@@ -86,7 +113,7 @@ final class MqttClientStateEntry
 
     boolean idle()
     {
-        return loading == null && writing == null && pending == null;
+        return loading == null && reloading == null && writing == null && pending == null;
     }
 
     List<MqttPacketRecord> packets()
@@ -99,9 +126,97 @@ final class MqttClientStateEntry
         return record.memberships;
     }
 
+    byte[] subscriptions()
+    {
+        return record.subscriptions;
+    }
+
+    void subscriptions(
+        byte[] subscriptions)
+    {
+        record.subscriptions = subscriptions;
+    }
+
+    byte[] outbound()
+    {
+        return record.outbound;
+    }
+
+    void outbound(
+        byte[] outbound)
+    {
+        record.outbound = outbound;
+    }
+
+    byte[] inbound()
+    {
+        return record.inbound;
+    }
+
+    void inbound(
+        byte[] inbound)
+    {
+        record.inbound = inbound;
+    }
+
     boolean empty()
     {
-        return record.packets.isEmpty() && record.memberships.isEmpty();
+        return record.packets.isEmpty() && record.memberships.isEmpty() && record.subscriptions.length == 0 &&
+            record.outbound.length == 0 && record.inbound.length == 0;
+    }
+
+    void touch()
+    {
+        if (writer == writeHeld && idle())
+        {
+            store.touch(key, ttl.get(), touched -> onTouched(touched));
+        }
+    }
+
+    boolean held()
+    {
+        return record.holder != null;
+    }
+
+    void hold(
+        String holder,
+        Runnable completion)
+    {
+        this.holder = holder;
+        this.writer = writeHeld;
+
+        write(completion);
+    }
+
+    void release(
+        Runnable completion)
+    {
+        if (writer == writeHeld)
+        {
+            holder = null;
+            write(completion);
+        }
+        else
+        {
+            awaitIdle(completion);
+        }
+    }
+
+    boolean holding()
+    {
+        return writer == writeHeld;
+    }
+
+    void end(
+        Runnable completion)
+    {
+        if (writer == writeHeld)
+        {
+            holder = null;
+            writer = writeShared;
+        }
+
+        write(completion);
     }
 
     List<MqttMembershipRecord> discard()
@@ -110,6 +225,9 @@ final class MqttClientStateEntry
 
         record.packets.clear();
         record.memberships.clear();
+        record.subscriptions = NO_SUBSCRIPTIONS;
+        record.outbound = NO_OUTBOUND;
+        record.inbound = NO_INBOUND;
 
         return discarded;
     }
@@ -181,11 +299,28 @@ final class MqttClientStateEntry
     {
         final List<Runnable> continuations = loading;
 
-        record = states.decode(value);
+        final MqttClientStateRecord decoded = states.decode(value);
+
+        record = decoded != null ? decoded : states.decode(null);
+        stored = value;
         loading = null;
 
         continuations.forEach(Runnable::run);
+
+        if (reloading != null && loading == null)
+        {
+            doLoad();
+        }
+
         settled();
+    }
+
+    private void doLoad()
+    {
+        loading = reloading;
+        reloading = null;
+
+        store.get(key, (k, value) -> onLoaded(value));
     }
 
     private void doWrite()
@@ -193,14 +328,77 @@ final class MqttClientStateEntry
         writing = pending;
         pending = null;
 
-        if (record.packets.isEmpty() && record.memberships.isEmpty())
+        writer.run();
+    }
+
+    private void doWriteShared()
+    {
+        if (empty())
         {
-            store.delete(key, v -> onWriteCompleted());
+            store.delete(key, v -> onSharedWriteCompleted(null));
         }
         else
         {
-            store.put(key, states.encode(record.memberships, record.packets), ttl.get(), v -> onWriteCompleted());
+            final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions,
+                record.outbound, record.inbound);
+
+            store.put(key, value, ttl.get(), v -> onSharedWriteCompleted(value));
         }
+    }
+
+    private void onSharedWriteCompleted(
+        String value)
+    {
+        stored = value;
+
+        onWriteCompleted();
+    }
+
+    private void doWriteHeld()
+    {
+        final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions,
+                record.outbound, record.inbound);
+
+        if (stored != null)
+        {
+            store.replace(key, stored, value, ttl.get(), replaced -> onHeldWriteCompleted(replaced, value));
+        }
+        else
+        {
+            store.putIfAbsent(key, value, ttl.get(), existing -> onHeldWriteCompleted(existing == null, value));
+        }
+    }
+
+    private void onTouched(
+        boolean touched)
+    {
+        if (!touched && writer == writeHeld)
+        {
+            stored = null;
+
+            write(() -> {});
+        }
+    }
+
+    private void doWriteSuperseded()
+    {
+        onWriteCompleted();
+    }
+
+    private void onHeldWriteCompleted(
+        boolean written,
+        String value)
+    {
+        if (written)
+        {
+            stored = value;
+        }
+        else
+        {
+            writer = writeSuperseded;
+        }
+
+        onWriteCompleted();
     }
 
     private void onWriteCompleted()

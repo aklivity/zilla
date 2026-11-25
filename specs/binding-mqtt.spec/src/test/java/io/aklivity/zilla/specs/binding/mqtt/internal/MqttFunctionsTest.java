@@ -1602,6 +1602,216 @@ public class MqttFunctionsTest
     }
 
     @Test
+    public void shouldEncodeMqttSessionBeginExInbound()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+            .session()
+                .clientId("client")
+                .packetId(7)
+                .inboundBytes(new byte[] {0x0c, 0x0d, 0x0e})
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals("client", mqttBeginEx.session().clientId().asString());
+        assertEquals(3, mqttBeginEx.session().inbound().sizeof());
+        assertEquals(0x0d, mqttBeginEx.session().inbound().buffer().getByte(mqttBeginEx.session().inbound().offset() + 1));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionBeginExWithoutInbound()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+            .session()
+                .clientId("client")
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNull(mqttBeginEx.session().inbound());
+    }
+
+    @Test
+    public void shouldMatchMqttSessionBeginExInbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .session()
+                .inbound("state")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(s -> s.clientId("client").inbound(b -> b.set("state".getBytes(UTF_8))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchMqttSessionBeginExDifferentInbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .session()
+                .inbound("state")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(s -> s.clientId("client").inbound(b -> b.set("other".getBytes(UTF_8))))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionFlushExInbound()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .session()
+                .inboundBytes(new byte[] {0x0c, 0x0d, 0x0e})
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(0, mqttFlushEx.session().packetId());
+        assertEquals(3, mqttFlushEx.session().inbound().sizeof());
+        assertEquals(0x0d, mqttFlushEx.session().inbound().buffer().getByte(mqttFlushEx.session().inbound().offset() + 1));
+    }
+
+    @Test
+    public void shouldEncodeMqttSessionFlushExWithoutInbound()
+    {
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+            .session()
+                .packetId(1)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertEquals(1, mqttFlushEx.session().packetId());
+        assertNull(mqttFlushEx.session().inbound());
+    }
+
+    @Test
+    public void shouldMatchMqttSubscribeFlushExOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .outbound(new byte[] {1, 2, 3})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.outbound(o -> o.set(new byte[] {1, 2, 3})))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchMqttSubscribeFlushExDifferentOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .outbound(new byte[] {1, 2, 3})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.outbound(o -> o.set(new byte[] {1, 2, 4})))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMqttSubscribeFlushExAnyOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .subscribe()
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .subscribe(b -> b.packetId(1))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldMatchMqttSessionFlushExInbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .session()
+                .inbound("state")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(p -> p.packetId(0).inbound(b -> b.set("state".getBytes(UTF_8))))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchMqttSessionFlushExDifferentInbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchFlushEx()
+            .session()
+                .inbound("state")
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttFlushExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x00)
+            .session(p -> p.packetId(0).inbound(b -> b.set("other".getBytes(UTF_8))))
+            .build();
+
+        matcher.match(byteBuf);
+    }
+
+    @Test
     public void shouldMatchMqttPublishFlushEx() throws Exception
     {
         BytesMatcher matcher = MqttFunctions.matchFlushEx()
@@ -2188,6 +2398,141 @@ public class MqttFunctionsTest
 
         assertEquals(0, mqttBeginEx.subscribe().generation());
         assertEquals(0, mqttBeginEx.subscribe().packets().fieldCount());
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeBeginExtOutbound()
+    {
+        final byte[] outbound = {1, 2, 3, 4};
+
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .qos("AT_LEAST_ONCE")
+                .filter("sensor/one", 0)
+                .outbound(outbound)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        final byte[] actual = new byte[mqttBeginEx.subscribe().outbound().sizeof()];
+        mqttBeginEx.subscribe().outbound().buffer().getBytes(mqttBeginEx.subscribe().outbound().offset(), actual);
+        assertArrayEquals(outbound, actual);
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeBeginExtWithoutOutbound()
+    {
+        final byte[] array = MqttFunctions.beginEx()
+            .typeId(0)
+                .subscribe()
+                .clientId("client")
+                .qos("AT_LEAST_ONCE")
+                .filter("sensor/one", 0)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttBeginExFW mqttBeginEx = new MqttBeginExFW().wrap(buffer, 0, buffer.capacity());
+
+        assertNull(mqttBeginEx.subscribe().outbound());
+    }
+
+    @Test
+    public void shouldMatchSubscribeBeginExtensionOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .outbound(new byte[] {1, 2, 3, 4})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(1)
+                .filtersItem(p -> p.subscriptionId(1).qos(1).flags(0).pattern("sensor/one"))
+                .outbound(o -> o.set(new byte[] {1, 2, 3, 4})))
+            .build();
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchSubscribeBeginExtensionOutbound() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .outbound(new byte[] {1, 2, 3, 4})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(1)
+                .filtersItem(p -> p.subscriptionId(1).qos(1).flags(0).pattern("sensor/one"))
+                .outbound(o -> o.set(new byte[] {1, 2, 3, 5})))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldNotMatchSubscribeBeginExtensionOutboundAbsent() throws Exception
+    {
+        BytesMatcher matcher = MqttFunctions.matchBeginEx()
+            .subscribe()
+                .clientId("client")
+                .outbound(new byte[] {1, 2, 3, 4})
+                .build()
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.allocate(1024);
+
+        new MqttBeginExFW.Builder()
+            .wrap(new UnsafeBufferEx(byteBuf), 0, byteBuf.capacity())
+            .typeId(0x01)
+            .subscribe(f -> f
+                .clientId("client")
+                .qos(1)
+                .filtersItem(p -> p.subscriptionId(1).qos(1).flags(0).pattern("sensor/one")))
+            .build();
+
+        assertThrows(Exception.class, () -> matcher.match(byteBuf));
+    }
+
+    @Test
+    public void shouldEncodeMqttSubscribeFlushExtOutbound()
+    {
+        final byte[] outbound = {9, 8, 7};
+
+        final byte[] array = MqttFunctions.flushEx()
+            .typeId(0)
+                .subscribe()
+                .outbound(outbound)
+                .build()
+            .build();
+
+        DirectBufferEx buffer = new UnsafeBufferEx(array);
+        MqttFlushExFW mqttFlushEx = new MqttFlushExFW().wrap(buffer, 0, buffer.capacity());
+
+        final byte[] actual = new byte[mqttFlushEx.subscribe().outbound().sizeof()];
+        mqttFlushEx.subscribe().outbound().buffer().getBytes(mqttFlushEx.subscribe().outbound().offset(), actual);
+        assertArrayEquals(outbound, actual);
     }
 
     @Test

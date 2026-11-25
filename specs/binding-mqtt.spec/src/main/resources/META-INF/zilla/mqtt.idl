@@ -146,9 +146,18 @@ scope mqtt
         string16 filter;
     }
 
+    struct MqttMembershipV3
+    {
+        string16 shareName;
+        string16 filter;
+        string16 token = null;
+    }
+
     enum MqttClientStateVersion (uint8)
     {
-        V1 (1)
+        V1 (1),
+        V2 (2),
+        V3 (3)
     }
 
     struct MqttClientStateV1
@@ -157,9 +166,28 @@ scope mqtt
         MqttPacket[] packets;
     }
 
+    struct MqttClientStateV2
+    {
+        MqttMembership[] memberships;
+        MqttPacket[] packets;
+        string16 holder = null;
+    }
+
+    struct MqttClientStateV3
+    {
+        MqttMembershipV3[] memberships;
+        MqttPacket[] packets;
+        string16 holder = null;
+        MqttBinary subscriptions;
+        MqttBinary outbound;
+        MqttBinary inbound;
+    }
+
     union MqttClientState switch (MqttClientStateVersion)
     {
         case V1: mqtt::MqttClientStateV1 clientStateV1;
+        case V2: mqtt::MqttClientStateV2 clientStateV2;
+        case V3: mqtt::MqttClientStateV3 clientStateV3;
     }
 
     enum MqttSessionSignalType (uint8)
@@ -268,6 +296,8 @@ scope mqtt
             string16 clientId;
             int8 length;
             int16[length] packetIds = null;
+            int32 inboundLength;
+            octets[inboundLength] inbound = null;
         }
 
         struct MqttSubscribeBeginEx
@@ -277,6 +307,8 @@ scope mqtt
             MqttTopicFilter[] filters;
             uint32 generation = 0;
             MqttPacket[] packets;
+            int32 outboundLength;
+            octets[outboundLength] outbound = null;
         }
 
         struct MqttPublishBeginEx
@@ -366,6 +398,8 @@ scope mqtt
         struct MqttSessionFlushEx
         {
             uint16 packetId = 0;
+            int32 inboundLength;
+            octets[inboundLength] inbound = null;
         }
 
         struct MqttSubscribeFlushEx
@@ -375,6 +409,8 @@ scope mqtt
             uint8 state = 0;
             uint8 reasonCode = 0;
             MqttTopicFilter[] filters;
+            int32 outboundLength;
+            octets[outboundLength] outbound = null;
         }
 
         enum MqttOffsetStateFlags (uint8)

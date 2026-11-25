@@ -27,10 +27,15 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.RETAIN_AVAILABLE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_LEASE;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_RENEW;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SESSION_STATE_STORE_ENABLED;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.SUBSCRIPTION_IDENTIFIERS;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.TOPIC_ALIAS_MAXIMUM;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.WILDCARD_SUBSCRIPTION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Properties;
 
 import org.junit.Test;
 
@@ -54,6 +59,7 @@ public class MqttConfigurationTest
     public static final String INSTANCE_ID_NAME = "zilla.binding.mqtt.instance.id";
     public static final String SESSION_LEASE_NAME = "zilla.binding.mqtt.session.lease";
     public static final String SESSION_RENEW_NAME = "zilla.binding.mqtt.session.renew";
+    public static final String SESSION_STATE_STORE_ENABLED_NAME = "zilla.binding.mqtt.session.state.store.enabled";
 
     @Test
     public void shouldVerifyConstants()
@@ -73,6 +79,7 @@ public class MqttConfigurationTest
         assertEquals(INSTANCE_ID.name(), INSTANCE_ID_NAME);
         assertEquals(SESSION_LEASE.name(), SESSION_LEASE_NAME);
         assertEquals(SESSION_RENEW.name(), SESSION_RENEW_NAME);
+        assertEquals(SESSION_STATE_STORE_ENABLED.name(), SESSION_STATE_STORE_ENABLED_NAME);
     }
 
     @Test
@@ -81,5 +88,23 @@ public class MqttConfigurationTest
         MqttConfiguration configuration = new MqttConfiguration(new Configuration());
 
         assertEquals(2, configuration.maximumQos());
+    }
+
+    @Test
+    public void shouldDefaultSessionStateStoreEnabledToFalse()
+    {
+        MqttConfiguration configuration = new MqttConfiguration(new Configuration());
+
+        assertFalse(configuration.sessionStateStoreEnabled());
+    }
+
+    @Test
+    public void shouldEnableSessionStateStore()
+    {
+        Properties properties = new Properties();
+        properties.setProperty(SESSION_STATE_STORE_ENABLED_NAME, "true");
+        MqttConfiguration configuration = new MqttConfiguration(new Configuration(properties));
+
+        assertTrue(configuration.sessionStateStoreEnabled());
     }
 }

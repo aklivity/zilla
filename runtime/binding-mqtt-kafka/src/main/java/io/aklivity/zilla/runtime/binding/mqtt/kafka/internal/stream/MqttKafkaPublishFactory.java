@@ -297,6 +297,9 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private int queueSlotReserved;
         private final OffsetsListener offsetsListener = this::drainQueue;
         private final IntArrayList unackedPacketIds = new IntArrayList();
+        private final LongArrayList inboundUnackedSeqs = new LongArrayList();
+        private final IntArrayList inboundUnackedPacketIds = new IntArrayList();
+        private final List<KafkaOffsetMetadata> inboundUnackedOffsets = new ArrayList<>();
         private final List<Function<String, String>> clients;
 
         private KafkaMessagesProxy messages;
@@ -526,6 +529,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 this.clientId = clientMetadata.clientId;
                 this.sessionsTopic = clientMetadata.sessionsTopic;
                 this.clientIdOffsets = new String16FW(clientMetadata.clientId.asString() + OFFSETS_KEY_POSTFIX);
+
+                if (sessionsTopic == null)
+                {
+                    this.offsetCommit = null;
+                }
+            }
+
+            if (offsetCommit != null)
+            {
                 offsetCommit.doKafkaBegin(traceId, authorization, affinity, retainAvailable);
             }
             else
@@ -547,8 +559,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     rejectMqttData : publishMqttData;
             }
 
-            if (offsetCommit != null &&
-                (queueSlot != NO_SLOT || !offsetCommit.unfinishedKafkas.isEmpty() || !offsetsReady()))
+            if (qos == MqttQoS.EXACTLY_ONCE.value() && (queueSlot != NO_SLOT || exchangeUnfinished() || !offsetsReady()))
             {
                 onMqttDataQueued(data);
             }
@@ -628,7 +639,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             {
                 retained.doKafkaAbort(traceId, authorization);
             }
-            offsetCommit.doKafkaAbort(traceId, authorization);
+            if (offsetCommit != null)
+            {
+                offsetCommit.doKafkaAbort(traceId, authorization);
+            }
+        }
+
+        private boolean exchangeUnfinished()
+        {
+            return offsetCommit != null && !offsetCommit.unfinishedKafkas.isEmpty();
         }
 
         private boolean offsetsReady()
@@ -640,7 +659,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (offsetCommit.unfinishedKafkas.isEmpty())
+            if (!exchangeUnfinished())
             {
                 drainQueue(traceId, authorization);
             }
@@ -654,7 +673,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             {
                 final MutableDirectBufferEx queue = queuePool.buffer(queueSlot);
 
-                while (queueSlotProgress < queueSlotOffset && offsetCommit.unfinishedKafkas.isEmpty() && offsetsReady())
+                while (queueSlotProgress < queueSlotOffset && !exchangeUnfinished() && offsetsReady())
                 {
                     final int offset = queueSlotProgress;
                     final int length = queue.getInt(offset + QUEUED_FRAME_LENGTH_OFFSET);
@@ -813,7 +832,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 if (qos == MqttQoS.EXACTLY_ONCE.value())
                 {
-                    kafkaFlags = flags & ~FIN;
+                    kafkaFlags = releasableFlags(flags);
                     final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
                     final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                     producerId = metadata.producerId;
@@ -846,7 +865,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                 deferred = 0;
                 if (qos == MqttQoS.EXACTLY_ONCE.value())
                 {
-                    kafkaFlags = flags & ~FIN;
+                    kafkaFlags = releasableFlags(flags);
                 }
             }
 
@@ -870,7 +889,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                     if (qos == MqttQoS.EXACTLY_ONCE.value())
                     {
-                        kafkaFlags = flags & ~FIN;
+                        kafkaFlags = releasableFlags(flags);
                         final long offsetKey = offsetKey(retained.topicString, retained.qos2PartitionId);
                         final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                         producerId = metadata.producerId;
@@ -1177,7 +1196,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final int messagesBudget = messages.initialMax - messagesNoAck - queueSlotReserved;
             final int retainedBudget = retained.initialMax - retainedNoAck - queueSlotReserved;
             final int kafkaBudget = retainAvailable ? Math.min(messagesBudget, retainedBudget) : messagesBudget;
-            final int newInitialBudget = offsetCommit != null ?
+            final int newInitialBudget = qos == MqttQoS.EXACTLY_ONCE.value() ?
                 Math.max(Math.min(kafkaBudget, queuePool.slotCapacity() - queueSlotOffset), 0) : kafkaBudget;
             final int newInitialMax = newInitialBudget + newInitialNoAck;
             final long newInitialAck = Math.max(initialAck, initialSeq - newInitialNoAck);
@@ -1195,6 +1214,12 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     unackedPacketIds.removeAt(0);
                 }
 
+                while (!inboundUnackedSeqs.isEmpty() && inboundUnackedSeqs.getLong(0) <= initialAck)
+                {
+                    inboundUnackedSeqs.removeAt(0);
+                    inboundUnackedOffsets.remove(0).unackedPacketIds.removeInt(inboundUnackedPacketIds.removeAt(0));
+                }
+
                 int minimum = 0;
                 if (qos == MqttQoS.EXACTLY_ONCE.value())
                 {
@@ -1203,7 +1228,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 assert initialAck <= initialSeq;
                 doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, budgetId, offsetCommit != null ? padding + QUEUED_FRAME_HEADER : padding,
+                    traceId, authorization, budgetId,
+                    qos == MqttQoS.EXACTLY_ONCE.value() ? padding + QUEUED_FRAME_HEADER : padding,
                     minimum, capabilities);
             }
         }
@@ -1250,19 +1276,35 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final long offsetKey = offsetKey(topic, partitionId);
             final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
             metadata.packetIds.add(packetId);
-
-            final MqttKafkaSessionOffsetsFW sessionOffsets = sessionOffsetsHelper.encode(orderedOffsets);
-
-            final Flyweight offsetsDataEx = kafkaDataExRW
-                .wrap(extBuffer, 0, extBuffer.capacity())
-                .typeId(kafkaTypeId)
-                .merged(commitOffsetMerged)
-                .build();
-
             partitions.add(packetId, topic, partitionId);
-            offsetCommit.doKafkaData(traceId, authorization, 0, COMPLETE, sessionOffsets, offsetsDataEx);
-            offsetCommit.unfinishedKafkas.add(kafka);
-            offsetCommit.unfinishedSeqs.addLong(offsetCommit.initialSeq);
+
+            if (offsetCommit != null)
+            {
+                final MqttKafkaSessionOffsetsFW sessionOffsets = sessionOffsetsHelper.encode(orderedOffsets);
+
+                final Flyweight offsetsDataEx = kafkaDataExRW
+                    .wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(kafkaTypeId)
+                    .merged(commitOffsetMerged)
+                    .build();
+
+                offsetCommit.doKafkaData(traceId, authorization, 0, COMPLETE, sessionOffsets, offsetsDataEx);
+                offsetCommit.unfinishedKafkas.add(kafka);
+                offsetCommit.unfinishedSeqs.addLong(offsetCommit.initialSeq);
+            }
+            else
+            {
+                metadata.unackedPacketIds.addInt(packetId);
+                inboundUnackedSeqs.addLong(initialSeq);
+                inboundUnackedPacketIds.addInt(packetId);
+                inboundUnackedOffsets.add(metadata);
+            }
+        }
+
+        private int releasableFlags(
+            int flags)
+        {
+            return offsetCommit != null ? flags & ~FIN : flags;
         }
 
         private void setHashKey(

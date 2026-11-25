@@ -380,6 +380,24 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.filter.change.retain.buffer.fragmented/client",
+        "${kafka}/subscribe.filter.change.retain.buffer.fragmented/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBufferFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.filter.change.retain.buffer.fragment.completed/client",
+        "${kafka}/subscribe.filter.change.retain.buffer.fragment.completed/server"})
+    public void shouldReceiveRetainedAfterFilterChangeBufferFragmentCompleted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.filter.change.retain.resubscribe/client",
         "${kafka}/subscribe.filter.change.retain.resubscribe/server"})
     public void shouldReceiveRetainedAfterFilterChangeResubscribe() throws Exception
@@ -895,6 +913,123 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/session.store.clean.start/client",
+        "${kafka}/session.store.clean.start/server"})
+    public void shouldSessionStoreCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.clean.start.abort/client",
+        "${kafka}/session.store.clean.start.abort/server"})
+    public void shouldSessionStoreCleanStartAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.clean.start.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldSessionStoreCleanStartQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/client",
+        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldSessionStorePersistentCleanStartResetGroupOffsetsCoordinatorNotAvailableQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.persistent.clean.start.no.offsets.topic/client",
+        "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
+    public void shouldSessionStorePersistentCleanStartNoOffsetsTopic() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.persistent.close.reconnect.non.expiring/client",
+        "${kafka}/session.store.persistent.close.reconnect.non.expiring/server"})
+    public void shouldSessionStorePersistentCloseReconnectNonExpiring() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.will.message.normal.disconnect/client",
+        "${kafka}/session.store.will.message.normal.disconnect/server"})
+    public void shouldSessionStoreWillMessageNormalDisconnect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.will.message.clean.start/client",
+        "${kafka}/session.store.will.message.clean.start/server"})
+    public void shouldSessionStoreWillMessageCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.will.message.10k.abort.deliver.will/client",
+        "${kafka}/session.store.will.message.10k.abort.deliver.will/server"})
+    public void shouldSessionStoreWillMessage10kAbortDeliverWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.store.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionStoreWillMessageQos2AbortDeliverWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionWillMessageQos2AbortDeliverWill() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.subscribe.qos.max.1/client",
+        "${kafka}/session.store.subscribe.qos.max.1/server"})
+    public void shouldSessionStoreSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/session.store.unsubscribe.after.subscribe.qos.max.1/client",
+        "${kafka}/session.store.unsubscribe.after.subscribe.qos.max.1/server"})
+    public void shouldSessionStoreUnsubscribeAfterSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/session.abort.expire.session.state/client",
         "${kafka}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
@@ -1237,6 +1372,60 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.session.store/client",
+        "${kafka}/publish.qos2.session.store/server"})
+    public void shouldPublishQoS2SessionStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.before.offsets/client",
+        "${kafka}/publish.qos2.session.store.before.offsets/server"})
+    public void shouldPublishQoS2SessionStoreBeforeOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.persistent.resume/client",
+        "${kafka}/publish.qos2.session.store.persistent.resume/server"})
+    public void shouldPublishQoS2SessionStorePersistentResume() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.persistent.no.inbound/client",
+        "${kafka}/publish.qos2.session.store.persistent.no.inbound/server"})
+    public void shouldPublishQoS2SessionStorePersistentNoInbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.persistent.close/client",
+        "${kafka}/publish.qos2.session.store.persistent.close/server"})
+    public void shouldPublishQoS2SessionStorePersistentClose() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/publish.qos2.session.store.clean.start.close.unacknowledged/client",
+        "${kafka}/publish.qos2.session.store.clean.start.close.unacknowledged/server"})
+    public void shouldPublishQoS2SessionStoreCleanStartCloseUnacknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.offset.commit.credit.window/client",
         "${kafka}/publish.qos2.offset.commit.credit.window/server"})
     public void shouldPublishQoS2MessageOffsetCommitCreditWindow() throws Exception
@@ -1464,6 +1653,51 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.receive.message.qos1.session.store/client",
+        "${kafka}/subscribe.receive.message.qos1.session.store/server"})
+    public void shouldReceiveMessageQoS1WithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound/client",
+        "${kafka}/subscribe.resume.qos1.outbound/server"})
+    public void shouldResumeSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound.stale.offset/client",
+        "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.retained.qos1.outbound.stale.offset/client",
+        "${kafka}/subscribe.resume.retained.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeRetainedQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.close.qos1.outbound/client",
+        "${kafka}/subscribe.close.qos1.outbound/server"})
+    public void shouldCloseSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
     public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
@@ -1503,6 +1737,15 @@ public class KafkaIT
         "${kafka}/subscribe.receive.message.qos2/client",
         "${kafka}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.qos2.session.store/client",
+        "${kafka}/subscribe.receive.message.qos2.session.store/server"})
+    public void shouldReceiveMessageQoS2WithSessionStateStore() throws Exception
     {
         k3po.finish();
     }
@@ -1599,6 +1842,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.expire.message.then.deliver/client",
+        "${kafka}/subscribe.expire.message.then.deliver/server"})
+    public void shouldExpireMessageThenDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.expire.message.fragmented/client",
         "${kafka}/subscribe.expire.message.fragmented/server"})
     public void shouldExpireMessageFragmented() throws Exception
@@ -1629,6 +1881,15 @@ public class KafkaIT
         "${kafka}/subscribe.retained.expire.message/client",
         "${kafka}/subscribe.retained.expire.message/server"})
     public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.retained.expire.message.then.deliver/client",
+        "${kafka}/subscribe.retained.expire.message.then.deliver/server"})
+    public void shouldExpireRetainedMessageThenDeliver() throws Exception
     {
         k3po.finish();
     }

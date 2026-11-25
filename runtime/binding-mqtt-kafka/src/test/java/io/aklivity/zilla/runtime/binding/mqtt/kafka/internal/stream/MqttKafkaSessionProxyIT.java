@@ -18,6 +18,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaCon
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.LIFETIME_ID_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.PUBLISH_MAX_QOS_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_ID_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SHARED_SUBSCRIPTION_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_ID_NAME;
@@ -289,6 +290,132 @@ public class MqttKafkaSessionProxyIT
         "${mqtt}/session.clean.start.discard.offsets/client",
         "${kafka}/session.clean.start.discard.offsets/server"})
     public void shouldDiscardOffsetsOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.clean.start/client",
+        "${kafka}/session.store.clean.start/server"})
+    public void shouldKeepNoKafkaSessionStateOnCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.clean.start.abort/client",
+        "${kafka}/session.store.clean.start.abort/server"})
+    public void shouldKeepNoKafkaSessionStateOnCleanStartAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.clean.start.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldKeepNoKafkaSessionStateOnCleanStartWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.subscribe.qos.max.1/client",
+        "${kafka}/session.store.subscribe.qos.max.1/server"})
+    public void shouldEchoSubscribeStateWithoutKafkaSessionStateWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.unsubscribe.after.subscribe.qos.max.1/client",
+        "${kafka}/session.store.unsubscribe.after.subscribe.qos.max.1/server"})
+    public void shouldEchoUnsubscribeStateWithoutKafkaSessionStateWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.persistent.subscribe.qos.max.1/client",
+        "${kafka}/session.store.clean.start.qos.max.1/server"})
+    public void shouldKeepNoKafkaSessionStateOnPersistentSessionWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.clean.start.discard.offsets/client",
+        "${kafka}/session.store.persistent.clean.start.no.offsets.topic/server"})
+    public void shouldDiscardOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.clean.start.qos.max.1/client",
+        "${kafka}/session.store.persistent.clean.start.reset.group.offsets.coordinator.not.available.qos.max.1/server"})
+    public void shouldResetGroupOffsetsOnCleanStartWithSessionExpiryWhenSessionStateStoreAndPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.will.message.clean.start/client",
+        "${kafka}/session.store.will.message.clean.start/server"})
+    public void shouldGenerateLifeTimeIdOnCleanStartWithWillWhenSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.persistent.close.reconnect.non.expiring/client",
+        "${kafka}/session.store.persistent.close.reconnect.non.expiring/server"})
+    public void shouldReconnectNonExpiringSessionWhenSessionStateStore() throws Exception
     {
         k3po.finish();
     }
@@ -621,6 +748,30 @@ public class MqttKafkaSessionProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.will.message.normal.disconnect/client",
+        "${kafka}/session.store.will.message.normal.disconnect/server"})
+    public void shouldKeepNoKafkaSessionStateOrExpirySignalOnWillSessionWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.will.message.subscribe/client",
+        "${kafka}/session.store.will.message.normal.disconnect/server"})
+    public void shouldEchoSubscribeStateOnWillSessionWhenPublishQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
     @Specification({
         "${mqtt}/session.will.message.clean.start/client",
         "${kafka}/session.will.message.clean.start/server"})
@@ -701,6 +852,57 @@ public class MqttKafkaSessionProxyIT
     {
         k3po.start();
         k3po.awaitBarrier("RECEIVED_SESSION_EXPIRE_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = PUBLISH_MAX_QOS_NAME, value = "1")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.will.message.10k.abort.deliver.will/client",
+        "${kafka}/session.store.will.message.10k.abort.deliver.will/server"})
+    public void shouldSendWillMessage10kOnAbortWithoutExpirySignalWhenSessionStateStore() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/session.store.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.store.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSendWillMessageQos2OnAbortWithoutExpirySignalWhenSessionStateStore() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
+        clock.advanceTo(2001L);
+        try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
+        {
+            k3po.finish();
+        }
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Specification({
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/client",
+        "${kafka}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSendWillMessageQos2OnAbort() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("RECEIVED_WILL_DELIVER_AT_SIGNAL");
         clock.advanceTo(2001L);
         try (TestClock.Ticker ticker = clock.ticker(1L, 1L))
         {

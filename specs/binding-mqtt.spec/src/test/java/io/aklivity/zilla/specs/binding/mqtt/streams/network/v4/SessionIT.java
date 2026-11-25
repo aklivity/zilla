@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${net}/session.reconnect.non.clean.start.stored/client",
+        "${net}/session.reconnect.non.clean.start.stored/server"})
+    public void shouldReconnectNonCleanStartStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/session.connect.non.clean.start/client",
         "${net}/session.connect.non.clean.start/server"})
     public void shouldConnectNonCleanStart() throws Exception
@@ -226,6 +235,26 @@ public class SessionIT
         "${net}/session.client.takeover.before.connack/client",
         "${net}/session.client.takeover.before.connack/server"})
     public void shouldClientTakeOverBeforeConnack() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.non.clean.start.inbound.state/client",
+        "${net}/session.non.clean.start.inbound.state/server"})
+    public void shouldSessionNonCleanStartInboundState() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.non.clean.start.store.held.inbound.state/client",
+        "${net}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
     {
         k3po.finish();
     }

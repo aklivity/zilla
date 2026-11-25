@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -345,6 +346,160 @@ public class SessionIT
     @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent/server"})
+    public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.inbound.state/client",
+        "${app}/session.inbound.state/server"})
+    public void shouldCarryInboundStateAcrossSessions() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("ECHOED");
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.disconnect.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.raise.session.expiry.stored/server"})
+    public void shouldKeepStoredSessionWhenDisconnectRaisesSessionExpiry() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        Thread.sleep(2000L);
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.disconnect.zero.session.expiry/client",
+        "${app}/session.disconnect.zero.session.expiry/server"})
+    public void shouldDiscardStoredSessionWhenDisconnectSetsSessionExpiryToZero() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.disconnect.with.error.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.with.error.raise.session.expiry.stored/server"})
+    public void shouldKeepStoredSessionWhenDisconnectWithErrorRaisesSessionExpiry() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        Thread.sleep(2000L);
+        k3po.notifyBarrier("RECONNECT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent.stored/server"})
+    public void shouldRestoreSubscriptionsFromStoreOnPersistentTakeOver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldHoldPipelinedSubscribeUntilStoredSubscriptionsAreRestored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.unreadable.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${app}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectAsNewSessionWhenStoredStateIsUnreadable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/server"})
+    public void shouldWaitForSessionWindowBeforeRestoringStoredSubscriptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent.stored.window.too.small/client",
+        "${app}/session.client.takeover.persistent.stored.window.too.small/server"})
+    public void shouldStartNewSessionWhenStoredSubscriptionsExceedSessionWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.client.takeover.after.lease/client",
+        "${app}/session.client.takeover/server"})
+    public void shouldTakeOverSessionAfterLease() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CONNECTED");
+        Thread.sleep(1500L);
+        k3po.notifyBarrier("LEASE_ELAPSED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
         "${net}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start/server"})
     public void shouldRemoveSessionAtCleanStart() throws Exception
@@ -600,6 +755,45 @@ public class SessionIT
         "${net}/session.connect.non.clean.start.store.empty.state/client",
         "${app}/session.connect.non.clean.start.store.empty.state/server"})
     public void shouldConnectNonCleanStartStoreEmptyState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.held.yaml")
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.empty.state/client",
+        "${app}/session.connect.non.clean.start.store.held.state/server"})
+    public void shouldConnectNonCleanStartStoreHeldState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.oversize.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.inbound.state.oversize/client",
+        "${app}/session.inbound.state.oversize/server"})
+    public void shouldDropStoredInboundStateThatExceedsSessionBegin() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("ECHOED");
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.inbound.state.abort/client",
+        "${app}/session.inbound.state.abort/server"})
+    public void shouldStoreInboundStateSentAfterNetworkAbort() throws Exception
     {
         k3po.finish();
     }

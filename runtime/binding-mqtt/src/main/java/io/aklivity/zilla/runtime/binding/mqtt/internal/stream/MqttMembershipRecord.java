@@ -21,13 +21,23 @@ final class MqttMembershipRecord
 {
     final String shareName;
     final String filter;
+    final String token;
 
     MqttMembershipRecord(
         String shareName,
         String filter)
     {
+        this(shareName, filter, null);
+    }
+
+    MqttMembershipRecord(
+        String shareName,
+        String filter,
+        String token)
+    {
         this.shareName = shareName;
         this.filter = filter;
+        this.token = token;
     }
 
     @Override

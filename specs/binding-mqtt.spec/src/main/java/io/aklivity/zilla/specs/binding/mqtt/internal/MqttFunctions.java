@@ -56,6 +56,7 @@ import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillMessageFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.MqttWillSignalLongFW;
+import io.aklivity.zilla.specs.binding.mqtt.internal.types.OctetsFW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.String16FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.Varint32FW;
 import io.aklivity.zilla.specs.binding.mqtt.internal.types.stream.MqttBeginExFW;
@@ -282,6 +283,19 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionBeginExBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionBeginExBuilder inboundBytes(
+                byte[] inbound)
+            {
+                sessionBeginExRW.inbound(b -> b.set(inbound));
+                return this;
+            }
+
             public MqttSessionBeginExBuilder subscribeQosMax(
                 int subscribeQosMax)
             {
@@ -407,6 +421,13 @@ public final class MqttFunctions
                 long generation)
             {
                 subscribeBeginExRW.generation(generation);
+                return this;
+            }
+
+            public MqttSubscribeBeginExBuilder outbound(
+                byte[] outbound)
+            {
+                subscribeBeginExRW.outbound(o -> o.set(outbound));
                 return this;
             }
 
@@ -919,6 +940,19 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionFlushExBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionFlushExBuilder inboundBytes(
+                byte[] inbound)
+            {
+                sessionFlushExRW.inbound(b -> b.set(inbound));
+                return this;
+            }
+
             public MqttFlushExBuilder build()
             {
                 final MqttSessionFlushExFW sessionFlushEx = sessionFlushExRW.build();
@@ -954,6 +988,13 @@ public final class MqttFunctions
                 String state)
             {
                 subscribeFlushExRW.state(MqttOffsetStateFlags.valueOf(state).ordinal());
+                return this;
+            }
+
+            public MqttSubscribeFlushExBuilder outbound(
+                byte[] outbound)
+            {
+                subscribeFlushExRW.outbound(o -> o.set(outbound));
                 return this;
             }
 
@@ -1911,6 +1952,7 @@ public final class MqttFunctions
             private Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filters;
             private Long generation;
             private Array32FW.Builder<MqttPacketFW.Builder, MqttPacketFW> packets;
+            private byte[] outbound;
 
             private MqttSubscribeBeginExMatcherBuilder()
             {
@@ -2014,6 +2056,13 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSubscribeBeginExMatcherBuilder outbound(
+                byte[] outbound)
+            {
+                this.outbound = outbound;
+                return this;
+            }
+
             public MqttSubscribeBeginExMatcherBuilder packet(
                 int packetId,
                 String state,
@@ -2101,7 +2150,24 @@ public final class MqttFunctions
                     matchQos(subscribeBeginEx) &&
                     matchFilters(subscribeBeginEx) &&
                     matchGeneration(subscribeBeginEx) &&
-                    matchPackets(subscribeBeginEx);
+                    matchPackets(subscribeBeginEx) &&
+                    matchOutbound(subscribeBeginEx);
+            }
+
+            private boolean matchOutbound(
+                final MqttSubscribeBeginExFW subscribeBeginEx)
+            {
+                final OctetsFW actual = subscribeBeginEx.outbound();
+                boolean match = outbound == null;
+
+                if (!match && actual != null && actual.sizeof() == outbound.length)
+                {
+                    final byte[] actualBytes = new byte[actual.sizeof()];
+                    actual.buffer().getBytes(actual.offset(), actualBytes);
+                    match = Arrays.equals(outbound, actualBytes);
+                }
+
+                return match;
             }
 
             private boolean matchGeneration(
@@ -2145,6 +2211,7 @@ public final class MqttFunctions
             private Integer subscribeQosMax;
             private Integer publishQosMax;
             private Integer packetSizeMax;
+            private byte[] inbound;
 
             private MqttSessionBeginExMatcherBuilder()
             {
@@ -2169,6 +2236,19 @@ public final class MqttFunctions
                 int packetId)
             {
                 this.packetIds.add(packetId);
+                return this;
+            }
+
+            public MqttSessionBeginExMatcherBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionBeginExMatcherBuilder inboundBytes(
+                byte[] inbound)
+            {
+                this.inbound = inbound;
                 return this;
             }
 
@@ -2223,6 +2303,7 @@ public final class MqttFunctions
                 return matchFlags(sessionBeginEx) &&
                     matchClientId(sessionBeginEx) &&
                     matchPacketIds(sessionBeginEx) &&
+                    matchInbound(sessionBeginEx) &&
                     matchExpiry(sessionBeginEx) &&
                     matchSubscribeQosMax(sessionBeginEx) &&
                     matchPublishQosMax(sessionBeginEx) &&
@@ -2245,6 +2326,23 @@ public final class MqttFunctions
                 while (!match && ids.hasNext())
                 {
                     match = packetIds.contains(ids.nextInt());
+                }
+                return match;
+            }
+
+            private boolean matchInbound(
+                final MqttSessionBeginExFW sessionBeginEx)
+            {
+                boolean match = inbound == null;
+                if (!match)
+                {
+                    final int length = sessionBeginEx.inbound() == null ? 0 : sessionBeginEx.inbound().sizeof();
+                    final byte[] actual = new byte[length];
+                    if (length > 0)
+                    {
+                        sessionBeginEx.inbound().buffer().getBytes(sessionBeginEx.inbound().offset(), actual);
+                    }
+                    match = Arrays.equals(inbound, actual);
                 }
                 return match;
             }
@@ -2854,6 +2952,15 @@ public final class MqttFunctions
             return matcherBuilder;
         }
 
+        public MqttSubscribeFlushExMatcherBuilder subscribe()
+        {
+            final MqttSubscribeFlushExMatcherBuilder matcherBuilder = new MqttSubscribeFlushExMatcherBuilder();
+
+            this.kind = MqttExtensionKind.SUBSCRIBE.value();
+            this.caseMatcher = matcherBuilder::match;
+            return matcherBuilder;
+        }
+
         public MqttSessionFlushExMatcherBuilder session()
         {
             final MqttSessionFlushExMatcherBuilder matcherBuilder = new MqttSessionFlushExMatcherBuilder();
@@ -2965,9 +3072,47 @@ public final class MqttFunctions
             }
         }
 
+        public final class MqttSubscribeFlushExMatcherBuilder
+        {
+            private byte[] outbound;
+
+            private MqttSubscribeFlushExMatcherBuilder()
+            {
+            }
+
+            public MqttSubscribeFlushExMatcherBuilder outbound(
+                byte[] outbound)
+            {
+                this.outbound = outbound;
+                return this;
+            }
+
+            public MqttFlushExMatcherBuilder build()
+            {
+                return MqttFlushExMatcherBuilder.this;
+            }
+
+            private boolean match(
+                MqttFlushExFW flushEx)
+            {
+                final OctetsFW actual = flushEx.subscribe().outbound();
+                boolean match = outbound == null;
+
+                if (!match && actual != null && actual.sizeof() == outbound.length)
+                {
+                    final byte[] actualBytes = new byte[actual.sizeof()];
+                    actual.buffer().getBytes(actual.offset(), actualBytes);
+                    match = Arrays.equals(outbound, actualBytes);
+                }
+
+                return match;
+            }
+        }
+
         public final class MqttSessionFlushExMatcherBuilder
         {
             private Integer packetId;
+            private byte[] inbound;
 
             private MqttSessionFlushExMatcherBuilder()
             {
@@ -2980,6 +3125,19 @@ public final class MqttFunctions
                 return this;
             }
 
+            public MqttSessionFlushExMatcherBuilder inbound(
+                String inbound)
+            {
+                return inboundBytes(inbound.getBytes(UTF_8));
+            }
+
+            public MqttSessionFlushExMatcherBuilder inboundBytes(
+                byte[] inbound)
+            {
+                this.inbound = inbound;
+                return this;
+            }
+
             public MqttFlushExMatcherBuilder build()
             {
                 return MqttFlushExMatcherBuilder.this;
@@ -2989,7 +3147,25 @@ public final class MqttFunctions
                 MqttFlushExFW flushEx)
             {
                 final MqttSessionFlushExFW sessionFlushEx = flushEx.session();
-                return matchPacketId(sessionFlushEx);
+                return matchPacketId(sessionFlushEx) &&
+                    matchInbound(sessionFlushEx);
+            }
+
+            private boolean matchInbound(
+                final MqttSessionFlushExFW flush)
+            {
+                boolean match = inbound == null;
+                if (!match)
+                {
+                    final int length = flush.inbound() == null ? 0 : flush.inbound().sizeof();
+                    final byte[] actual = new byte[length];
+                    if (length > 0)
+                    {
+                        flush.inbound().buffer().getBytes(flush.inbound().offset(), actual);
+                    }
+                    match = Arrays.equals(inbound, actual);
+                }
+                return match;
             }
 
             private boolean matchPacketId(

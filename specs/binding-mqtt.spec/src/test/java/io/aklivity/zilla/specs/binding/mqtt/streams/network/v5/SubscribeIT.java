@@ -431,6 +431,24 @@ public class SubscribeIT
 
     @Test
     @Specification({
+        "${net}/subscribe.pubrel.while.publish.fragmented/client",
+        "${net}/subscribe.pubrel.while.publish.fragmented/server"})
+    public void shouldDeferPubrelWhilePublishFragmentedQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.pingresp.while.publish.fragmented/client",
+        "${net}/subscribe.pingresp.while.publish.fragmented/server"})
+    public void shouldDeferPingRespWhilePublishFragmented() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/client",
         "${net}/subscribe.receive.message.qos2.pubrec.failure.reason.codes/server"})
     public void shouldReceiveMessageQoS2AfterPubrecFailureReasonCodes() throws Exception
@@ -1527,6 +1545,27 @@ public class SubscribeIT
         "${net}/subscribe.shared.rejoin.after.disconnect.new.generation/client",
         "${net}/subscribe.shared.rejoin.after.disconnect.new.generation/server"})
     public void shouldSubscribeSharedRejoinAfterDisconnectNewGeneration() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.rejoin.after.session.expiry.new.generation/client",
+        "${net}/subscribe.shared.rejoin.after.session.expiry.new.generation/server"})
+    public void shouldSubscribeSharedRejoinAfterSessionExpiryNewGeneration() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FIRST_CLOSED");
+        k3po.notifyBarrier("SESSION_EXPIRED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/subscribe.shared.reconnect.replay.qos2.after.idle/client",
+        "${net}/subscribe.shared.reconnect.replay.qos2.after.idle/server"})
+    public void shouldSubscribeSharedReconnectReplayQos2AfterIdle() throws Exception
     {
         k3po.finish();
     }

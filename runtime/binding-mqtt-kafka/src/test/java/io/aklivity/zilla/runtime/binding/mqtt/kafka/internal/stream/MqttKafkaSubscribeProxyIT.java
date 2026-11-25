@@ -15,6 +15,7 @@
 package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.BOOTSTRAP_STREAM_RECONNECT_DELAY_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.MqttKafkaConfigurationTest.WILL_AVAILABLE_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -388,6 +389,28 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragmented/client",
+        "${kafka}/subscribe.filter.change.retain.buffer.fragmented/server"})
+    public void shouldReceiveBufferedMessagesWithOwnFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.filter.change.retain.buffer.fragment.completed/client",
+        "${kafka}/subscribe.filter.change.retain.buffer.fragment.completed/server"})
+    public void shouldReceiveBufferedFragmentCompletedWithOwnFlags() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.deferred.filter.change.retain/client",
         "${kafka}/subscribe.deferred.filter.change.retain/server"})
     public void shouldReceiveRetainedAfterDeferredFilterChange() throws Exception
@@ -607,6 +630,66 @@ public class MqttKafkaSubscribeProxyIT
     @Test
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos1/client",
+        "${kafka}/subscribe.receive.message.qos1.session.store/server"})
+    public void shouldReceiveMessageQoS1WithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.resume.qos1.outbound/client",
+        "${kafka}/subscribe.resume.qos1.outbound/server"})
+    public void shouldResumeSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.resume.qos1.outbound/client",
+        "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/client",
+        "${kafka}/subscribe.resume.retained.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeRetainedQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.close.qos1.outbound/client",
+        "${kafka}/subscribe.close.qos1.outbound/server"})
+    public void shouldCloseSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
         "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
@@ -633,6 +716,18 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.receive.message.qos2/client",
         "${kafka}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${mqtt}/subscribe.receive.message.qos2/client",
+        "${kafka}/subscribe.receive.message.qos2.session.store/server"})
+    public void shouldReceiveMessageQoS2WithSessionStateStore() throws Exception
     {
         k3po.finish();
     }
@@ -773,6 +868,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.expire.message.then.deliver/client",
+        "${kafka}/subscribe.expire.message.then.deliver/server"})
+    public void shouldExpireMessageThenDeliver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.expire.message/client",
         "${kafka}/subscribe.expire.message.fragmented/server"})
     public void shouldExpireMessageFragmented() throws Exception
@@ -809,6 +915,17 @@ public class MqttKafkaSubscribeProxyIT
         "${mqtt}/subscribe.retained.expire.message/client",
         "${kafka}/subscribe.retained.expire.message/server"})
     public void shouldExpireRetainedMessage() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
+        "${mqtt}/subscribe.retained.expire.message.then.deliver/client",
+        "${kafka}/subscribe.retained.expire.message.then.deliver/server"})
+    public void shouldExpireRetainedMessageThenDeliver() throws Exception
     {
         k3po.finish();
     }

@@ -315,8 +315,8 @@ read ${mqtt:sessionSignal()
 
 write notify RECEIVED_WILL_DELIVER_AT_SIGNAL
 
-read aborted
-write abort
+read closed
+write close
 
 
 accepted
