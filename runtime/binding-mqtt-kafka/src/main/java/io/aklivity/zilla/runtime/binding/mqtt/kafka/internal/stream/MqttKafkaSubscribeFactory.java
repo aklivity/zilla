@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.NO_PACKET_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.PUBLISH_SENT;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.PUBREL_PENDING;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags.DUP;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttPublishFlags.RETAIN;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeFlags.NO_LOCAL;
@@ -79,6 +80,7 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRec
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRecordVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundPacketV1FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttUserPropertyFW;
@@ -484,6 +486,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private boolean retainAvailable;
         private final Map<String, Long2LongHashMap> resumeOffsetsByTopic = new HashMap<>();
         private final Map<String, Long2LongHashMap> deliveredOffsetsByTopic = new HashMap<>();
+        private final IntArrayList pubrelResendPacketIds = new IntArrayList();
         private final Map<String, Int2ObjectHashMap<Long2LongHashMap>> unackedPacketIdsByTopic = new HashMap<>();
 
         private MqttSubscribeProxy(
@@ -633,6 +636,10 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 resumed.outboundV1().packets().forEach(p ->
                 {
                     final String topicName = p.topic().asString();
+                    if (p.qos() == qos)
+                    {
+                        reservePacket(p, topicName);
+                    }
                     final Long2LongHashMap resume = resumeOffsetsByTopic.get(topicName);
                     if (p.qos() == qos && p.state() == PUBLISH_SENT && resume != null &&
                         !topicName.equals(retained.topic.asString()) &&
@@ -726,6 +733,38 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             String16FW topic)
         {
             return resumeOffsetsByTopic.get(topic.asString());
+        }
+
+        private void reservePacket(
+            MqttSubscribeOutboundPacketV1FW packet,
+            String topicName)
+        {
+            final long topicKey = System.identityHashCode(topicName.intern());
+            final MqttKafkaPacketIds inflight = clientHighWaterMarks.inflight;
+
+            clientHighWaterMarks.topicNames.put(topicKey, topicName);
+            inflight.reserve(packet.packetId(), topicKey, packet.partitionId(), packet.partitionOffset(), qos);
+
+            if (packet.state() == PUBREL_PENDING)
+            {
+                inflight.pubrelPending(packet.packetId());
+                pubrelResendPacketIds.addInt(packet.packetId());
+            }
+        }
+
+        private void doMqttPubrelResend(
+            long traceId,
+            long authorization)
+        {
+            for (int i = 0; i < pubrelResendPacketIds.size(); i++)
+            {
+                final int packetId = pubrelResendPacketIds.getInt(i);
+                final Flyweight mqttSubscribeFlushEx = mqttFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .subscribe(b -> b.packetId(packetId)).build();
+                doMqttFlush(traceId, authorization, 0, 0, mqttSubscribeFlushEx);
+            }
+            pubrelResendPacketIds.clear();
         }
 
         private int unackedPacketId(
@@ -1161,6 +1200,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             assert replyAck <= replySeq;
 
             mqttSharedBudget = replyMax - (int)(replySeq - replyAck);
+
+            doMqttPubrelResend(traceId, authorization);
 
             if (retainAvailable)
             {

@@ -1680,6 +1680,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.resume.qos2.outbound.pubrel/client",
+        "${kafka}/subscribe.resume.qos2.outbound.pubrel/server"})
+    public void shouldResumeSubscribeQoS2OutboundPubrel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/client",
         "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
     public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception
