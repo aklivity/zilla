@@ -100,6 +100,9 @@ public class KafkaCacheServerBM
         @Param({"256"})
         public int outstanding;
 
+        @Param({"0"})
+        public int members;
+
         private EngineBench bench;
         private KafkaCacheExitStub stub;
         private Producer[] producers;
@@ -147,6 +150,25 @@ public class KafkaCacheServerBM
                 producer.client.begin(beginEx, 0, beginEx.capacity());
                 producer.client.replyWindow(DEFAULT_WINDOW);
                 producers[partitionId] = producer;
+            }
+
+            final long cacheId = bench.bindingId("cache0");
+            for (int partitionId = 0; partitionId < partitions; partitionId++)
+            {
+                final UnsafeBufferEx fetchEx = new UnsafeBufferEx(KafkaFunctions.beginEx()
+                    .typeId(kafkaTypeId)
+                    .fetch()
+                        .topic("test")
+                        .partition(partitionId, 0L)
+                        .build()
+                    .build());
+
+                for (int member = 0; member < members; member++)
+                {
+                    final Client fetcher = bench.newClient(cacheId, new Producer());
+                    fetcher.begin(fetchEx, 0, fetchEx.capacity());
+                    fetcher.replyWindow(DEFAULT_WINDOW);
+                }
             }
 
             run(partitions * 2);

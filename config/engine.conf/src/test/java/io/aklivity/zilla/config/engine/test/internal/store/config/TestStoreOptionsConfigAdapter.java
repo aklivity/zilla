@@ -41,6 +41,7 @@ public final class TestStoreOptionsConfigAdapter extends ConfigAdapter<OptionsCo
     private static final String EXPECTED_NAME = "expected";
     private static final String DELTA_NAME = "delta";
     private static final String TTL_NAME = "ttl";
+    private static final String EXPIRATION_NAME = "expiration";
 
     @Override
     public JsonObject adaptToJson(
@@ -91,6 +92,10 @@ public final class TestStoreOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                 {
                     assertion.add(TTL_NAME, a.ttl.toString());
                 }
+                if (a.expiration != null)
+                {
+                    assertion.add(EXPIRATION_NAME, a.expiration);
+                }
                 assertions.add(assertion);
             }
             object.add(ASSERTIONS_NAME, assertions);
@@ -130,7 +135,8 @@ public final class TestStoreOptionsConfigAdapter extends ConfigAdapter<OptionsCo
                     assertion.getString(VALUE_NAME, null),
                     assertion.getString(EXPECTED_NAME, null),
                     assertion.containsKey(DELTA_NAME) ? assertion.getJsonNumber(DELTA_NAME).longValue() : 0L,
-                    assertion.containsKey(TTL_NAME) ? Duration.parse(assertion.getString(TTL_NAME)) : null));
+                    assertion.containsKey(TTL_NAME) ? Duration.parse(assertion.getString(TTL_NAME)) : null,
+                    assertion.getString(EXPIRATION_NAME, null)));
             }
             testOptions.assertions(assertions);
         }

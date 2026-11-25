@@ -78,6 +78,9 @@ final class KafkaCacheExitStub implements BindingHandler
     private final UnsafeBufferEx fetchBeginEx;
     private final UnsafeBufferEx fetchDataEx;
     private final UnsafeBufferEx produceAckEx;
+    private final List<FetchStream> heldFetches = new ArrayList<>();
+    private boolean fetchReplyHeld;
+    private int fetchBegins;
     private final int fetchPartitionOffset;
     private final int ackPartitionOffset;
 
@@ -161,6 +164,23 @@ final class KafkaCacheExitStub implements BindingHandler
             .fetch().partition().offset();
         this.ackPartitionOffset = new KafkaFlushExFW().wrap(produceAckEx, 0, produceAckEx.capacity())
             .produce().partition().offset();
+    }
+
+    void holdFetchReply()
+    {
+        fetchReplyHeld = true;
+    }
+
+    void releaseFetchReply()
+    {
+        fetchReplyHeld = false;
+        heldFetches.forEach(FetchStream::doReplyFetchBegin);
+        heldFetches.clear();
+    }
+
+    int fetchBegins()
+    {
+        return fetchBegins;
     }
 
     long produced()
@@ -524,7 +544,21 @@ final class KafkaCacheExitStub implements BindingHandler
         void onBegin()
         {
             log.fetch = this;
+            fetchBegins++;
             doInitialWindow();
+
+            if (fetchReplyHeld)
+            {
+                heldFetches.add(this);
+            }
+            else
+            {
+                doReplyFetchBegin();
+            }
+        }
+
+        private void doReplyFetchBegin()
+        {
             doReplyBegin(fetchBeginEx);
         }
 

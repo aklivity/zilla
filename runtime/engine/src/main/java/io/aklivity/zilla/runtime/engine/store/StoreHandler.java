@@ -49,6 +49,27 @@ import java.util.function.LongConsumer;
 public interface StoreHandler
 {
     /**
+     * Whether the expiry of an entry is observable through {@link #expire}.
+     * <p>
+     * {@link #TRACKED}: the expiry is reported to matching {@link #expire} registrations as
+     * specified there (the default). {@link #UNTRACKED}: the entry lives for its time-to-live
+     * only; its expiry is never reported to any {@link #expire} registration and the store retains
+     * no value, index or other state for it beyond what it needs to enforce the time-to-live.
+     * </p>
+     * <p>
+     * The mode belongs to the expiry that a write sets and lives exactly as long as that expiry.
+     * The caller decides it, and it applies to whichever expiry the write ends up with, including
+     * a default expiry the store applies when the caller gives no time-to-live. A write that does
+     * not name a mode is {@link #TRACKED}. An entry written without any expiry has no mode.
+     * </p>
+     */
+    enum Expiration
+    {
+        TRACKED,
+        UNTRACKED
+    }
+
+    /**
      * Retrieves the value associated with the given key.
      *
      * @param key        the key to look up
@@ -61,20 +82,59 @@ public interface StoreHandler
 
     /**
      * Associates the given value with the given key, replacing any existing value.
+     * <p>
+     * The expiry is {@link Expiration#TRACKED}, as for {@link #put(String, String, Duration,
+     * Expiration, Consumer)}.
+     * </p>
      *
      * @param key        the key to store
      * @param value      the value to associate
      * @param ttl        the time-to-live, or {@code null} for no expiry
      * @param completion a callback invoked when the operation completes
      */
+    default void put(
+        String key,
+        String value,
+        Duration ttl,
+        Consumer<String> completion)
+    {
+        put(key, value, ttl, Expiration.TRACKED, completion);
+    }
+
+    /**
+     * Associates the given value with the given key, replacing any existing value, and states
+     * whether the expiry it sets is reported through {@link #expire}.
+     * <p>
+     * A write over an entry replaces the mode along with the expiry: a {@link Expiration#TRACKED}
+     * write over an {@link Expiration#UNTRACKED} entry reports the new expiry from then on, and an
+     * {@link Expiration#UNTRACKED} write over a live {@link Expiration#TRACKED} entry cancels its
+     * tracking, so the replaced expiry is never reported, like that of any replaced entry. An
+     * entry that has already expired but is not yet swept still reports its expiry before it is
+     * overwritten, if it was {@link Expiration#TRACKED}; an expired {@link Expiration#UNTRACKED}
+     * entry has nothing to report.
+     * </p>
+     *
+     * @param key        the key to store
+     * @param value      the value to associate
+     * @param ttl        the time-to-live, or {@code null} for no expiry
+     * @param expiration whether the expiry of the stored value is reported through {@link #expire};
+     *                   chosen by the caller and applied to whichever expiry the write ends up
+     *                   with, a default expiry included; never {@code null}
+     * @param completion a callback invoked when the operation completes
+     */
     void put(
         String key,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<String> completion);
 
     /**
      * Associates the given value with the given key only if the key is not already present.
+     * <p>
+     * The expiry is {@link Expiration#TRACKED}, as for {@link #putIfAbsent(String, String,
+     * Duration, Expiration, Consumer)}.
+     * </p>
      *
      * @param key        the key to store
      * @param value      the value to associate if absent
@@ -82,10 +142,37 @@ public interface StoreHandler
      * @param completion a callback that receives the existing value if present,
      *                   or {@code null} if the key was absent and the value was stored
      */
+    default void putIfAbsent(
+        String key,
+        String value,
+        Duration ttl,
+        Consumer<String> completion)
+    {
+        putIfAbsent(key, value, ttl, Expiration.TRACKED, completion);
+    }
+
+    /**
+     * Associates the given value with the given key only if the key is not already present, and
+     * states whether the expiry it sets is reported through {@link #expire}.
+     * <p>
+     * The mode applies only when the value is stored, and follows the rules stated for
+     * {@link #put(String, String, Duration, Expiration, Consumer)}.
+     * </p>
+     *
+     * @param key        the key to store
+     * @param value      the value to associate if absent
+     * @param ttl        the time-to-live, or {@code null} for no expiry
+     * @param expiration whether the expiry of the stored value is reported through {@link #expire};
+     *                   chosen by the caller and applied to whichever expiry the write ends up
+     *                   with, a default expiry included; never {@code null}
+     * @param completion a callback that receives the existing value if present,
+     *                   or {@code null} if the key was absent and the value was stored
+     */
     void putIfAbsent(
         String key,
         String value,
         Duration ttl,
+        Expiration expiration,
         Consumer<String> completion);
 
     /**
@@ -102,7 +189,11 @@ public interface StoreHandler
      * Atomically adds {@code delta} to the counter stored under the given key.
      * <p>
      * An absent or expired key is created at zero before the addition, with {@code ttl} applied
-     * on creation only; an existing counter keeps its remaining lifetime. The stored form is the
+     * on creation only; an existing entry keeps its remaining lifetime. The expiry of a counter
+     * created by this call is {@link Expiration#UNTRACKED}, and incrementing an existing entry makes
+     * its remaining expiry {@link Expiration#UNTRACKED} too, so a counter is never reported through
+     * {@link #expire}: it still expires and is no longer readable, but its expiry is not delivered.
+     * The stored form is the
      * decimal string of the counter, so {@link #get} observes the same value. The existing value
      * must be a decimal integer, otherwise the call fails with {@link NumberFormatException}.
      * </p>
@@ -151,6 +242,11 @@ public interface StoreHandler
      * with {@link #get} and try again; it is never blocked on a lock.
      * </p>
      *
+     * <p>
+     * The expiry is {@link Expiration#TRACKED}, as for {@link #replace(String, String, String,
+     * Duration, Expiration, Consumer)}.
+     * </p>
+     *
      * @param key        the key to update
      * @param expected   the value the key must currently hold
      * @param value      the value to associate if the current value matches
@@ -158,10 +254,81 @@ public interface StoreHandler
      * @param completion a callback that receives {@code true} if the value was replaced,
      *                   or {@code false} if the key is absent or holds a different value
      */
+    default void replace(
+        String key,
+        String expected,
+        String value,
+        Duration ttl,
+        Consumer<Boolean> completion)
+    {
+        replace(key, expected, value, ttl, Expiration.TRACKED, completion);
+    }
+
+    /**
+     * Atomically replaces the value associated with the given key, only if its current value
+     * equals {@code expected}, and states whether the expiry it sets is reported through
+     * {@link #expire}.
+     * <p>
+     * The mode applies only when the value is replaced, and follows the rules stated for
+     * {@link #put(String, String, Duration, Expiration, Consumer)}.
+     * </p>
+     *
+     * @param key        the key to update
+     * @param expected   the value the key must currently hold
+     * @param value      the value to associate if the current value matches
+     * @param ttl        the time-to-live of the new value, or {@code null} for no expiry
+     * @param expiration whether the expiry of the new value is reported through {@link #expire};
+     *                   chosen by the caller and applied to whichever expiry the write ends up
+     *                   with, a default expiry included; never {@code null}
+     * @param completion a callback that receives {@code true} if the value was replaced,
+     *                   or {@code false} if the key is absent or holds a different value
+     */
     void replace(
         String key,
         String expected,
         String value,
+        Duration ttl,
+        Expiration expiration,
+        Consumer<Boolean> completion);
+
+    /**
+     * Restarts the time-to-live of the entry stored under the given key without rewriting its value.
+     * <p>
+     * The entry expires {@code ttl} after the call, replacing its previous expiry instant whether
+     * that was earlier or later. The value is unchanged. An entry that was written without a
+     * time-to-live is given one, consistent with {@link #put}, where {@code null} means no expiry:
+     * a {@code null} {@code ttl} leaves the entry with no expiry, so that it never expires.
+     * Lock leases are not entries and are unaffected.
+     * </p>
+     * <p>
+     * The countdown restarts with the {@link Expiration} mode of the expiry it replaces, so touching
+     * an {@link Expiration#UNTRACKED} entry leaves it {@link Expiration#UNTRACKED}. An entry that had
+     * no expiry has no mode, and a touch that gives it one makes it {@link Expiration#TRACKED}.
+     * </p>
+     * <p>
+     * A touch is not a write for any other purpose: it does not notify {@link #watch}
+     * registrations, because the value did not change.
+     * </p>
+     * <p>
+     * A touch composes with {@link #expire}. The countdown restarts, so no expiry is reported for
+     * the previous expiry instant, and the store keeps any retained copy of the value and any
+     * index it owns in step with the new expiry instant. An entry found already expired but not
+     * yet swept reports its expiry first, as a write does, and the touch then completes as not
+     * found.
+     * </p>
+     * <p>
+     * The completion fires <em>strictly later</em> than the call returns, on the caller's I/O
+     * thread, following the same async contract as the other {@code StoreHandler} operations.
+     * </p>
+     *
+     * @param key        the key of the entry to touch
+     * @param ttl        the time-to-live counted from now, or {@code null} for no expiry
+     * @param completion a callback that receives {@code true} if the entry was present and
+     *                   unexpired and its time-to-live was restarted, or {@code false} if the
+     *                   key is absent or expired, in which case nothing changed
+     */
+    void touch(
+        String key,
         Duration ttl,
         Consumer<Boolean> completion);
 
@@ -271,7 +438,9 @@ public interface StoreHandler
      * <p>
      * Implementations decide the scope of change visibility — in-process, node-wide, or
      * cluster-wide — and document it in their module. Expiry of an entry is not reported
-     * through this listener; see {@link #expire}.
+     * through this listener, whatever its {@link Expiration} mode; an expiry is observable only
+     * through {@link #expire}, and then only if {@link Expiration#TRACKED}. Explicit removal of an
+     * entry is reported, by {@link #delete} and {@link #getAndDelete}.
      * </p>
      *
      * @param key       the key to observe
@@ -288,9 +457,16 @@ public interface StoreHandler
      * <p>
      * An entry expires when the time-to-live supplied on the write that stored its current value
      * elapses without the entry having been replaced or removed. An entry replaced, removed or
-     * incremented before its expiry instant is never reported. A replacement that carries a new
+     * incremented before its expiry instant is never reported: an increment leaves the entry its
+     * remaining lifetime but ends its tracking. A replacement that carries a new
      * time-to-live restarts the countdown. An entry written without a time-to-live never expires.
      * Lock leases are not entries and are not reported.
+     * </p>
+     * <p>
+     * Only entries written as {@link Expiration#TRACKED} are reported. An {@link Expiration#UNTRACKED}
+     * entry still expires and is no longer readable, but its expiry is never delivered to any
+     * registration, including one attached after the expiry instant, and the guarantees below do
+     * not apply to it.
      * </p>
      * <p>
      * Registration returns synchronously. The listener fires <em>strictly later</em> than the

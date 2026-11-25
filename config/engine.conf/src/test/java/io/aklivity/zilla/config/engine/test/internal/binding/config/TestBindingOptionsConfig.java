@@ -209,6 +209,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
         public final String expected;
         public final long delta;
         public final Duration ttl;
+        public final String expiration;
         public final String expect;
         public final Long expectNumber;
         public final Boolean expectBoolean;
@@ -224,6 +225,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             String expected,
             long delta,
             Duration ttl,
+            String expiration,
             String expect,
             Long expectNumber,
             Boolean expectBoolean,
@@ -238,6 +240,7 @@ public final class TestBindingOptionsConfig extends OptionsConfig
             this.expected = expected;
             this.delta = delta;
             this.ttl = ttl;
+            this.expiration = expiration;
             this.expect = expect;
             this.expectNumber = expectNumber;
             this.expectBoolean = expectBoolean;

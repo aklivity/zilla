@@ -1660,6 +1660,7 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
                 }
 
                 doAdvanceSession(traceId, authorization);
+                this.metadata.onOffsetsAvailable(traceId, authorization);
             }
         }
 
@@ -1849,6 +1850,8 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doProduceSessionOffsets(traceId, authorization, offsetCommit.initialBud);
 
             offsetCommit.seedLimit = offsetCommit.initialSeq;
+
+            this.metadata.onOffsetsAvailable(traceId, authorization);
         }
 
         private void doProduceSessionOffsets(
