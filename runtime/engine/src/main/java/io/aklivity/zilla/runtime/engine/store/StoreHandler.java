@@ -58,8 +58,9 @@ public interface StoreHandler
      * </p>
      * <p>
      * The mode belongs to the expiry that a write sets and lives exactly as long as that expiry.
-     * A write that does not name a mode is {@link #TRACKED}. An entry written without a
-     * time-to-live has no expiry and so no mode.
+     * The caller decides it, and it applies to whichever expiry the write ends up with, including
+     * a default expiry the store applies when the caller gives no time-to-live. A write that does
+     * not name a mode is {@link #TRACKED}. An entry written without any expiry has no mode.
      * </p>
      */
     enum Expiration
@@ -117,7 +118,8 @@ public interface StoreHandler
      * @param value      the value to associate
      * @param ttl        the time-to-live, or {@code null} for no expiry
      * @param expiration whether the expiry of the stored value is reported through {@link #expire};
-     *                   it has no effect when {@code ttl} is {@code null}; never {@code null}
+     *                   chosen by the caller and applied to whichever expiry the write ends up
+     *                   with, a default expiry included; never {@code null}
      * @param completion a callback invoked when the operation completes
      */
     void put(
@@ -161,7 +163,8 @@ public interface StoreHandler
      * @param value      the value to associate if absent
      * @param ttl        the time-to-live, or {@code null} for no expiry
      * @param expiration whether the expiry of the stored value is reported through {@link #expire};
-     *                   it has no effect when {@code ttl} is {@code null}; never {@code null}
+     *                   chosen by the caller and applied to whichever expiry the write ends up
+     *                   with, a default expiry included; never {@code null}
      * @param completion a callback that receives the existing value if present,
      *                   or {@code null} if the key was absent and the value was stored
      */
@@ -275,7 +278,8 @@ public interface StoreHandler
      * @param value      the value to associate if the current value matches
      * @param ttl        the time-to-live of the new value, or {@code null} for no expiry
      * @param expiration whether the expiry of the new value is reported through {@link #expire};
-     *                   it has no effect when {@code ttl} is {@code null}; never {@code null}
+     *                   chosen by the caller and applied to whichever expiry the write ends up
+     *                   with, a default expiry included; never {@code null}
      * @param completion a callback that receives {@code true} if the value was replaced,
      *                   or {@code false} if the key is absent or holds a different value
      */
