@@ -2009,6 +2009,11 @@ public class MqttKafkaSessionFactory implements MqttKafkaStreamFactory
             doMqttSessionBegin(traceId, authorization, publishQosMax == 2 ? 0 : affinity);
             doMqttWindowStored(traceId, authorization);
             doMqttData(traceId, authorization, 0, 0, COMPLETE, EMPTY_OCTETS);
+
+            if (publishQosMax == 2)
+            {
+                this.metadata.onOffsetsAvailable(traceId, authorization);
+            }
         }
 
         private void doFlushProduceAndFetchWithFilter(

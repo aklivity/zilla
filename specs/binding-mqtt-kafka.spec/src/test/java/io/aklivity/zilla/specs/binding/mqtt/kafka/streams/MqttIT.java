@@ -1076,6 +1076,16 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/publish.qos2.session.store.before.offsets/client",
+        "${mqtt}/publish.qos2.session.store.before.offsets/server"})
+    public void shouldPublishQoS2SessionStoreBeforeOffsets() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/publish.qos2.session.store.in.flight/client",
         "${mqtt}/publish.qos2.session.store.in.flight/server"})
     public void shouldPublishQoS2SessionStoreInFlight() throws Exception

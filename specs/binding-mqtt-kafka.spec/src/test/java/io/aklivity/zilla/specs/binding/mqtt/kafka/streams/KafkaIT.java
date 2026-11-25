@@ -1291,6 +1291,15 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/publish.qos2.session.store.before.offsets/client",
+        "${kafka}/publish.qos2.session.store.before.offsets/server"})
+    public void shouldPublishQoS2SessionStoreBeforeOffsets() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/publish.qos2.offset.commit.credit.window/client",
         "${kafka}/publish.qos2.offset.commit.credit.window/server"})
     public void shouldPublishQoS2MessageOffsetCommitCreditWindow() throws Exception

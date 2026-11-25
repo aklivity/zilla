@@ -556,8 +556,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     rejectMqttData : publishMqttData;
             }
 
-            if (offsetCommit != null &&
-                (queueSlot != NO_SLOT || !offsetCommit.unfinishedKafkas.isEmpty() || !offsetsReady()))
+            if (qos == MqttQoS.EXACTLY_ONCE.value() && (queueSlot != NO_SLOT || exchangeUnfinished() || !offsetsReady()))
             {
                 onMqttDataQueued(data);
             }
@@ -637,7 +636,15 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             {
                 retained.doKafkaAbort(traceId, authorization);
             }
-            offsetCommit.doKafkaAbort(traceId, authorization);
+            if (offsetCommit != null)
+            {
+                offsetCommit.doKafkaAbort(traceId, authorization);
+            }
+        }
+
+        private boolean exchangeUnfinished()
+        {
+            return offsetCommit != null && !offsetCommit.unfinishedKafkas.isEmpty();
         }
 
         private boolean offsetsReady()
@@ -649,7 +656,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            if (offsetCommit.unfinishedKafkas.isEmpty())
+            if (!exchangeUnfinished())
             {
                 drainQueue(traceId, authorization);
             }
@@ -663,7 +670,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             {
                 final MutableDirectBufferEx queue = queuePool.buffer(queueSlot);
 
-                while (queueSlotProgress < queueSlotOffset && offsetCommit.unfinishedKafkas.isEmpty() && offsetsReady())
+                while (queueSlotProgress < queueSlotOffset && !exchangeUnfinished() && offsetsReady())
                 {
                     final int offset = queueSlotProgress;
                     final int length = queue.getInt(offset + QUEUED_FRAME_LENGTH_OFFSET);
@@ -1186,7 +1193,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
             final int messagesBudget = messages.initialMax - messagesNoAck - queueSlotReserved;
             final int retainedBudget = retained.initialMax - retainedNoAck - queueSlotReserved;
             final int kafkaBudget = retainAvailable ? Math.min(messagesBudget, retainedBudget) : messagesBudget;
-            final int newInitialBudget = offsetCommit != null ?
+            final int newInitialBudget = qos == MqttQoS.EXACTLY_ONCE.value() ?
                 Math.max(Math.min(kafkaBudget, queuePool.slotCapacity() - queueSlotOffset), 0) : kafkaBudget;
             final int newInitialMax = newInitialBudget + newInitialNoAck;
             final long newInitialAck = Math.max(initialAck, initialSeq - newInitialNoAck);
@@ -1212,7 +1219,8 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
 
                 assert initialAck <= initialSeq;
                 doWindow(mqtt, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
-                    traceId, authorization, budgetId, offsetCommit != null ? padding + QUEUED_FRAME_HEADER : padding,
+                    traceId, authorization, budgetId,
+                    qos == MqttQoS.EXACTLY_ONCE.value() ? padding + QUEUED_FRAME_HEADER : padding,
                     minimum, capabilities);
             }
         }
