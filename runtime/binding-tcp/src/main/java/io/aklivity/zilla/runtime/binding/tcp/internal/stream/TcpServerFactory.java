@@ -100,6 +100,8 @@ public class TcpServerFactory implements TcpStreamFactory
     private final LongUnaryOperator supplyInitialId;
     private final LongUnaryOperator supplyReplyId;
     private final LongSupplier supplyTraceId;
+    private final LongUnaryOperator affinityMask;
+    private final int index;
     private final Function<SelectableChannel, PollerKey> supplyPollerKey;
     private final Long2ObjectHashMap<TcpBindingConfig> bindings;
     private final TcpEventContext event;
@@ -136,6 +138,8 @@ public class TcpServerFactory implements TcpStreamFactory
         this.supplyInitialId = context::supplyInitialId;
         this.supplyReplyId = context::supplyReplyId;
         this.supplyTraceId = context::supplyTraceId;
+        this.affinityMask = context::affinityMask;
+        this.index = context.index();
         this.supplyPollerKey = context::supplyPollerKey;
         this.streamFactory = context.streamFactory();
         this.proxyTypeId = context.supplyTypeId("proxy");
@@ -305,7 +309,7 @@ public class TcpServerFactory implements TcpStreamFactory
     {
         if (!spill.spill(binding.id, network))
         {
-            if (usage.available() > 0)
+            if (usage.available() > 0 && affine(binding.id))
             {
                 onNetConfigure(binding, network);
             }
@@ -314,6 +318,12 @@ public class TcpServerFactory implements TcpStreamFactory
                 quietClose(network);
             }
         }
+    }
+
+    private boolean affine(
+        long bindingId)
+    {
+        return ((affinityMask.applyAsLong(bindingId) >>> index) & 1L) != 0L;
     }
 
     public void onSpilled(

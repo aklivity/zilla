@@ -74,6 +74,7 @@ import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 public final class EngineRule implements TestRule
 {
     // needed by test annotations
+    public static final String ENGINE_BINDING_AFFINITY_NAME = "zilla.engine.binding.affinity";
     public static final String ENGINE_BUFFER_POOL_CAPACITY_NAME = "zilla.engine.buffer.pool.capacity";
     public static final String ENGINE_BUFFER_SLOT_CAPACITY_NAME = "zilla.engine.buffer.slot.capacity";
     public static final String ENGINE_CACERTS_STORE_TYPE_NAME = "zilla.engine.cacerts.store.type";
@@ -82,6 +83,7 @@ public final class EngineRule implements TestRule
     public static final String ENGINE_CONFIG_URL_NAME = "zilla.engine.config.url";
     public static final String ENGINE_LOCAL_CONFIG_URI_NAME = "zilla.engine.local.config.uri";
     public static final String ENGINE_WORKER_CAPACITY_NAME = "zilla.engine.worker.capacity";
+    public static final String ENGINE_WORKERS_NAME = "zilla.engine.workers";
     public static final String ENGINE_CLOCK_NAME = "zilla.engine.clock";
     public static final String ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME = "zilla.engine.timer.wheel.tick.millis";
     public static final String ENGINE_TIMER_WHEEL_TICKS_NAME = "zilla.engine.timer.wheel.ticks";
@@ -400,6 +402,12 @@ public final class EngineRule implements TestRule
     public LongSupplier usage()
     {
         return gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME), 0);
+    }
+
+    public LongSupplier usage(
+        int worker)
+    {
+        return engine.gauge(NO_NAMESPACED_ID, supplyLabelId(EngineWorkersUsageMetric.NAME), 0, worker);
     }
 
     public int supplyLabelId(

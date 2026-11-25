@@ -25,13 +25,14 @@ import org.junit.Test;
 public class TcpSpilloverTest
 {
     private static final int TOLERANCE = 3;
+    private static final long ALL = -1L;
 
     @Test
     public void shouldSelectNoPeerWhenAlone()
     {
         TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
 
-        assertEquals(NO_PEER, spillover.select(1, 100, true, peer -> 0));
+        assertEquals(NO_PEER, spillover.select(1, ALL, 100, true, peer -> 0));
     }
 
     @Test
@@ -41,7 +42,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 16; attempt++)
         {
-            assertEquals(NO_PEER, spillover.select(4, 10, false, peer -> 10));
+            assertEquals(NO_PEER, spillover.select(4, ALL, 10, false, peer -> 10));
         }
     }
 
@@ -52,7 +53,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 16; attempt++)
         {
-            assertEquals(NO_PEER, spillover.select(4, 42, false, peer -> 10));
+            assertEquals(NO_PEER, spillover.select(4, ALL, 42, false, peer -> 10));
         }
     }
 
@@ -63,7 +64,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 16; attempt++)
         {
-            assertTrue(spillover.select(4, 43, false, peer -> 10) > 0);
+            assertTrue(spillover.select(4, ALL, 43, false, peer -> 10) > 0);
         }
     }
 
@@ -72,8 +73,8 @@ public class TcpSpilloverTest
     {
         TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
 
-        assertEquals(NO_PEER, spillover.select(2, 8, false, peer -> 0));
-        assertEquals(1, spillover.select(2, 9, false, peer -> 0));
+        assertEquals(NO_PEER, spillover.select(2, ALL, 8, false, peer -> 0));
+        assertEquals(1, spillover.select(2, ALL, 9, false, peer -> 0));
     }
 
     @Test
@@ -81,11 +82,11 @@ public class TcpSpilloverTest
     {
         TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
 
-        assertEquals(NO_PEER, spillover.select(2, 1256, false, peer -> 1000));
-        assertEquals(1, spillover.select(2, 1257, false, peer -> 1000));
+        assertEquals(NO_PEER, spillover.select(2, ALL, 1256, false, peer -> 1000));
+        assertEquals(1, spillover.select(2, ALL, 1257, false, peer -> 1000));
 
-        assertEquals(NO_PEER, spillover.select(2, 1_008_192, false, peer -> 1_000_000));
-        assertEquals(1, spillover.select(2, 1_008_193, false, peer -> 1_000_000));
+        assertEquals(NO_PEER, spillover.select(2, ALL, 1_008_192, false, peer -> 1_000_000));
+        assertEquals(1, spillover.select(2, ALL, 1_008_193, false, peer -> 1_000_000));
     }
 
     @Test
@@ -94,8 +95,8 @@ public class TcpSpilloverTest
         TcpSpillover strict = new TcpSpillover(0, 1);
         TcpSpillover tolerant = new TcpSpillover(0, 5);
 
-        assertEquals(1, strict.select(2, 1065, false, peer -> 1000));
-        assertEquals(NO_PEER, tolerant.select(2, 1065, false, peer -> 1000));
+        assertEquals(1, strict.select(2, ALL, 1065, false, peer -> 1000));
+        assertEquals(NO_PEER, tolerant.select(2, ALL, 1065, false, peer -> 1000));
     }
 
     @Test
@@ -105,7 +106,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 16; attempt++)
         {
-            assertTrue(spillover.select(4, 1000, true, peer -> 999) > 0);
+            assertTrue(spillover.select(4, ALL, 1000, true, peer -> 999) > 0);
         }
     }
 
@@ -116,7 +117,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 32; attempt++)
         {
-            assertEquals(5, spillover.select(8, 1000, true, peer -> peer == 5 ? 900 : FULL));
+            assertEquals(5, spillover.select(8, ALL, 1000, true, peer -> peer == 5 ? 900 : FULL));
         }
     }
 
@@ -125,7 +126,7 @@ public class TcpSpilloverTest
     {
         TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
 
-        assertEquals(NO_PEER, spillover.select(8, 1000, true, peer -> FULL));
+        assertEquals(NO_PEER, spillover.select(8, ALL, 1000, true, peer -> FULL));
     }
 
     @Test
@@ -133,7 +134,7 @@ public class TcpSpilloverTest
     {
         TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
 
-        assertEquals(NO_PEER, spillover.select(8, 1000, false, peer -> FULL));
+        assertEquals(NO_PEER, spillover.select(8, ALL, 1000, false, peer -> FULL));
     }
 
     @Test
@@ -143,7 +144,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 256; attempt++)
         {
-            final int selected = spillover.select(5, 100, false, peer -> 10);
+            final int selected = spillover.select(5, ALL, 100, false, peer -> 10);
 
             assertTrue(selected >= 0 && selected < 5 && selected != 2);
         }
@@ -156,7 +157,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 32; attempt++)
         {
-            assertEquals(1, spillover.select(3, 100, false, peer -> peer == 1 ? 5 : 9));
+            assertEquals(1, spillover.select(3, ALL, 100, false, peer -> peer == 1 ? 5 : 9));
         }
     }
 
@@ -167,7 +168,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 32; attempt++)
         {
-            assertEquals(2, spillover.select(3, 100, false, peer -> peer == 1 ? FULL : 9));
+            assertEquals(2, spillover.select(3, ALL, 100, false, peer -> peer == 1 ? FULL : 9));
         }
     }
 
@@ -179,7 +180,7 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 4000; attempt++)
         {
-            selections[spillover.select(5, 100, false, peer -> 10)]++;
+            selections[spillover.select(5, ALL, 100, false, peer -> 10)]++;
         }
 
         assertEquals(0, selections[0]);
@@ -197,11 +198,97 @@ public class TcpSpilloverTest
 
         for (int attempt = 0; attempt < 4000; attempt++)
         {
-            selections[spillover.select(5, 1000, false, peer -> peer * 100)]++;
+            selections[spillover.select(5, ALL, 1000, false, peer -> peer * 100)]++;
         }
 
         assertTrue(selections[1] > selections[2]);
         assertTrue(selections[2] > selections[3]);
         assertTrue(selections[3] > selections[4]);
+    }
+
+    @Test
+    public void shouldSelectOnlyPeersInMask()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        for (int attempt = 0; attempt < 64; attempt++)
+        {
+            final int selected = spillover.select(8, 0b0110_0001L, 1000, false, peer -> 10);
+
+            assertTrue("selected " + selected, selected == 5 || selected == 6);
+        }
+    }
+
+    @Test
+    public void shouldSelectNoPeerWhenNoPeerInMask()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        assertEquals(NO_PEER, spillover.select(8, 0b0000_0001L, 1000, true, peer -> 10));
+    }
+
+    @Test
+    public void shouldSelectPeerInMaskWhenSelfNotInMaskRegardlessOfLoad()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        for (int attempt = 0; attempt < 64; attempt++)
+        {
+            final int selected = spillover.select(8, 0b1100_0000L, 0, false, peer -> 1000);
+
+            assertTrue("selected " + selected, selected == 6 || selected == 7);
+        }
+    }
+
+    @Test
+    public void shouldFindOnlyPeerWithCapacityInMaskWhenSelfNotInMask()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        for (int attempt = 0; attempt < 32; attempt++)
+        {
+            assertEquals(7, spillover.select(8, 0b1100_0000L, 0, false, peer -> peer == 7 ? 900 : FULL));
+        }
+    }
+
+    @Test
+    public void shouldSelectNoPeerWhenSelfNotInMaskAndNoPeerInMaskHasCapacity()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        assertEquals(NO_PEER, spillover.select(8, 0b1100_0000L, 0, false, peer -> FULL));
+    }
+
+    @Test
+    public void shouldIgnoreMaskBitsBeyondPeerCount()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        for (int attempt = 0; attempt < 64; attempt++)
+        {
+            assertEquals(1, spillover.select(2, 0b1111_1110L, 100, false, peer -> 0));
+        }
+    }
+
+    @Test
+    public void shouldSelectAcrossAllSixtyFourWorkers()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        for (int attempt = 0; attempt < 64; attempt++)
+        {
+            assertEquals(63, spillover.select(64, 1L << 63, 0, false, peer -> 0));
+        }
+    }
+
+    @Test
+    public void shouldKeepConnectionWhenSelfInMaskAndBalanced()
+    {
+        TcpSpillover spillover = new TcpSpillover(0, TOLERANCE);
+
+        for (int attempt = 0; attempt < 16; attempt++)
+        {
+            assertEquals(NO_PEER, spillover.select(8, 0b0110_0001L, 10, false, peer -> 10));
+        }
     }
 }

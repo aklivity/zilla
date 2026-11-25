@@ -107,6 +107,7 @@ public class TcpBindingContextTest
 
         when(bufferPool.slotCapacity()).thenReturn(BUFFER_CAPACITY);
         when(context.index()).thenReturn(index);
+        when(context.affinityMask(anyLong())).thenReturn(-1L);
         when(context.writeBuffer()).thenReturn(new UnsafeBufferEx(ByteBuffer.allocateDirect(BUFFER_CAPACITY)));
         when(context.bufferPool()).thenReturn(bufferPool);
         when(context.supplyUtilizationMetric()).thenReturn(mock(LongConsumer.class));

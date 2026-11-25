@@ -182,7 +182,11 @@ public class EngineBuilder
             errorHandler.onError(ex);
         };
 
+        final Collection<EngineAffinity> engineAffinities = new LinkedHashSet<>(
+            EngineAffinity.parse(config.bindingAffinity(), config.workers()));
+        engineAffinities.addAll(affinities);
+
         return new Engine(config, bindings, exporters, guards, metricGroups, vaults,
-                catalogs, embeddings, classifiers, models, stores, eventFormatterFactory, onError, affinities, readonly);
+                catalogs, embeddings, classifiers, models, stores, eventFormatterFactory, onError, engineAffinities, readonly);
     }
 }

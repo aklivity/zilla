@@ -512,6 +512,13 @@ public class EngineWorker implements EngineContext, Agent
     }
 
     @Override
+    public long affinityMask(
+        long bindingId)
+    {
+        return affinityMask.applyAsLong(bindingId);
+    }
+
+    @Override
     public long affinity()
     {
         return affinity;

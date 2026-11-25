@@ -110,6 +110,7 @@ public class EngineConfiguration extends Configuration
     private static final int MAX_WORKERS = Long.SIZE;
 
     public static final IntPropertyDef ENGINE_WORKERS;
+    public static final PropertyDef<String> ENGINE_BINDING_AFFINITY;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_TYPE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE;
     public static final PropertyDef<String> ENGINE_CACERTS_STORE_PASS;
@@ -181,6 +182,7 @@ public class EngineConfiguration extends Configuration
         ENGINE_CLOCK = config.property(Clock.class, "clock",
             EngineConfiguration::decodeCLock, EngineConfiguration::defaultClock);
         ENGINE_WORKERS = config.property("workers", Math.min(Runtime.getRuntime().availableProcessors(), MAX_WORKERS));
+        ENGINE_BINDING_AFFINITY = config.property("binding.affinity");
         ENGINE_CACERTS_STORE_TYPE = config.property("cacerts.store.type", EngineConfiguration::cacertsStoreTypeDefault);
         ENGINE_CACERTS_STORE = config.property("cacerts.store", EngineConfiguration::cacertsStoreDefault);
         ENGINE_CACERTS_STORE_PASS = config.property("cacerts.store.pass");
@@ -435,6 +437,11 @@ public class EngineConfiguration extends Configuration
         }
 
         return workers;
+    }
+
+    public String bindingAffinity()
+    {
+        return ENGINE_BINDING_AFFINITY.get(this);
     }
 
     public String cacertsStoreType()

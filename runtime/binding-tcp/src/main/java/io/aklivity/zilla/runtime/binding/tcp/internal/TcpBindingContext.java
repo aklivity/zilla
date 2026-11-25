@@ -38,6 +38,7 @@ import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
 final class TcpBindingContext implements BindingContext
 {
     private final Map<KindConfig, TcpStreamFactory> factories;
+    private final EngineContext context;
     private final Consumer<Runnable> dispatch;
 
     private final TcpUsageTracker usage;
@@ -50,6 +51,7 @@ final class TcpBindingContext implements BindingContext
         EngineContext context,
         Int2ObjectHashMap<TcpBindingContext> peers)
     {
+        this.context = context;
         this.usage = new TcpUsageTracker(config, context);
         this.peers = peers;
         this.spillover = new TcpSpillover(context.index(), config.rebalanceTolerance());
@@ -65,7 +67,8 @@ final class TcpBindingContext implements BindingContext
         long bindingId,
         SocketChannel channel)
     {
-        final int index = spillover.select(peers.size(), usage.used(), usage.available() == 0, peerLoad);
+        final long mask = context.affinityMask(bindingId);
+        final int index = spillover.select(peers.size(), mask, usage.used(), usage.available() == 0, peerLoad);
         final TcpBindingContext peer = index != TcpSpillover.NO_PEER ? peers.get(index) : null;
 
         if (peer != null)

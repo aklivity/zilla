@@ -165,6 +165,23 @@ public interface EngineContext
         long affinityId);
 
     /**
+     * Returns the set of workers that the given binding is permitted to run on, as a bit mask
+     * where bit {@code n} designates the worker with {@link #index()} {@code n}.
+     * <p>
+     * Returns every bit set by default: no restriction applies, meaning the binding may run
+     * on any worker.
+     * </p>
+     *
+     * @param bindingId  the binding identifier
+     * @return the bit mask of workers that the binding may run on
+     */
+    default long affinityMask(
+        long bindingId)
+    {
+        return -1L;
+    }
+
+    /**
      * Resolves the affinity value for the given key hash, such that the same key hash
      * always resolves to the same affinity and distinct key hashes are distributed across
      * the available workers. The result is a valid {@code affinityId} for

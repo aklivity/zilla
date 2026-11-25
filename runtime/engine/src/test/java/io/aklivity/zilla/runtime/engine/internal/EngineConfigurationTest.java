@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOF
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_SPINS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MAX_YIELDS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BACKOFF_MIN_PARK_NANOS;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BINDING_AFFINITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_POOL_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACERTS_STORE;
@@ -34,6 +35,7 @@ import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMER_
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_TIMER_WHEEL_TICK_MILLIS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKER_CAPACITY;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BINDING_AFFINITY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_POOL_CAPACITY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_CACERTS_STORE_NAME;
@@ -47,6 +49,7 @@ import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_ROUTER_NAM
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_SERVICE_HOSTNAME_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICKS_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME;
+import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKERS_NAME;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_WORKER_CAPACITY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -95,6 +98,8 @@ public class EngineConfigurationTest
         assertEquals(ENGINE_CONFIG_URL.name(), ENGINE_CONFIG_URL_NAME);
         assertEquals(ENGINE_LOCAL_CONFIG_URI.name(), ENGINE_LOCAL_CONFIG_URI_NAME);
         assertEquals(ENGINE_WORKER_CAPACITY.name(), ENGINE_WORKER_CAPACITY_NAME);
+        assertEquals(ENGINE_BINDING_AFFINITY.name(), ENGINE_BINDING_AFFINITY_NAME);
+        assertEquals(ENGINE_WORKERS.name(), ENGINE_WORKERS_NAME);
         assertEquals(ENGINE_CLOCK.name(), ENGINE_CLOCK_NAME);
         assertEquals(ENGINE_TIMER_WHEEL_TICK_MILLIS.name(), ENGINE_TIMER_WHEEL_TICK_MILLIS_NAME);
         assertEquals(ENGINE_TIMER_WHEEL_TICKS.name(), ENGINE_TIMER_WHEEL_TICKS_NAME);

@@ -38,27 +38,27 @@ final class TcpSpillover
 
     int select(
         int count,
+        long mask,
         int local,
         boolean full,
         IntUnaryOperator peerLoad)
     {
-        int selected = NO_PEER;
+        final long eligible = mask & (count < Long.SIZE ? (1L << count) - 1 : -1L) & ~(1L << self);
+        final boolean forced = full || (mask & (1L << self)) == 0L;
 
-        final int peers = count - 1;
+        int selected = NO_PEER;
+        final int peers = Long.bitCount(eligible);
         if (peers > 0)
         {
             final int first = nextInt(peers);
-            int best = peer(first);
+            int best = peer(eligible, first);
             int bestLoad = peerLoad.applyAsInt(best);
-
             if (peers > 1)
             {
                 int second = nextInt(peers - 1);
                 second = second >= first ? second + 1 : second;
-
-                final int other = peer(second);
+                final int other = peer(eligible, second);
                 final int otherLoad = peerLoad.applyAsInt(other);
-
                 if (otherLoad < bestLoad)
                 {
                     best = other;
@@ -66,13 +66,13 @@ final class TcpSpillover
                 }
             }
 
-            if (bestLoad != FULL && (full || local > bestLoad + margin(bestLoad)))
+            if (bestLoad != FULL && (forced || local > bestLoad + margin(bestLoad)))
             {
                 selected = best;
             }
-            else if (full)
+            else if (forced)
             {
-                selected = withCapacity(peers, peerLoad);
+                selected = withCapacity(eligible, peers, peerLoad);
             }
         }
 
@@ -80,22 +80,20 @@ final class TcpSpillover
     }
 
     private int withCapacity(
+        long eligible,
         int peers,
         IntUnaryOperator peerLoad)
     {
         int selected = NO_PEER;
-
         final int start = nextInt(peers);
         for (int offset = 0; selected == NO_PEER && offset < peers; offset++)
         {
-            final int candidate = peer((start + offset) % peers);
-
+            final int candidate = peer(eligible, (start + offset) % peers);
             if (peerLoad.applyAsInt(candidate) != FULL)
             {
                 selected = candidate;
             }
         }
-
         return selected;
     }
 
@@ -106,10 +104,16 @@ final class TcpSpillover
         return 1 << (((Integer.SIZE - Integer.numberOfLeadingZeros(load)) >> 1) + tolerance);
     }
 
-    private int peer(
+    private static int peer(
+        long eligible,
         int ordinal)
     {
-        return ordinal >= self ? ordinal + 1 : ordinal;
+        long remaining = eligible;
+        for (int skip = 0; skip < ordinal; skip++)
+        {
+            remaining &= remaining - 1;
+        }
+        return Long.numberOfTrailingZeros(remaining);
     }
 
     private int nextInt(

@@ -15,6 +15,7 @@
  */
 package io.aklivity.zilla.runtime.engine.internal;
 
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BINDING_AFFINITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_ROUTER;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -57,6 +58,7 @@ public class EngineAffinityIT
         .directory(ENGINE_DIRECTORY)
         .configure(ENGINE_WORKERS, WORKERS)
         .configure(ENGINE_ROUTER, TestRouter.NAME)
+        .configure(ENGINE_BINDING_AFFINITY, "test.pinned=16-31")
         .configurationRoot("io/aklivity/zilla/specs/engine/config")
         .clean();
 
@@ -182,6 +184,67 @@ public class EngineAffinityIT
         assertThat(affinityId, equalTo(0x0000_0000_0100_0002L));
         assertThat(observedKeyHash.get(), equalTo(5L));
         assertThat(observedDefault.get(), equalTo(engineDefault));
+    }
+
+    @Test
+    @Configuration("server.binding.affinity.yaml")
+    public void shouldResolveAffinityMaskFromProperty()
+    {
+        for (EngineContext context : contexts())
+        {
+            assertThat(context.affinityMask(bindingId(context, "pinned")), equalTo(0xffff_0000L));
+            assertThat(context.affinityMask(bindingId(context, "unpinned")), equalTo((1L << WORKERS) - 1));
+        }
+    }
+
+    @Test
+    @Configuration("server.binding.affinity.yaml")
+    public void shouldPreferLocalWorkerWithinAffinityMask()
+    {
+        for (EngineContext context : contexts().subList(16, WORKERS))
+        {
+            long initialId = context.supplyInitialId(bindingId(context, "pinned"));
+
+            assertThat((initialId >> 48) & 0xffL, equalTo((long) context.index()));
+        }
+    }
+
+    @Test
+    @Configuration("server.binding.affinity.yaml")
+    public void shouldRouteToWorkerWithinAffinityMaskWhenLocalWorkerOutsideMask()
+    {
+        Set<Long> routed = new TreeSet<>();
+
+        for (EngineContext context : contexts().subList(0, 16))
+        {
+            for (int attempt = 0; attempt < WORKERS; attempt++)
+            {
+                long initialId = context.supplyInitialId(bindingId(context, "pinned"));
+                routed.add((initialId >> 48) & 0xffL);
+            }
+        }
+
+        assertThat(routed.stream().allMatch(index -> index >= 16 && index < WORKERS), equalTo(true));
+        assertThat(routed, hasSize(16));
+    }
+
+    @Test
+    @Configuration("server.binding.affinity.yaml")
+    public void shouldPreferLocalWorkerForBindingOutsideAffinityProperty()
+    {
+        for (EngineContext context : contexts())
+        {
+            long initialId = context.supplyInitialId(bindingId(context, "unpinned"));
+
+            assertThat((initialId >> 48) & 0xffL, equalTo((long) context.index()));
+        }
+    }
+
+    private static long bindingId(
+        EngineContext context,
+        String binding)
+    {
+        return NamespacedId.id(context.supplyTypeId("test"), context.supplyTypeId(binding));
     }
 
     private List<EngineContext> contexts()
