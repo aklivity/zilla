@@ -325,9 +325,11 @@ public final class MqttServerFactory implements MqttStreamFactory
     private static final int GUARD_SESSION_EXPIRING_SIGNAL = 7;
     private static final int SIGNAL_AWAIT_STATE_RELEASE = 8;
     private static final int SIGNAL_AWAIT_SESSION_CLOSE = 9;
+    private static final int SIGNAL_AWAIT_SUBSCRIBE_CLOSE = 10;
     private static final Runnable REPLY_OPEN = () -> {};
     private static final Runnable REPLY_CLOSED = () -> {};
     private static final byte[] NO_INBOUND = new byte[0];
+    private static final byte[] NO_OUTBOUND = new byte[0];
 
     private static final String OWNER_KEY_POSTFIX = MqttClientStates.OWNER_KEY_POSTFIX;
     private static final String STATE_KEY_POSTFIX = MqttClientStates.STATE_KEY_POSTFIX;
@@ -2926,6 +2928,9 @@ public final class MqttServerFactory implements MqttStreamFactory
         private int filterIdSequence;
         private String ownerKey;
         private MqttClientStateEntry clientState;
+        private Runnable subscribeRepliesClosing = REPLY_OPEN;
+        private long subscribeRepliesClosingAt = NO_CANCEL_ID;
+        private byte[] resumedOutbound;
         private MqttSharedRegistry registry;
         private String ownerToken;
         private long renewAt = NO_CANCEL_ID;
@@ -3987,13 +3992,122 @@ public final class MqttServerFactory implements MqttStreamFactory
             return bytes;
         }
 
+        private void awaitSubscribeRepliesClosed(
+            long traceId,
+            Runnable continuation)
+        {
+            final List<MqttSubscribeStream> open = openSubscribeReplies();
+
+            if (open.isEmpty())
+            {
+                continuation.run();
+            }
+            else
+            {
+                subscribeRepliesClosing = continuation;
+                subscribeRepliesClosingAt = signaler.signalAt(clock.millis() + sessionRenew.toMillis(),
+                    SIGNAL_AWAIT_SUBSCRIBE_CLOSE, id -> onSubscribeRepliesClosingTimeout(traceId));
+            }
+        }
+
+        private boolean subscribeRepliesOpen()
+        {
+            boolean open = false;
+
+            for (Int2ObjectHashMap<MqttSubscribeStream> routeSubscribes : subscribes.values())
+            {
+                for (MqttSubscribeStream stream : routeSubscribes.values())
+                {
+                    open |= stream.replyOpen();
+                }
+            }
+
+            for (Map<String, MqttSubscribeStream> routeShared : sharedSubscribes.values())
+            {
+                for (MqttSubscribeStream stream : routeShared.values())
+                {
+                    open |= stream.replyOpen();
+                }
+            }
+
+            return open;
+        }
+
+        private void onSubscribeReplyClosed()
+        {
+            if (subscribeRepliesClosing != REPLY_OPEN && !subscribeRepliesOpen())
+            {
+                runSubscribeRepliesClosing();
+            }
+        }
+
+        private void onSubscribeRepliesClosingTimeout(
+            long traceId)
+        {
+            subscribeRepliesClosingAt = NO_CANCEL_ID;
+
+            if (subscribeRepliesClosing != REPLY_OPEN)
+            {
+                openSubscribeReplies().forEach(stream -> stream.doSubscribeReset(traceId));
+                runSubscribeRepliesClosing();
+            }
+        }
+
+        private List<MqttSubscribeStream> openSubscribeReplies()
+        {
+            final List<MqttSubscribeStream> open = new ArrayList<>();
+
+            subscribes.values().forEach(routeSubscribes -> routeSubscribes.values().forEach(stream ->
+            {
+                if (stream.replyOpen())
+                {
+                    open.add(stream);
+                }
+            }));
+
+            sharedSubscribes.values().forEach(routeShared -> routeShared.values().forEach(stream ->
+            {
+                if (stream.replyOpen())
+                {
+                    open.add(stream);
+                }
+            }));
+
+            return open;
+        }
+
+        private void runSubscribeRepliesClosing()
+        {
+            if (subscribeRepliesClosingAt != NO_CANCEL_ID)
+            {
+                signaler.cancel(subscribeRepliesClosingAt);
+                subscribeRepliesClosingAt = NO_CANCEL_ID;
+            }
+
+            final Runnable continuation = subscribeRepliesClosing;
+            subscribeRepliesClosing = REPLY_OPEN;
+            continuation.run();
+        }
+
+        private void discardResumedOutbound()
+        {
+            if (resumedOutbound != null && clientState.outbound() == resumedOutbound)
+            {
+                clientState.outbound(NO_OUTBOUND);
+            }
+        }
+
         private void releaseClientState(
             long traceId,
             Runnable continuation)
         {
             if (clientState != null && sessionStateStoreEnabled && session != null)
             {
-                session.awaitReplyClosed(traceId, () -> clientState.release(continuation));
+                session.awaitReplyClosed(traceId, () -> awaitSubscribeRepliesClosed(traceId, () ->
+                {
+                    discardResumedOutbound();
+                    clientState.release(continuation);
+                }));
             }
             else if (clientState != null)
             {
@@ -9279,6 +9393,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                 return subscribeDecoder == decodeSubscribeFragment;
             }
 
+            private boolean replyOpen()
+            {
+                return StreamState.replyOpening(state) && !StreamState.replyClosed(state);
+            }
+
             private Subscription subscriptionByFilter(
                 String filter,
                 List<Subscription> newState)
@@ -9403,6 +9522,13 @@ public final class MqttServerFactory implements MqttStreamFactory
                                 .shareName(packet.shareName)
                                 .filter(packet.filter)
                                 .metadata(metadata -> metadata.bytes(bytes -> bytes.set(packet.metadata)))));
+
+                            final byte[] outbound = clientState.outbound();
+                            if (outbound.length > 0)
+                            {
+                                resumedOutbound = resumedOutbound != null ? resumedOutbound : outbound;
+                                subscribeBuilder.outbound(o -> o.set(outbound));
+                            }
                         }
                     })
                     .build();
@@ -10108,9 +10234,17 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     final MqttFlushExFW subscribeFlushEx = extension.get(mqttFlushExRO::tryWrap);
                     final int packetId = subscribeFlushEx.subscribe().packetId();
+                    final OctetsFW outbound = subscribeFlushEx.subscribe().outbound();
                     final MqttPacketRecord packet = clientState != null ? clientState.packet(packetId) : null;
 
-                    if (subscribeFlushEx.subscribe().state() == ABANDONED_OFFSET_STATE)
+                    if (outbound != null && outbound.sizeof() > 0)
+                    {
+                        if (clientState != null && clientState.ready())
+                        {
+                            clientState.outbound(copyBytes(outbound.buffer(), outbound.offset(), outbound.limit()));
+                        }
+                    }
+                    else if (subscribeFlushEx.subscribe().state() == ABANDONED_OFFSET_STATE)
                     {
                         if (packet != null && clientState.remove(packetId))
                         {
@@ -10242,6 +10376,8 @@ public final class MqttServerFactory implements MqttStreamFactory
                 {
                     onSubscribeRejected(end.traceId(), end.authorization(), UNSPECIFIED_ERROR, IMPLEMENTATION_SPECIFIC_ERROR);
                 }
+
+                onSubscribeReplyClosed();
             }
 
             private void onSubscribeAbort(
@@ -10272,13 +10408,24 @@ public final class MqttServerFactory implements MqttStreamFactory
                         releaseDeferredUnsubscribes(traceId, sessionId);
                     }
                 }
+
+                onSubscribeReplyClosed();
             }
 
             private void cleanupAbort(
                 long traceId)
             {
-                doSubscribeReset(traceId);
+                if (!handsBackState())
+                {
+                    doSubscribeReset(traceId);
+                }
+
                 doSubscribeAbort(traceId);
+            }
+
+            private boolean handsBackState()
+            {
+                return sessionStateStoreEnabled && clientState != null && clientState.ready() && StreamState.replyOpening(state);
             }
 
 
