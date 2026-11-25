@@ -475,6 +475,68 @@ public class MqttClientStateEntryTest
         assertTrue(entries.get(KEY).expiresAt() > expiring + 30_000L);
     }
 
+    @Test
+    public void shouldEndHeldRecordWithDeleteAndReturnItsMemberships()
+    {
+        final String held = encode("replica-a", MEMBERSHIP);
+        final MqttClientStateEntry entry = newEntry(
+            new Assertion("putIfAbsent", KEY, held, TTL), new Assertion("delete", KEY, null, null));
+        runTasks();
+        entry.memberships().add(MEMBERSHIP);
+        entry.hold("replica-a", this::completed);
+        runTasks();
+        assertTrue(entry.holding());
+
+        final List<MqttMembershipRecord> discarded = entry.discard();
+        entry.end(this::completed);
+        runTasks();
+
+        assertEquals(List.of(MEMBERSHIP), discarded);
+        assertEquals(2, completions);
+        assertFalse(entry.holding());
+        assertNull(entries.get(KEY));
+    }
+
+    @Test
+    public void shouldEndHeldEmptyRecordWithDelete()
+    {
+        final String held = encode("replica-a");
+        final MqttClientStateEntry entry = newEntry(
+            new Assertion("putIfAbsent", KEY, held, TTL), new Assertion("delete", KEY, null, null));
+        runTasks();
+        entry.hold("replica-a", this::completed);
+        runTasks();
+
+        entry.discard();
+        entry.end(this::completed);
+        runTasks();
+
+        assertEquals(2, completions);
+        assertNull(entries.get(KEY));
+    }
+
+    @Test
+    public void shouldNotEndRecordOfSuccessor()
+    {
+        final String held = encode("replica-a");
+        final String takenOver = encode("replica-b");
+        final MqttClientStateEntry entry = newEntry(new Assertion("putIfAbsent", KEY, held, TTL), replace(held, encode(null)));
+        runTasks();
+        entry.hold("replica-a", this::completed);
+        runTasks();
+        entries.put(KEY, new TestEntry(takenOver, Long.MAX_VALUE));
+        entry.release(this::completed);
+        runTasks();
+
+        entry.discard();
+        entry.end(this::completed);
+        runTasks();
+
+        assertEquals(3, completions);
+        assertFalse(entry.holding());
+        assertEquals(takenOver, stored());
+    }
+
     private static Assertion touch()
     {
         return new Assertion("touch", KEY, null, TTL);

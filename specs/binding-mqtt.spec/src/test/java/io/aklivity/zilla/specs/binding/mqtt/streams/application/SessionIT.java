@@ -733,6 +733,26 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.disconnect.zero.session.expiry/client",
+        "${app}/session.disconnect.zero.session.expiry/server"})
+    public void shouldSessionDisconnectZeroSessionExpiry() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.disconnect.with.error.raise.session.expiry.stored/client",
+        "${app}/session.disconnect.with.error.raise.session.expiry.stored/server"})
+    public void shouldSessionDisconnectWithErrorRaiseSessionExpiryStored() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start.store.held.state/client",
         "${app}/session.connect.non.clean.start.store.held.state/server"})
     public void shouldConnectNonCleanStartStoreHeldState() throws Exception

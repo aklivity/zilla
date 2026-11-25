@@ -4365,10 +4365,11 @@ public final class MqttServerFactory implements MqttStreamFactory
         {
             doCancelAwaitStateRelease();
 
-            if (owns && sessionExpiry == 0 && clientState != null && clientState.ready() && !clientState.empty())
+            if (owns && sessionExpiry == 0 && clientState != null && clientState.ready() &&
+                (!clientState.empty() || clientState.holding()))
             {
                 final List<MqttMembershipRecord> memberships = clientState.discard();
-                clientState.write(() -> leaveShared(memberships, () -> {}));
+                clientState.end(() -> leaveShared(memberships, () -> {}));
             }
 
             if (renewAt != NO_CANCEL_ID)

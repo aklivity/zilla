@@ -202,6 +202,23 @@ final class MqttClientStateEntry
         }
     }
 
+    boolean holding()
+    {
+        return writer == writeHeld;
+    }
+
+    void end(
+        Runnable completion)
+    {
+        if (writer == writeHeld)
+        {
+            holder = null;
+            writer = writeShared;
+        }
+
+        write(completion);
+    }
+
     List<MqttMembershipRecord> discard()
     {
         final List<MqttMembershipRecord> discarded = new ArrayList<>(record.memberships);
