@@ -16,6 +16,7 @@ package io.aklivity.zilla.runtime.store.memory.internal;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
@@ -31,7 +32,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
+import io.aklivity.zilla.runtime.engine.store.StoreHandler.Expiration;
 import io.aklivity.zilla.runtime.store.memory.internal.MemoryStoreHandler.LockEntry;
+import io.aklivity.zilla.runtime.store.memory.internal.MemoryStoreHandler.Watcher;
 
 public class MemoryStoreHandlerTest
 {
@@ -179,7 +182,7 @@ public class MemoryStoreHandlerTest
     }
 
     @Test
-    public void shouldReportExpiryWhenIncrementingExpiredCounter() throws Exception
+    public void shouldNotReportExpiryWhenIncrementingExpiredCounter() throws Exception
     {
         MemoryStoreHandler handler = newHandler(tasks);
         handler.expire("count", (key, value) -> expired.add(key + "=" + value));
@@ -189,7 +192,303 @@ public class MemoryStoreHandlerTest
         handler.increment("count", 1L, null, (key, value) -> {});
         run(tasks);
 
-        assertEquals(List.of("count=5"), expired);
+        assertEquals(List.of(), expired);
+    }
+
+    @Test
+    public void shouldNotSweepReportExpiryOfCounter() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("count", (key, value) -> expired.add(key + "=" + value));
+        handler.increment("count", 5L, Duration.ofSeconds(1), (key, value) -> {});
+        handler.increment("count", 1L, null, (key, value) -> {});
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("count"));
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfTrackedEntryWhenIncremented() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("", (key, value) -> expired.add(key + "=" + value));
+        handler.put("tracked", "5", Duration.ofSeconds(1), v -> {});
+        handler.put("untracked", "5", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        handler.increment("tracked", 1L, Duration.ofHours(1), (key, value) -> {});
+        handler.increment("untracked", 1L, Duration.ofHours(1), (key, value) -> {});
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("tracked"));
+        assertNull(entries.get("untracked"));
+    }
+
+    @Test
+    public void shouldKeepRemainingLifetimeWhenIncrementingTrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.put("key", "5", Duration.ofSeconds(1), v -> {});
+
+        handler.increment("key", 1L, Duration.ofHours(1), (key, value) -> {});
+        clock.now += 500L;
+        newSweeper().sweep();
+
+        assertEquals("6", entries.get("key").value());
+
+        clock.now += 1_000L;
+        newSweeper().sweep();
+
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotSweepReportExpiryOfUntrackedPut() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotSweepReportExpiryOfUntrackedPutIfAbsent() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.putIfAbsent("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotSweepReportExpiryOfUntrackedReplace() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "seed", Duration.ofHours(1), v -> {});
+        handler.replace("key", "seed", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldSweepReportTrackedSiblingOfUntrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key.", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key.untracked", "untracked-value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.put("key.tracked", "tracked-value", Duration.ofSeconds(1), Expiration.TRACKED, v -> {});
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of("key.tracked=tracked-value"), expired);
+        assertEquals(0, entries.size());
+    }
+
+    @Test
+    public void shouldKeepUntrackedWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(5), v -> {});
+        clock.now += 6_000L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldKeepTrackedWhenTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.TRACKED, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(5), v -> {});
+        clock.now += 6_000L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldTrackWhenTouchGivesExpiryToEntryWithoutOne() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", null, Expiration.UNTRACKED, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(1), v -> {});
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldNotExpireUntrackedPutWithoutTtl() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key));
+        handler.put("key", "value", null, Expiration.UNTRACKED, v -> {});
+
+        clock.now += 1_000_000L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", entries.get("key").value());
+    }
+
+    @Test
+    public void shouldReportExpiryOfTrackedWriteOverUntrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "first", Duration.ofHours(1), Expiration.UNTRACKED, v -> {});
+
+        handler.put("key", "second", Duration.ofSeconds(1), v -> {});
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of("key=second"), expired);
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfUntrackedWriteOverTrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "first", Duration.ofSeconds(1), v -> {});
+
+        handler.put("key", "second", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryOfTrackedReplaceOverUntrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "first", Duration.ofHours(1), Expiration.UNTRACKED, v -> {});
+        handler.replace("key", "first", "second", Duration.ofSeconds(1), v -> {});
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of("key=second"), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryBeforeUntrackedWriteOverExpiredTrackedEntry() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "old", Duration.ofSeconds(1), v -> {});
+
+        clock.now += 1_001L;
+        handler.put("key", "new", Duration.ofHours(1), Expiration.UNTRACKED, v -> {});
+        run(tasks);
+
+        assertEquals(List.of("key=old"), expired);
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfExpiredUntrackedEntryWhenOverwritten() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "old", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        clock.now += 1_001L;
+        handler.put("key", "new", null, v -> {});
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertEquals("new", entries.get("key").value());
+    }
+
+    @Test
+    public void shouldNotReportExpiredUntrackedEntryWhenDeletedOrTouched() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("", (key, value) -> expired.add(key + "=" + value));
+        handler.put("deleted", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.put("touched", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        clock.now += 1_001L;
+        handler.delete("deleted", v -> {});
+        handler.touch("touched", Duration.ofSeconds(5), touched::add);
+        run(tasks);
+
+        assertEquals(List.of(), expired);
+        assertEquals(List.of(false), touched);
+    }
+
+    @Test
+    public void shouldNotNotifyWatchersWhenUntrackedEntryExpires() throws Exception
+    {
+        ConcurrentMap<String, List<Watcher>> watchers = new ConcurrentHashMap<>();
+        MemoryStoreHandler handler = new MemoryStoreHandler(entries, watchers, locks, expirers, tasks::add, clock);
+        List<String> changed = new ArrayList<>();
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.watch("key", (key, value) -> changed.add(key + "=" + value));
+        run(tasks);
+
+        clock.now += 1_001L;
+        newSweeper().sweep();
+        run(tasks);
+
+        assertEquals(List.of(), changed);
+    }
+
+    @Test
+    public void shouldRejectNullExpiration() throws Exception
+    {
+        MemoryStoreHandler handler = newHandler(tasks);
+
+        assertThrows(NullPointerException.class, () -> handler.put("key", "value", null, null, v -> {}));
+        assertThrows(NullPointerException.class, () -> handler.putIfAbsent("key", "value", null, null, v -> {}));
+        assertThrows(NullPointerException.class, () -> handler.replace("key", "value", "next", null, null, v -> {}));
     }
 
     @Test

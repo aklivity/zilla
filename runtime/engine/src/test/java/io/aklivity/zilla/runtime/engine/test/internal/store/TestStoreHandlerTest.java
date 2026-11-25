@@ -32,6 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.Test;
 
 import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler.Expiration;
 
 public class TestStoreHandlerTest
 {
@@ -523,7 +524,7 @@ public class TestStoreHandlerTest
     }
 
     @Test
-    public void shouldExpireCounterEntry() throws Exception
+    public void shouldNotReportExpiryOfCounterEntry() throws Exception
     {
         TestStoreHandler handler = newExpiringHandler();
         handler.expire("count", (key, value) -> expired.add(key + "=" + value));
@@ -531,7 +532,52 @@ public class TestStoreHandlerTest
         handler.increment("count", 5L, Duration.ofSeconds(1), (key, value) -> {});
         advance(1_001L);
 
-        assertEquals(List.of("count=5"), expired);
+        assertEquals(List.of(), expired);
+        assertNull(live(handler, "count"));
+        assertNull(entries.get("count"));
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfTrackedEntryWhenIncremented() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "5", Duration.ofSeconds(1), v -> {});
+
+        handler.increment("key", 1L, Duration.ofHours(1), (key, value) -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+        assertNull(live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotReportIncrementedTrackedEntryToLateRegistrant() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.put("key", "5", Duration.ofSeconds(1), v -> {});
+        handler.increment("key", 1L, Duration.ofHours(1), (key, value) -> {});
+        advance(1_001L);
+
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotReportExpiredCounterWhenIncrementingExpiredCounter() throws Exception
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("count", (key, value) -> expired.add(key + "=" + value));
+        handler.increment("count", 5L, Duration.ofSeconds(1), (key, value) -> {});
+
+        now += 1_001L;
+        handler.increment("count", 1L, null, (key, value) -> {});
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), expired);
     }
 
     @Test
@@ -686,6 +732,315 @@ public class TestStoreHandlerTest
 
         assertEquals("expected store operation touch key value=null ttl=PT1M, " +
             "was touch key value=null ttl=PT2M", error.getMessage());
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfUntrackedPut()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+        assertNull(live(handler, "key"));
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfUntrackedPutIfAbsent()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+
+        handler.putIfAbsent("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfUntrackedReplace()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "seed", Duration.ofHours(1), v -> {});
+
+        handler.replace("key", "seed", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldReportTrackedSiblingOfUntrackedEntry()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key.", (key, value) -> expired.add(key + "=" + value));
+
+        handler.put("key.untracked", "untracked-value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.put("key.tracked", "tracked-value", Duration.ofSeconds(1), Expiration.TRACKED, v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key.tracked=tracked-value"), expired);
+    }
+
+    @Test
+    public void shouldKeepUntrackedWhenTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(5), v -> {});
+        advance(2_000L);
+        assertEquals("value", live(handler, "key"));
+        advance(4_000L);
+
+        assertEquals(List.of(), expired);
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldKeepTrackedWhenTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.TRACKED, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(5), v -> {});
+        advance(6_000L);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldTrackWhenTouchGivesExpiryToEntryWithoutOne()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "value", null, Expiration.UNTRACKED, v -> {});
+
+        handler.touch("key", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key=value"), expired);
+    }
+
+    @Test
+    public void shouldNotExpireUntrackedPutWithoutTtl()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key));
+
+        handler.put("key", "value", null, Expiration.UNTRACKED, v -> {});
+        advance(1_000_000L);
+
+        assertEquals(List.of(), expired);
+        assertEquals("value", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldReportExpiryOfTrackedWriteOverUntrackedEntry()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "first", Duration.ofHours(1), Expiration.UNTRACKED, v -> {});
+
+        handler.put("key", "second", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key=second"), expired);
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfUntrackedWriteOverTrackedEntry()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "first", Duration.ofSeconds(1), v -> {});
+
+        handler.put("key", "second", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of(), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryOfTrackedReplaceOverUntrackedEntry()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "first", Duration.ofHours(1), Expiration.UNTRACKED, v -> {});
+
+        handler.replace("key", "first", "second", Duration.ofSeconds(1), v -> {});
+        advance(1_001L);
+
+        assertEquals(List.of("key=second"), expired);
+    }
+
+    @Test
+    public void shouldReportExpiryBeforeUntrackedWriteOverExpiredTrackedEntry()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "old", Duration.ofSeconds(1), v -> {});
+
+        now += 1_001L;
+        handler.put("key", "new", Duration.ofHours(1), Expiration.UNTRACKED, v -> {});
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of("key=old"), expired);
+    }
+
+    @Test
+    public void shouldNotReportExpiryOfExpiredUntrackedEntryWhenOverwritten()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.expire("key", (key, value) -> expired.add(key + "=" + value));
+        handler.put("key", "old", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        now += 1_001L;
+        handler.put("key", "new", null, v -> {});
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), expired);
+        assertEquals("new", live(handler, "key"));
+    }
+
+    @Test
+    public void shouldNotReportExpiredUntrackedEntryWhenDeletedOrTouched()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        List<Boolean> touched = new ArrayList<>();
+        handler.expire("", (key, value) -> expired.add(key + "=" + value));
+        handler.put("deleted", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.put("touched", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+
+        now += 1_001L;
+        handler.delete("deleted", v -> {});
+        handler.touch("touched", Duration.ofSeconds(5), touched::add);
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of(), expired);
+        assertEquals(List.of(false), touched);
+    }
+
+    @Test
+    public void shouldDropExpiredUntrackedEntryWithoutReportingToLateRegistrant()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+        handler.put("key.untracked", "untracked-value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.put("key.tracked", "tracked-value", Duration.ofSeconds(1), v -> {});
+        now += 1_001L;
+
+        handler.expire("key.", (key, value) -> expired.add(key + "=" + value));
+        tasks.forEach(Runnable::run);
+
+        assertEquals(List.of("key.tracked=tracked-value"), expired);
+        assertNull(entries.get("key.untracked"));
+    }
+
+    @Test
+    public void shouldDropExpiredUntrackedEntryWithoutRegistrant()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        advance(1_001L);
+
+        assertNull(entries.get("key"));
+    }
+
+    @Test
+    public void shouldNotNotifyWatchersOfExpiredUntrackedEntry()
+    {
+        ConcurrentMap<String, List<TestWatcher>> listeners = new ConcurrentHashMap<>();
+        TestStoreHandler handler = new TestStoreHandler(null, tasks::add, () -> now, (time, task) ->
+        {
+            scheduledTimes.add(time);
+            scheduledTasks.add(task);
+        }, entries, listeners, expirers, new ConcurrentHashMap<>(), null);
+        List<String> changed = new ArrayList<>();
+        handler.put("key", "value", Duration.ofSeconds(1), Expiration.UNTRACKED, v -> {});
+        handler.watch("key", (key, value) -> changed.add(key + "=" + value));
+        tasks.forEach(Runnable::run);
+        tasks.clear();
+
+        advance(1_001L);
+
+        assertEquals(List.of(), changed);
+    }
+
+    @Test
+    public void shouldRejectNullExpiration()
+    {
+        TestStoreHandler handler = newExpiringHandler();
+
+        assertThrows(NullPointerException.class, () -> handler.put("key", "value", null, null, v -> {}));
+        assertThrows(NullPointerException.class, () -> handler.putIfAbsent("key", "value", null, null, v -> {}));
+        assertThrows(NullPointerException.class, () -> handler.replace("key", "value", "next", null, null, v -> {}));
+    }
+
+    @Test
+    public void shouldAcceptOperationsMatchingExpirationAssertions()
+    {
+        TestStoreHandler handler = newHandler(new ConcurrentLinkedQueue<>(List.of(
+            new Assertion("put", "key", null, "value", null, 0L, null, "untracked"),
+            new Assertion("putIfAbsent", "other", null, "value", null, 0L, null, "untracked"),
+            new Assertion("replace", "key", null, "next", "value", 0L, null, "untracked"),
+            new Assertion("put", "tracked", null, "value", null, 0L, null, "tracked"),
+            new Assertion("put", "default", "value", null))));
+
+        handler.put("key", "value", null, Expiration.UNTRACKED, v -> {});
+        handler.putIfAbsent("other", "value", null, Expiration.UNTRACKED, v -> {});
+        handler.replace("key", "value", "next", null, Expiration.UNTRACKED, v -> {});
+        handler.put("tracked", "value", null, v -> {});
+        handler.put("default", "value", null, Expiration.TRACKED, v -> {});
+
+        assertEquals("next", entries.get("key").value());
+    }
+
+    @Test
+    public void shouldRejectPutWithUnexpectedExpiration()
+    {
+        TestStoreHandler handler = newHandler(new ConcurrentLinkedQueue<>(List.of(
+            new Assertion("put", "key", null, "value", null, 0L, null, "untracked"))));
+
+        AssertionError error = assertThrows(AssertionError.class,
+            () -> handler.put("key", "value", null, Expiration.TRACKED, v -> {}));
+
+        assertEquals("expected store operation put key value=value ttl=null expiration=untracked, " +
+            "was put key value=value ttl=null", error.getMessage());
+    }
+
+    @Test
+    public void shouldRejectPutWithUnexpectedUntrackedExpiration()
+    {
+        TestStoreHandler handler = newHandler(new ConcurrentLinkedQueue<>(List.of(
+            new Assertion("put", "key", "value", null))));
+
+        AssertionError error = assertThrows(AssertionError.class,
+            () -> handler.put("key", "value", null, Expiration.UNTRACKED, v -> {}));
+
+        assertEquals("expected store operation put key value=value ttl=null, " +
+            "was put key value=value ttl=null expiration=untracked", error.getMessage());
+    }
+
+    @Test
+    public void shouldRejectReplaceWithUnexpectedExpiration()
+    {
+        TestStoreHandler handler = newHandler(new ConcurrentLinkedQueue<>(List.of(
+            new Assertion("replace", "key", null, "next", "value", 0L, null, "untracked"))));
+
+        AssertionError error = assertThrows(AssertionError.class,
+            () -> handler.replace("key", "value", "next", null, Expiration.TRACKED, v -> {}));
+
+        assertEquals("expected store operation replace key expected=value value=next ttl=null expiration=untracked, " +
+            "was replace key expected=value value=next ttl=null", error.getMessage());
     }
 
     private TestStoreHandler newExpiringHandler()

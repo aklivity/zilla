@@ -670,4 +670,94 @@ public class EngineIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.store.expiration.assertions.yaml")
+    @Specification({
+        "${net}/store.assert/client",
+        "${app}/store.assert/server"})
+    public void shouldAssertExpirationInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.put.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedPutInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.put.if.absent.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedPutIfAbsentInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.replace.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedReplaceInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.touch.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldKeepUntrackedWhenTouchedInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.tracked.over.untracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldReportExpiryOfTrackedWriteOverUntrackedEntryInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.untracked.over.tracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfUntrackedWriteOverTrackedEntryInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.increment.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfCounterInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.expiration.increment.tracked.yaml")
+    @Specification({
+        "${net}/store.expire/client",
+        "${app}/store.expire/server"})
+    public void shouldNotReportExpiryOfIncrementedTrackedEntryInTestStore() throws Exception
+    {
+        k3po.finish();
+    }
 }

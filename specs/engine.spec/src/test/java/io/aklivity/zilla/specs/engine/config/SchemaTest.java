@@ -284,4 +284,82 @@ public class SchemaTest
 
         assertThat(config, not(nullValue()));
     }
+
+    @Test(expected = JsonException.class)
+    public void shouldRejectStoreAssertionsWithInvalidExpiration()
+    {
+        schema.validate("server.store.assertions.expiration.invalid.yaml");
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.assertions.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationPutAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.put.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationPutIfAbsentAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.put.if.absent.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationReplaceAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.replace.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationTouchAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.touch.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationTrackedOverUntrackedAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.tracked.over.untracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationUntrackedOverTrackedAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.untracked.over.tracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationIncrementAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.increment.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
+    public void shouldValidateServerStoreExpirationIncrementTrackedAssertions()
+    {
+        JsonObject config = schema.validate("server.store.expiration.increment.tracked.yaml");
+
+        assertThat(config, not(nullValue()));
+    }
 }

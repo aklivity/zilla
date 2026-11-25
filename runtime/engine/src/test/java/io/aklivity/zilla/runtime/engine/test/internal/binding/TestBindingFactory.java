@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -85,6 +86,7 @@ import io.aklivity.zilla.runtime.engine.model.ModelTransform;
 import io.aklivity.zilla.runtime.engine.namespace.NamespacedId;
 import io.aklivity.zilla.runtime.engine.security.Trusted;
 import io.aklivity.zilla.runtime.engine.store.StoreHandler;
+import io.aklivity.zilla.runtime.engine.store.StoreHandler.Expiration;
 import io.aklivity.zilla.runtime.engine.test.internal.event.TestEventContext;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.OctetsFW;
 import io.aklivity.zilla.runtime.engine.test.internal.k3po.ext.types.stream.AbortFW;
@@ -1282,7 +1284,7 @@ final class TestBindingFactory implements BindingHandler
                 returned.value = true;
                 break;
             case "put":
-                store.put(a.key, a.value, a.ttl, v ->
+                store.put(a.key, a.value, a.ttl, expiration(a), v ->
                 {
                     if (Thread.currentThread() != dispatchThread ||
                         !returned.value ||
@@ -1296,7 +1298,7 @@ final class TestBindingFactory implements BindingHandler
                 returned.value = true;
                 break;
             case "putIfAbsent":
-                store.putIfAbsent(a.key, a.value, a.ttl, v ->
+                store.putIfAbsent(a.key, a.value, a.ttl, expiration(a), v ->
                 {
                     if (Thread.currentThread() != dispatchThread ||
                         !returned.value ||
@@ -1491,7 +1493,7 @@ final class TestBindingFactory implements BindingHandler
                 });
                 break;
             default:
-                store.replace(a.key, a.expected, a.value, a.ttl, v ->
+                store.replace(a.key, a.expected, a.value, a.ttl, expiration(a), v ->
                 {
                     if (Thread.currentThread() != dispatchThread ||
                         !returned.value ||
@@ -1540,6 +1542,12 @@ final class TestBindingFactory implements BindingHandler
                 store.expire(a.key, listener);
             }
             next.run();
+        }
+
+        private Expiration expiration(
+            StoreAssertion a)
+        {
+            return a.expiration != null ? Expiration.valueOf(a.expiration.toUpperCase(Locale.ROOT)) : Expiration.TRACKED;
         }
 
         private String resolveToken(
