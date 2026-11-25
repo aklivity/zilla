@@ -1154,6 +1154,17 @@ public class MqttKafkaSubscribeProxyIT
     @Configuration("proxy.yaml")
     @Configure(name = WILL_AVAILABLE_NAME, value = "false")
     @Specification({
+        "${mqtt}/subscribe.shared.receive.message.qos1.redelivered.unacknowledged/client",
+        "${kafka}/subscribe.shared.receive.message.qos1.redelivered.unacknowledged/server"})
+    public void shouldSubscribeSharedReceiveMessageQos1RedeliveredUnacknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("proxy.yaml")
+    @Configure(name = WILL_AVAILABLE_NAME, value = "false")
+    @Specification({
         "${mqtt}/subscribe.shared.receive.message.qos1.granted.qos0/client",
         "${kafka}/subscribe.shared.receive.message.qos1.granted.qos0/server"})
     public void shouldSubscribeSharedReceiveMessageQos1GrantedQos0() throws Exception
