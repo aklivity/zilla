@@ -448,6 +448,7 @@ public final class EngineBench implements AutoCloseable
     {
         private final MessageConsumer inbound = this::onInbound;
         private final DataFW dataRO = new DataFW();
+        private final FlushFW flushRO = new FlushFW();
         private final WindowFW windowRO = new WindowFW();
 
         private MessageConsumer reply;
@@ -762,6 +763,9 @@ public final class EngineBench implements AutoCloseable
             case DataFW.TYPE_ID:
                 replySeq += dataRO.wrap(buffer, index, index + length).reserved();
                 break;
+            case FlushFW.TYPE_ID:
+                replySeq += flushRO.wrap(buffer, index, index + length).reserved();
+                break;
             default:
                 break;
             }
@@ -777,6 +781,7 @@ public final class EngineBench implements AutoCloseable
                 }
                 break;
             case DataFW.TYPE_ID:
+            case FlushFW.TYPE_ID:
                 replyAck = replySeq;
                 if (replyMax != 0)
                 {
