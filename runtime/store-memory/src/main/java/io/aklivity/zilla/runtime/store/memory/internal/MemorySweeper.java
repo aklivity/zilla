@@ -105,7 +105,7 @@ final class MemorySweeper
         final String key = candidate.getKey();
         final MemoryEntry entry = candidate.getValue();
 
-        if (entry.expired(now) && entries.remove(key, entry))
+        if (entry.expired(now) && entries.remove(key, entry) && entry.tracked())
         {
             expirers.report(key, entry.value());
         }

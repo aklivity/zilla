@@ -42,6 +42,9 @@ stores:
                   expected: value1
                   value: value3
                   ttl: PT1H
+                - op: touch
+                  key: key1
+                  ttl: PT1H
                 - op: delete
                   key: key1
                 - op: delete

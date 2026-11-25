@@ -131,6 +131,12 @@ public class MqttKafkaPublishMetadata
             this.producerEpoch = producerEpoch;
             this.packetIds = packetIds;
         }
+
+        // sequence counts released packets, each unreleased packet in flight has already consumed one more
+        long nextSequence()
+        {
+            return sequence + packetIds.size();
+        }
     }
 
     public static final class KafkaOffsetMetadataHelper

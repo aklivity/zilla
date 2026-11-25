@@ -59,7 +59,8 @@
                                                 "delete",
                                                 "getAndDelete",
                                                 "increment",
-                                                "replace"
+                                                "replace",
+                                                "touch"
                                             ]
                                         },
                                         "key":
@@ -89,6 +90,15 @@
                                         "ttl":
                                         {
                                             "type": "string"
+                                        },
+                                        "expiration":
+                                        {
+                                            "type": "string",
+                                            "enum":
+                                            [
+                                                "tracked",
+                                                "untracked"
+                                            ]
                                         }
                                     },
                                     "required":

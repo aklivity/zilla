@@ -332,7 +332,6 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
         private boolean retainAvailable;
         private int publishFlags;
         private int packetId;
-        private long publishSequence;
         private int qos;
         private KafkaOffsetCommitStream offsetCommit;
         private MqttKafkaPublishMetadata clientMetadata;
@@ -819,8 +818,7 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                     producerId = metadata.producerId;
                     producerEpoch = metadata.producerEpoch;
-                    producerSequence = metadata.sequence + metadata.packetIds.size();
-                    publishSequence = producerSequence;
+                    producerSequence = metadata.nextSequence();
                 }
                 else
                 {
@@ -873,11 +871,11 @@ public class MqttKafkaPublishFactory implements MqttKafkaStreamFactory
                     if (qos == MqttQoS.EXACTLY_ONCE.value())
                     {
                         kafkaFlags = flags & ~FIN;
-                        final long offsetKey = offsetKey(messages.topicString, messages.qos2PartitionId);
+                        final long offsetKey = offsetKey(retained.topicString, retained.qos2PartitionId);
                         final KafkaOffsetMetadata metadata = offsets.get(offsetKey);
                         producerId = metadata.producerId;
                         producerEpoch = metadata.producerEpoch;
-                        producerSequence = publishSequence;
+                        producerSequence = metadata.nextSequence();
 
                         produceDeferred = deferred;
                         produceProducerId = producerId;
