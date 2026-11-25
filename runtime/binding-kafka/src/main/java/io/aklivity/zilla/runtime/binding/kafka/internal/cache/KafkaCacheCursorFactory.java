@@ -875,12 +875,11 @@ public final class KafkaCacheCursorFactory
                 int position)
             {
                 int nextPosition = RETRY_SEGMENT_VALUE;
-                int nextPositionMin = position == RETRY_SEGMENT_VALUE ? -1 : position - 1;
-                int nextPositionMax;
+                int nextPositionMin;
+                int nextPositionMax = position == RETRY_SEGMENT_VALUE ? 0 : position;
 
                 do
                 {
-                    nextPositionMax = nextPositionMin + 1;
                     nextPositionMin = Integer.MAX_VALUE;
 
                     final int nextCursorAnd = nextPositionMax;
