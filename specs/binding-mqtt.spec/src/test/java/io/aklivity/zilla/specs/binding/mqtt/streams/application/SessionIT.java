@@ -738,4 +738,22 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/session.non.clean.start.inbound.state/client",
+        "${app}/session.non.clean.start.inbound.state/server"})
+    public void shouldSessionNonCleanStartInboundState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.non.clean.start.store.held.inbound.state/client",
+        "${app}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
+    {
+        k3po.finish();
+    }
 }

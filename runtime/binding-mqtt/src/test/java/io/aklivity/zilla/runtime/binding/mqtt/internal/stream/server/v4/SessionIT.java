@@ -303,4 +303,31 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Specification({
+        "${net}/session.non.clean.start.inbound.state/client",
+        "${app}/session.non.clean.start.inbound.state/server"})
+    public void shouldCarryInboundStateAcrossNonCleanStartSessions() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("ECHOED");
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.held.inbound.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.non.clean.start.store.held.inbound.state/client",
+        "${app}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
+    {
+        k3po.finish();
+    }
 }

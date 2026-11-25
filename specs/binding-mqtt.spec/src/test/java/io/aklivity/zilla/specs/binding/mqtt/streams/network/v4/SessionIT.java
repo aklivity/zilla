@@ -238,4 +238,24 @@ public class SessionIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${net}/session.non.clean.start.inbound.state/client",
+        "${net}/session.non.clean.start.inbound.state/server"})
+    public void shouldSessionNonCleanStartInboundState() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("DISCONNECT_NOW");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/session.non.clean.start.store.held.inbound.state/client",
+        "${net}/session.non.clean.start.store.held.inbound.state/server"})
+    public void shouldDiscardInboundStateOfHeldNonCleanStartSession() throws Exception
+    {
+        k3po.finish();
+    }
 }

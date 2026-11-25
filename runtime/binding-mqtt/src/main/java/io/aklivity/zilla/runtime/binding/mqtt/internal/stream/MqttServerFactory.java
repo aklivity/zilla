@@ -3824,7 +3824,7 @@ public final class MqttServerFactory implements MqttStreamFactory
             final List<MqttMembershipRecord> memberships = discard ? clientState.discard() : List.of();
             final Runnable stored = () -> leaveShared(memberships, () -> onClientStateReady(traceId));
 
-            if (ready && sessionExpiry > 0)
+            if (ready && (sessionExpiry > 0 || storedSubscriptions()))
             {
                 clientState.hold(ownerNonce(), stored);
             }
