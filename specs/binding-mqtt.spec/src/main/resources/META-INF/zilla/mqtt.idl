@@ -172,6 +172,7 @@ scope mqtt
         MqttPacket[] packets;
         string16 holder = null;
         MqttBinary subscriptions;
+        MqttBinary outbound;
         MqttBinary inbound;
     }
 
@@ -299,6 +300,8 @@ scope mqtt
             MqttTopicFilter[] filters;
             uint32 generation = 0;
             MqttPacket[] packets;
+            int32 outboundLength;
+            octets[outboundLength] outbound = null;
         }
 
         struct MqttPublishBeginEx
@@ -399,6 +402,8 @@ scope mqtt
             uint8 state = 0;
             uint8 reasonCode = 0;
             MqttTopicFilter[] filters;
+            int32 outboundLength;
+            octets[outboundLength] outbound = null;
         }
 
         enum MqttOffsetStateFlags (uint8)

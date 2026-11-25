@@ -1653,6 +1653,51 @@ public class KafkaIT
 
     @Test
     @Specification({
+        "${kafka}/subscribe.receive.message.qos1.session.store/client",
+        "${kafka}/subscribe.receive.message.qos1.session.store/server"})
+    public void shouldReceiveMessageQoS1WithSessionStateStore() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound/client",
+        "${kafka}/subscribe.resume.qos1.outbound/server"})
+    public void shouldResumeSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.qos1.outbound.stale.offset/client",
+        "${kafka}/subscribe.resume.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.resume.retained.qos1.outbound.stale.offset/client",
+        "${kafka}/subscribe.resume.retained.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeRetainedQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.close.qos1.outbound/client",
+        "${kafka}/subscribe.close.qos1.outbound/server"})
+    public void shouldCloseSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${kafka}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
     public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception
@@ -1692,6 +1737,15 @@ public class KafkaIT
         "${kafka}/subscribe.receive.message.qos2/client",
         "${kafka}/subscribe.receive.message.qos2/server"})
     public void shouldReceiveMessageQoS2() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${kafka}/subscribe.receive.message.qos2.session.store/client",
+        "${kafka}/subscribe.receive.message.qos2.session.store/server"})
+    public void shouldReceiveMessageQoS2WithSessionStateStore() throws Exception
     {
         k3po.finish();
     }

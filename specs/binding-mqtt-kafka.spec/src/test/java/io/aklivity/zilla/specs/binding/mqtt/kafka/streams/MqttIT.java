@@ -1382,6 +1382,34 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/subscribe.resume.qos1.outbound/client",
+        "${mqtt}/subscribe.resume.qos1.outbound/server"})
+    public void shouldResumeSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/client",
+        "${mqtt}/subscribe.resume.retained.qos1.outbound.stale.offset/server"})
+    public void shouldResumeSubscribeRetainedQoS1OutboundStaleOffset() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/subscribe.close.qos1.outbound/client",
+        "${mqtt}/subscribe.close.qos1.outbound/server"})
+    public void shouldCloseSubscribeQoS1Outbound() throws Exception
+    {
+        k3po.start();
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/client",
         "${mqtt}/subscribe.mixed.qos.second.client.begin.keeps.pending.offset.commit/server"})
     public void shouldKeepPendingOffsetCommitWhenSecondClientBeginsSubscribe() throws Exception

@@ -77,6 +77,8 @@ import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRec
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRecordV1FW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSharedRecordVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOffsetMetadataFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundFW;
+import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttSubscribeOutboundVersion;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttTopicFilterFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.MqttUserPropertyFW;
 import io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.types.OctetsFW;
@@ -178,6 +180,9 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final MqttSubscribeMessageFW mqttSubscribeMessageRO = new MqttSubscribeMessageFW();
     private final MqttSharedRecordFW sharedRecordRO = new MqttSharedRecordFW();
     private final MqttSubscribeOffsetMetadataFW mqttOffsetMetadataRO = new MqttSubscribeOffsetMetadataFW();
+    private final MqttSubscribeOutboundFW mqttSubscribeOutboundRO = new MqttSubscribeOutboundFW();
+    private final MqttSubscribeOutboundFW.Builder mqttSubscribeOutboundRW = new MqttSubscribeOutboundFW.Builder();
+    private final Array32FW<MqttTopicFilterFW> mqttFiltersRO = new Array32FW<>(new MqttTopicFilterFW());
 
     private final MqttDataExFW.Builder mqttDataExRW = new MqttDataExFW.Builder();
     private final MqttFlushExFW.Builder mqttFlushExRW = new MqttFlushExFW.Builder();
@@ -242,6 +247,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
     private final MutableDirectBufferEx writeBuffer;
     private final MutableDirectBufferEx extBuffer;
+    private final MutableDirectBufferEx outboundBuffer;
     private final MutableDirectBufferEx subscriptionIdsBuffer;
     private final MutableDirectBufferEx filterBuffer;
     private final MutableDirectBufferEx offsetBuffer;
@@ -257,7 +263,11 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
     private final LongFunction<MqttKafkaBindingConfig> supplyBinding;
     private final MqttKafkaHeaderHelper helper;
     private final int reconnectDelay;
+    private static final long NO_RESUME_OFFSET = -3L;
+    private static final int OUTBOUND_HEADROOM = 256;
+
     private final boolean bootstrapAvailable;
+    private final boolean sessionStateStored;
     private final List<KafkaMessagesBootstrap> bootstrapStreams;
     private final Int2ObjectHashMap<String16FW> qosNames;
     //TODO: rename
@@ -288,6 +298,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.kafkaTypeId = context.supplyTypeId(KAFKA_TYPE_NAME);
         this.writeBuffer = context.writeBuffer("write");
         this.extBuffer = context.writeBuffer("extension");
+        this.outboundBuffer = context.writeBuffer("outbound");
         this.subscriptionIdsBuffer = context.writeBuffer("subscriptionIds");
         this.filterBuffer = context.writeBuffer("filter");
         this.offsetBuffer = context.writeBuffer("offset");
@@ -301,6 +312,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         this.supplyBinding = supplyBinding;
         this.helper = new MqttKafkaHeaderHelper();
         this.bootstrapAvailable = config.bootstrapAvailable();
+        this.sessionStateStored = config.sessionStateStoreEnabled();
         this.reconnectDelay = config.bootstrapStreamReconnectDelay();
         this.bootstrapStreams = new ArrayList<>();
         this.qosNames = new Int2ObjectHashMap<>();
@@ -448,7 +460,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private final long replyId;
         private final Long2ObjectHashMap<KafkaMessagesProxy> messages;
         private final Long2LongHashMap messagesPerTopicKey;
-        private final KafkaRetainedProxy retained;
+        private KafkaRetainedProxy retained;
 
         private int state;
 
@@ -468,6 +480,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private ClientHighWaterMarks clientHighWaterMarks;
         private int qos;
         private boolean retainAvailable;
+        private final Map<String, Long2LongHashMap> resumeOffsetsByTopic = new HashMap<>();
 
         private MqttSubscribeProxy(
             MessageConsumer mqtt,
@@ -563,6 +576,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             clientHighWaterMarks = highWaterMarksByClient.computeIfAbsent(clientId.asString(), ClientHighWaterMarks::new);
             clientHighWaterMarks.streams.add(this);
 
+            final OctetsFW outbound = mqttSubscribeBeginEx.outbound();
+            if (sessionStateStored && outbound != null)
+            {
+                onOutboundResumed(outbound);
+            }
+
             Array32FW<MqttTopicFilterFW> filters = mqttSubscribeBeginEx.filters();
             filters.forEach(f -> retainAvailable |= (f.flags() & SEND_RETAIN_FLAG) != 0);
 
@@ -584,6 +603,148 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 retained.doKafkaBegin(traceId, authorization, affinity, retainedFilters);
             }
             messages.values().forEach(m -> m.doKafkaBegin(traceId, authorization, affinity, filters));
+        }
+
+        private void onOutboundResumed(
+            OctetsFW outbound)
+        {
+            final MqttSubscribeOutboundFW resumed =
+                mqttSubscribeOutboundRO.tryWrap(outbound.buffer(), outbound.offset(), outbound.limit());
+
+            if (resumed != null)
+            {
+                resumed.outboundV1().partitions().forEach(p ->
+                {
+                    if (p.qos() == qos)
+                    {
+                        resumeOffsetsByTopic
+                            .computeIfAbsent(p.topic().asString(), t -> new Long2LongHashMap(NO_RESUME_OFFSET))
+                            .put(p.partitionId(), p.nextOffset());
+                    }
+                });
+            }
+        }
+
+        private void snapshotOutbound()
+        {
+            messages.values().forEach(m -> clientHighWaterMarks.topicNames.put(m.topicKey, m.topic.asString()));
+            clientHighWaterMarks.topicNames.put(retained.topicKey, retained.topic.asString());
+
+            if (qos > 0)
+            {
+                messages.values().forEach(m -> snapshotSentOffsets(m.topic, m.sentOffsets));
+                snapshotSentOffsets(retained.topic, retained.sentOffsets);
+            }
+        }
+
+        private void snapshotSentOffsets(
+            String16FW topic,
+            Long2LongHashMap sentOffsets)
+        {
+            final String topicName = topic.asString();
+            sentOffsets.forEach((partitionId, nextOffset) ->
+                clientHighWaterMarks.outbound.add(new OutboundPartition(qos, topicName, partitionId.intValue(), nextOffset)));
+        }
+
+        private void doMqttOutbound(
+            long traceId,
+            long authorization)
+        {
+            final MqttKafkaPacketIds inflight = clientHighWaterMarks.inflight;
+            final int[] packetIds = inflight.packetIds();
+            final List<OutboundPartition> partitions = clientHighWaterMarks.outbound;
+
+            if (!partitions.isEmpty() || packetIds.length > 0)
+            {
+                final MqttSubscribeOutboundFW outbound = mqttSubscribeOutboundRW
+                    .wrap(outboundBuffer, 0, outboundBuffer.capacity() - OUTBOUND_HEADROOM)
+                    .kind(MqttSubscribeOutboundVersion.V1)
+                    .outboundV1(v1 ->
+                    {
+                        partitions.forEach(p -> v1.partitionsItem(i -> i
+                            .qos(p.qos)
+                            .topic(p.topic)
+                            .partitionId(p.partitionId)
+                            .nextOffset(p.nextOffset)));
+                        for (int packetId : packetIds)
+                        {
+                            v1.packetsItem(i -> i
+                                .packetId(packetId)
+                                .state(inflight.state(packetId))
+                                .qos(inflight.qos(packetId))
+                                .topic(clientHighWaterMarks.topicNames.get(inflight.topicKey(packetId)))
+                                .partitionId(inflight.partitionId(packetId))
+                                .partitionOffset(inflight.offset(packetId)));
+                        }
+                    })
+                    .build();
+
+                final Flyweight mqttSubscribeFlushEx = mqttFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .subscribe(b -> b.outbound(o -> o.set(outbound.buffer(), outbound.offset(), outbound.sizeof())))
+                    .build();
+
+                doMqttFlush(traceId, authorization, 0, 0, mqttSubscribeFlushEx);
+                partitions.clear();
+            }
+        }
+
+        private Long2LongHashMap resumeOffsets(
+            String16FW topic)
+        {
+            return resumeOffsetsByTopic.get(topic.asString());
+        }
+
+        private boolean resumeStale(
+            String16FW topic,
+            KafkaMergedBeginExFW kafkaMergedBeginEx)
+        {
+            final Long2LongHashMap resume = resumeOffsets(topic);
+            final boolean stale = resume != null &&
+                kafkaMergedBeginEx.partitions().anyMatch(p -> staleResumeOffset(resume, p));
+
+            if (stale)
+            {
+                kafkaMergedBeginEx.partitions().forEach(p ->
+                {
+                    if (staleResumeOffset(resume, p))
+                    {
+                        resume.put(p.partitionId(), KafkaOffsetType.HISTORICAL.value());
+                    }
+                });
+            }
+
+            return stale;
+        }
+
+        private boolean staleResumeOffset(
+            Long2LongHashMap resume,
+            KafkaOffsetFW partition)
+        {
+            return resume.get(partition.partitionId()) > partition.latestOffset() + 1;
+        }
+
+        private void reopenRetained(
+            KafkaRetainedProxy stale,
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            retainedSubscriptions.removeAll(stale.beginFilters);
+            retained = new KafkaRetainedProxy(stale.originId, stale.routedId, stale.topic, this);
+            retained.doKafkaBegin(traceId, authorization, affinity, stale.beginFilters);
+        }
+
+        private void reopenMessages(
+            KafkaMessagesProxy stale,
+            long traceId,
+            long authorization,
+            long affinity)
+        {
+            final KafkaMessagesProxy replacement = new KafkaMessagesProxy(stale.originId, stale.routeConfig, this);
+            messages.put(stale.routeConfig.order, replacement);
+            replacement.doKafkaBegin(traceId, authorization, affinity,
+                mqttFiltersRO.wrap(new UnsafeBufferEx(stale.beginFilters), 0, stale.beginFilters.length));
         }
 
         private void onMqttFlush(
@@ -641,6 +802,53 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             final int qos = mqttSubscribeFlushEx.qos();
             final MqttOffsetStateFlags state = MqttOffsetStateFlags.valueOf(mqttSubscribeFlushEx.state());
+
+            if (sessionStateStored)
+            {
+                onMessageAckedStored(traceId, authorization, packetId, state);
+            }
+            else
+            {
+                onMessageAckedCommitted(traceId, authorization, budgetId, reserved, packetId, qos, state);
+            }
+        }
+
+        private void onMessageAckedStored(
+            long traceId,
+            long authorization,
+            int packetId,
+            MqttOffsetStateFlags state)
+        {
+            if (state == MqttOffsetStateFlags.INCOMPLETE)
+            {
+                clientHighWaterMarks.inflight.pubrelPending(packetId);
+
+                final Flyweight mqttSubscribeFlushEx = mqttFlushExRW.wrap(extBuffer, 0, extBuffer.capacity())
+                    .typeId(mqttTypeId)
+                    .subscribe(b -> b.packetId(packetId)).build();
+                doMqttFlush(traceId, authorization, 0, 0, mqttSubscribeFlushEx);
+            }
+            else
+            {
+                final long topicKey = clientHighWaterMarks.inflight.topicKey(packetId);
+                clientHighWaterMarks.inflight.release(packetId);
+
+                if (messagesPerTopicKey.get(topicKey) == -1L)
+                {
+                    retained.onMessageCompleted(traceId, authorization);
+                }
+            }
+        }
+
+        private void onMessageAckedCommitted(
+            long traceId,
+            long authorization,
+            long budgetId,
+            int reserved,
+            int packetId,
+            int qos,
+            MqttOffsetStateFlags state)
+        {
             final MqttKafkaPacketIds inflight = clientHighWaterMarks.inflight;
             final long topicKey = inflight.topicKey(packetId);
             final int partitionId = inflight.partitionId(packetId);
@@ -782,7 +990,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert initialAck <= initialSeq;
 
-            releaseHighWaterMarks();
+            if (sessionStateStored)
+            {
+                snapshotOutbound();
+            }
+
+            if (releaseHighWaterMarks())
+            {
+                clientHighWaterMarks.outboundReply = this;
+            }
+
             messages.values().forEach(m -> m.doKafkaEnd(traceId, authorization));
             messages.clear();
             if (retainAvailable)
@@ -958,10 +1175,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             long traceId,
             long authorization)
         {
-            releaseHighWaterMarks();
+            final boolean last = releaseHighWaterMarks();
 
             if (!StreamState.replyClosed(state))
             {
+                if (sessionStateStored && (last || clientHighWaterMarks.outboundReply == this))
+                {
+                    clientHighWaterMarks.outboundReply = null;
+                    doMqttOutbound(traceId, authorization);
+                }
+
                 state = StreamState.closeReply(state);
 
                 doEnd(mqtt, originId, routedId, replyId, replySeq, replyAck, state, replyMax, traceId, authorization);
@@ -993,17 +1216,21 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             }
         }
 
-        private void releaseHighWaterMarks()
+        private boolean releaseHighWaterMarks()
         {
+            boolean last = false;
+
             if (clientHighWaterMarks != null)
             {
-                clientHighWaterMarks.streams.remove(this);
+                last = clientHighWaterMarks.streams.remove(this) && clientHighWaterMarks.streams.isEmpty();
                 if (clientHighWaterMarks.unused() &&
                     highWaterMarksByClient.get(clientHighWaterMarks.clientId) == clientHighWaterMarks)
                 {
                     highWaterMarksByClient.remove(clientHighWaterMarks.clientId);
                 }
             }
+
+            return last;
         }
 
         private void commitDeferredOffsets(
@@ -1368,6 +1595,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         private int replyMax;
         private int replyPad;
         private boolean expiredMessage;
+        private byte[] beginFilters;
+        private final Long2LongHashMap sentOffsets = new Long2LongHashMap(NO_RESUME_OFFSET);
 
         private KafkaMessagesProxy(
             long originId,
@@ -1451,25 +1680,33 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (kafkaMergedBeginEx != null)
+            if (kafkaMergedBeginEx != null && mqtt.resumeStale(topic, kafkaMergedBeginEx))
             {
-                kafkaMergedBeginEx.partitions().forEach(p ->
-                {
-                    final String16FW metadata = p.metadata();
-                    if (mqtt.qos == MqttQoS.EXACTLY_ONCE.value() && metadata != null && metadata.length() > 0)
-                    {
-                        final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
-                        incompletePacketIds.put(p.partitionId(), packetIds);
-                        packetIds.forEach(id -> mqtt.clientHighWaterMarks.inflight.reserve(id,
-                            topicKey, p.partitionId(), p.partitionOffset()));
-                    }
-                    mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
-                        new OffsetHighWaterMark());
-                });
+                doKafkaReplaced(traceId, authorization);
+                mqtt.reopenMessages(this, traceId, authorization, affinity);
             }
+            else
+            {
+                if (kafkaMergedBeginEx != null && !sessionStateStored)
+                {
+                    kafkaMergedBeginEx.partitions().forEach(p ->
+                    {
+                        final String16FW metadata = p.metadata();
+                        if (mqtt.qos == MqttQoS.EXACTLY_ONCE.value() && metadata != null && metadata.length() > 0)
+                        {
+                            final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
+                            incompletePacketIds.put(p.partitionId(), packetIds);
+                            packetIds.forEach(id -> mqtt.clientHighWaterMarks.inflight.reserve(id,
+                                topicKey, p.partitionId(), p.partitionOffset()));
+                        }
+                        mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
+                            new OffsetHighWaterMark());
+                    });
+                }
 
-            mqtt.doMqttBegin(traceId, authorization, affinity);
-            doKafkaWindow(traceId, authorization, mqtt.replyBud, mqtt.replyPad, 0);
+                mqtt.doMqttBegin(traceId, authorization, affinity);
+                doKafkaWindow(traceId, authorization, mqtt.replyBud, mqtt.replyPad, 0);
+            }
         }
 
         private void onKafkaData(
@@ -1537,7 +1774,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     final boolean acknowledged = messageQos >= MqttQoS.AT_LEAST_ONCE.value();
                     final int packetId = acknowledged ?
                         mqtt.clientHighWaterMarks.inflight.allocate(
-                            topicKey, partition.partitionId(), partition.partitionOffset()) :
+                            topicKey, partition.partitionId(), partition.partitionOffset(), messageQos) :
                         NO_PACKET_ID;
 
                     if (acknowledged && packetId == NO_PACKET_ID)
@@ -1547,11 +1784,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         break sendData;
                     }
 
-                    if (acknowledged)
+                    if (acknowledged && !sessionStateStored)
                     {
                         final OffsetHighWaterMark highWaterMark = mqtt.clientHighWaterMarks.marks.get(
                             topicPartitionKey(topicKey, partition.partitionId()));
                         highWaterMark.awaitAcknowledge(partition.partitionOffset());
+                    }
+
+                    if (sessionStateStored && mqtt.qos > 0)
+                    {
+                        sentOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
                     }
 
                     dataDeferred = deferred;
@@ -1750,6 +1992,12 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         {
             if (!StreamState.initialOpening(state))
             {
+                if (sessionStateStored)
+                {
+                    beginFilters = new byte[filters.sizeof()];
+                    filters.buffer().getBytes(filters.offset(), beginFilters);
+                }
+
                 final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
                     filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
 
@@ -1773,7 +2021,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 kafka = newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state,
                         initialMax,
                     traceId, authorization, affinity, mqtt.clientId, topic, filterBuilder.build(), mqtt.qos,
-                    KafkaOffsetType.LIVE);
+                    KafkaOffsetType.LIVE, mqtt.resumeOffsets(topic));
             }
         }
 
@@ -1886,6 +2134,27 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
                     StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
+            }
+        }
+
+        private void doKafkaReplaced(
+            long traceId,
+            long authorization)
+        {
+            if (!StreamState.initialClosed(state))
+            {
+                state = StreamState.closeInitial(state);
+
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
+            }
+
+            if (!StreamState.replyClosed(state))
+            {
+                state = StreamState.closeReply(state);
+
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId);
             }
         }
 
@@ -2043,6 +2312,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
         private int unAckedPackets;
         private boolean expiredMessage;
+        private List<Subscription> beginFilters;
+        private final Long2LongHashMap sentOffsets = new Long2LongHashMap(NO_RESUME_OFFSET);
 
         private KafkaRetainedProxy(
             long originId,
@@ -2128,25 +2399,33 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
             assert replyAck <= replySeq;
 
-            if (kafkaMergedBeginEx != null)
+            if (kafkaMergedBeginEx != null && mqtt.resumeStale(topic, kafkaMergedBeginEx))
             {
-                kafkaMergedBeginEx.partitions().forEach(p ->
-                {
-                    final String16FW metadata = p.metadata();
-                    if (mqtt.qos == MqttQoS.EXACTLY_ONCE.value() && metadata != null && metadata.length() > 0)
-                    {
-                        final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
-                        incompletePacketIds.put(p.partitionId(), packetIds);
-                        packetIds.forEach(id -> mqtt.clientHighWaterMarks.inflight.reserve(id,
-                            topicKey, p.partitionId(), p.partitionOffset()));
-                    }
-                    mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
-                        new OffsetHighWaterMark());
-                });
+                doKafkaReplaced(traceId, authorization);
+                mqtt.reopenRetained(this, traceId, authorization, affinity);
             }
+            else
+            {
+                if (kafkaMergedBeginEx != null && !sessionStateStored)
+                {
+                    kafkaMergedBeginEx.partitions().forEach(p ->
+                    {
+                        final String16FW metadata = p.metadata();
+                        if (mqtt.qos == MqttQoS.EXACTLY_ONCE.value() && metadata != null && metadata.length() > 0)
+                        {
+                            final IntArrayList packetIds = stringToOffsetMetadataList(metadata);
+                            incompletePacketIds.put(p.partitionId(), packetIds);
+                            packetIds.forEach(id -> mqtt.clientHighWaterMarks.inflight.reserve(id,
+                                topicKey, p.partitionId(), p.partitionOffset()));
+                        }
+                        mqtt.clientHighWaterMarks.marks.put(topicPartitionKey(topicKey, p.partitionId()),
+                            new OffsetHighWaterMark());
+                    });
+                }
 
-            mqtt.doMqttBegin(traceId, authorization, affinity);
-            doKafkaWindow(traceId, authorization, mqtt.replyBud, mqtt.replyPad, 0);
+                mqtt.doMqttBegin(traceId, authorization, affinity);
+                doKafkaWindow(traceId, authorization, mqtt.replyBud, mqtt.replyPad, 0);
+            }
         }
 
         private void onKafkaData(
@@ -2219,7 +2498,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                     final boolean acknowledged = messageQos >= MqttQoS.AT_LEAST_ONCE.value();
                     final int packetId = acknowledged ?
                         mqtt.clientHighWaterMarks.inflight.allocate(
-                            topicKey, partition.partitionId(), partition.partitionOffset()) :
+                            topicKey, partition.partitionId(), partition.partitionOffset(), messageQos) :
                         NO_PACKET_ID;
 
                     if (acknowledged && packetId == NO_PACKET_ID)
@@ -2229,11 +2508,16 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                         break sendData;
                     }
 
-                    if (acknowledged)
+                    if (acknowledged && !sessionStateStored)
                     {
                         final OffsetHighWaterMark highWaterMark = mqtt.clientHighWaterMarks.marks.get(
                             topicPartitionKey(topicKey, partition.partitionId()));
                         highWaterMark.awaitAcknowledge(partition.partitionOffset());
+                    }
+
+                    if (sessionStateStored && mqtt.qos > 0)
+                    {
+                        sentOffsets.put(partition.partitionId(), partition.partitionOffset() + 1);
                     }
 
                     mqttSubscribeDataEx = mqttDataExRW.wrap(extBuffer, 0, extBuffer.capacity())
@@ -2364,6 +2648,18 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             }
         }
 
+        private void onMessageCompleted(
+            long traceId,
+            long authorization)
+        {
+            unAckedPackets--;
+
+            if (unAckedPackets == 0 && incompletePacketIds.isEmpty())
+            {
+                doKafkaEnd(traceId, authorization);
+            }
+        }
+
         private void onKafkaEnd(
             EndFW end)
         {
@@ -2454,6 +2750,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             replySeq = 0;
             replyAck = 0;
             replyMax = 0;
+            beginFilters = newRetainedFilters;
 
             final Array32FW.Builder<MqttTopicFilterFW.Builder, MqttTopicFilterFW> filterBuilder =
                 filtersRW.wrap(filterBuffer, 0, filterBuffer.capacity());
@@ -2479,7 +2776,7 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             kafka =
                 newKafkaStream(this::onKafkaMessage, originId, routedId, initialId, initialSeq, initialAck, state, initialMax,
                     traceId, authorization, affinity, mqtt.clientId, topic, retainedFilters, mqtt.qos,
-                    KafkaOffsetType.HISTORICAL);
+                    KafkaOffsetType.HISTORICAL, mqtt.resumeOffsets(topic));
         }
 
         @Override
@@ -2597,6 +2894,27 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
 
                 doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
                     StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
+            }
+        }
+
+        private void doKafkaReplaced(
+            long traceId,
+            long authorization)
+        {
+            if (!StreamState.initialClosed(state))
+            {
+                state = StreamState.closeInitial(state);
+
+                doAbort(kafka, originId, routedId, initialId, initialSeq, initialAck,
+                    StreamState.closeInitial(StreamState.abortingInitial(state)), initialMax, traceId, authorization);
+            }
+
+            if (!StreamState.replyClosed(state))
+            {
+                state = StreamState.closeReply(state);
+
+                doReset(kafka, originId, routedId, replyId, replySeq, replyAck,
+                    StreamState.closeReply(StreamState.abortingReply(state)), replyMax, traceId);
             }
         }
 
@@ -4635,7 +4953,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         String16FW topic,
         Array32FW<MqttTopicFilterFW> filters,
         int qos,
-        KafkaOffsetType offsetType)
+        KafkaOffsetType offsetType,
+        Long2LongHashMap resumeOffsets)
     {
         final KafkaBeginExFW kafkaBeginEx =
             kafkaBeginExRW.wrap(writeBuffer, BeginFW.FIELD_OFFSET_EXTENSION, writeBuffer.capacity())
@@ -4644,13 +4963,23 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
                 {
                     m.capabilities(c -> c.set(KafkaCapabilities.FETCH_ONLY));
                     m.topic(topic);
-                    if (qos >= MqttQoS.AT_LEAST_ONCE.value())
+                    if (qos >= MqttQoS.AT_LEAST_ONCE.value() && !sessionStateStored)
                     {
                         m.groupId(groupIdPrefix + "-" + clientId.asString());
                     }
-                    m.partitionsItem(p ->
-                        p.partitionId(offsetType.value())
-                            .partitionOffset(offsetType.value()));
+                    if (resumeOffsets != null && !resumeOffsets.isEmpty())
+                    {
+                        resumeOffsets.forEach((partitionId, nextOffset) ->
+                            m.partitionsItem(p -> p
+                                .partitionId(partitionId.intValue())
+                                .partitionOffset(nextOffset)));
+                    }
+                    else
+                    {
+                        m.partitionsItem(p ->
+                            p.partitionId(offsetType.value())
+                                .partitionOffset(offsetType.value()));
+                    }
                     filters.forEach(filter ->
                         forEachAlternative(filter.pattern().asString(), alternative ->
                             m.filtersItem(f -> buildFilterConditions(f, alternative, filter, clientId, qos))));
@@ -5101,12 +5430,35 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
         }
     }
 
+    private static final class OutboundPartition
+    {
+        final int qos;
+        final String topic;
+        final int partitionId;
+        final long nextOffset;
+
+        OutboundPartition(
+            int qos,
+            String topic,
+            int partitionId,
+            long nextOffset)
+        {
+            this.qos = qos;
+            this.topic = topic;
+            this.partitionId = partitionId;
+            this.nextOffset = nextOffset;
+        }
+    }
+
     private static final class ClientHighWaterMarks
     {
         final String clientId;
         final Long2ObjectHashMap<OffsetHighWaterMark> marks;
         final List<MqttSubscribeProxy> streams;
+        MqttSubscribeProxy outboundReply;
         final MqttKafkaPacketIds inflight;
+        final List<OutboundPartition> outbound;
+        final Long2ObjectHashMap<String> topicNames;
 
         private int sharedStreams;
 
@@ -5117,6 +5469,8 @@ public class MqttKafkaSubscribeFactory implements MqttKafkaStreamFactory
             this.marks = new Long2ObjectHashMap<>();
             this.streams = new ArrayList<>();
             this.inflight = new MqttKafkaPacketIds();
+            this.outbound = new ArrayList<>();
+            this.topicNames = new Long2ObjectHashMap<>();
         }
 
         private boolean unused()

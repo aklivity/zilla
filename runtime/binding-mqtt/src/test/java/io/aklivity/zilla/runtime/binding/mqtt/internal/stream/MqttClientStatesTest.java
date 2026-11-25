@@ -33,6 +33,7 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 public class MqttClientStatesTest
 {
     private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
+    private static final byte[] NO_OUTBOUND = new byte[0];
     private static final byte[] NO_INBOUND = new byte[0];
 
     private final MqttClientStates states = new MqttClientStates();
@@ -55,7 +56,7 @@ public class MqttClientStatesTest
         final List<MqttMembershipRecord> memberships = List.of(new MqttMembershipRecord("consumers", "sensor/one"));
 
         final MqttClientStateRecord record = states.decode(
-            states.encode(memberships, packets, null, NO_SUBSCRIPTIONS, NO_INBOUND));
+            states.encode(memberships, packets, null, NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND));
 
         assertEquals(memberships, record.memberships);
         assertEquals(2, record.packets.size());
@@ -73,7 +74,7 @@ public class MqttClientStatesTest
     public void shouldRoundTripHolder()
     {
         final MqttClientStateRecord record = states.decode(
-            states.encode(List.of(), List.of(), "replica-1", NO_SUBSCRIPTIONS, NO_INBOUND));
+            states.encode(List.of(), List.of(), "replica-1", NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND));
 
         assertEquals("replica-1", record.holder);
         assertTrue(record.packets.isEmpty());
@@ -84,7 +85,7 @@ public class MqttClientStatesTest
     public void shouldRoundTripReleasedAsNoHolder()
     {
         final MqttClientStateRecord record = states.decode(
-            states.encode(List.of(), List.of(), null, NO_SUBSCRIPTIONS, NO_INBOUND));
+            states.encode(List.of(), List.of(), null, NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND));
 
         assertNull(record.holder);
     }
@@ -114,7 +115,7 @@ public class MqttClientStatesTest
 
         final MqttClientStateRecord record = states.decode(
             states.encode(List.of(new MqttMembershipRecord("consumers", "sensor/one")),
-                List.of(), "replica-1", subscriptions, NO_INBOUND));
+                List.of(), "replica-1", subscriptions, NO_OUTBOUND, NO_INBOUND));
 
         assertArrayEquals(subscriptions, record.subscriptions);
         assertEquals("replica-1", record.holder);
@@ -124,7 +125,7 @@ public class MqttClientStatesTest
     @Test
     public void shouldEncodeVersionTwoWithoutSubscriptions()
     {
-        final String encoded = states.encode(List.of(), List.of(), "replica-1", NO_SUBSCRIPTIONS, NO_INBOUND);
+        final String encoded = states.encode(List.of(), List.of(), "replica-1", NO_SUBSCRIPTIONS, NO_OUTBOUND, NO_INBOUND);
 
         assertEquals(MqttClientStateVersion.V2.value(), Base64.getUrlDecoder().decode(encoded)[0]);
     }
@@ -132,7 +133,7 @@ public class MqttClientStatesTest
     @Test
     public void shouldEncodeVersionThreeWithSubscriptions()
     {
-        final String encoded = states.encode(List.of(), List.of(), null, new byte[] {1}, NO_INBOUND);
+        final String encoded = states.encode(List.of(), List.of(), null, new byte[] {1}, NO_OUTBOUND, NO_INBOUND);
 
         assertEquals(MqttClientStateVersion.V3.value(), Base64.getUrlDecoder().decode(encoded)[0]);
     }
@@ -161,7 +162,7 @@ public class MqttClientStatesTest
         final byte[] inbound = {5, 0, 0, 0, 2, 9, 8, 7};
 
         final MqttClientStateRecord record = states.decode(
-            states.encode(List.of(), List.of(), "replica-1", NO_SUBSCRIPTIONS, inbound));
+            states.encode(List.of(), List.of(), "replica-1", NO_SUBSCRIPTIONS, NO_OUTBOUND, inbound));
 
         assertArrayEquals(inbound, record.inbound);
         assertEquals(0, record.subscriptions.length);
@@ -175,7 +176,7 @@ public class MqttClientStatesTest
         final byte[] inbound = {5, 0, 0, 0, 2, 9, 8, 7};
 
         final MqttClientStateRecord record = states.decode(
-            states.encode(List.of(), List.of(), null, subscriptions, inbound));
+            states.encode(List.of(), List.of(), null, subscriptions, NO_OUTBOUND, inbound));
 
         assertArrayEquals(subscriptions, record.subscriptions);
         assertArrayEquals(inbound, record.inbound);
@@ -185,9 +186,70 @@ public class MqttClientStatesTest
     public void shouldDecodeAbsentInboundAsEmpty()
     {
         final MqttClientStateRecord record = states.decode(
-            states.encode(List.of(), List.of(), "replica-1", new byte[] {1}, NO_INBOUND));
+            states.encode(List.of(), List.of(), "replica-1", new byte[] {1}, NO_OUTBOUND, NO_INBOUND));
 
         assertEquals(0, record.inbound.length);
+    }
+
+    @Test
+    public void shouldRoundTripOutbound()
+    {
+        final byte[] subscriptions = {3, 0, 0, 0, 1, 7, 9, 11};
+        final byte[] outbound = {2, 4, 6, 8, 10};
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(List.of(new MqttMembershipRecord("consumers", "sensor/one")), List.of(), "replica-1",
+                subscriptions, outbound, NO_INBOUND));
+
+        assertArrayEquals(outbound, record.outbound);
+        assertArrayEquals(subscriptions, record.subscriptions);
+        assertEquals(0, record.inbound.length);
+        assertEquals("replica-1", record.holder);
+    }
+
+    @Test
+    public void shouldRoundTripOutboundWithoutSubscriptions()
+    {
+        final byte[] outbound = {2, 4, 6, 8, 10};
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(List.of(), List.of(), null, NO_SUBSCRIPTIONS, outbound, NO_INBOUND));
+
+        assertArrayEquals(outbound, record.outbound);
+        assertEquals(0, record.subscriptions.length);
+        assertEquals(0, record.inbound.length);
+    }
+
+    @Test
+    public void shouldRoundTripOutboundWithInbound()
+    {
+        final byte[] subscriptions = {3, 0, 0, 0, 1, 7, 9, 11};
+        final byte[] outbound = {2, 4, 6, 8, 10};
+        final byte[] inbound = {5, 0, 0, 0, 2, 9, 8, 7};
+
+        final MqttClientStateRecord record = states.decode(
+            states.encode(List.of(), List.of(), null, subscriptions, outbound, inbound));
+
+        assertArrayEquals(subscriptions, record.subscriptions);
+        assertArrayEquals(outbound, record.outbound);
+        assertArrayEquals(inbound, record.inbound);
+    }
+
+    @Test
+    public void shouldEncodeVersionThreeWithOutbound()
+    {
+        final String encoded = states.encode(List.of(), List.of(), null, NO_SUBSCRIPTIONS, new byte[] {1}, NO_INBOUND);
+
+        assertEquals(MqttClientStateVersion.V3.value(), Base64.getUrlDecoder().decode(encoded)[0]);
+    }
+
+    @Test
+    public void shouldDecodeAbsentOutboundAsEmpty()
+    {
+        final MqttClientStateRecord record = states.decode(
+            states.encode(List.of(), List.of(), null, new byte[] {1}, NO_OUTBOUND, new byte[] {2}));
+
+        assertEquals(0, record.outbound.length);
     }
 
     @Test

@@ -192,6 +192,36 @@ public class MergedIT
 
     @Test
     @Specification({
+        "${app}/merged.fetch.partition.offsets.partial/client",
+        "${app}/merged.fetch.partition.offsets.partial/server"})
+    public void shouldFetchMergedPartitionOffsetsPartial() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/merged.fetch.partition.offsets.below.log.start/client",
+        "${app}/merged.fetch.partition.offsets.below.log.start/server"})
+    public void shouldFetchMergedPartitionOffsetsBelowLogStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/unmerged.fetch.partition.offsets.partial/client",
+        "${app}/unmerged.fetch.partition.offsets.partial/server"})
+    public void shouldFetchUnmergedPartitionOffsetsPartial() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/merged.fetch.partition.offsets.latest/client",
         "${app}/merged.fetch.partition.offsets.latest/server"})
     public void shouldFetchMergedPartitionOffsetsLatest() throws Exception

@@ -248,6 +248,34 @@ public class CacheMergedIT
     }
 
     @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.partition.offsets.partial/client",
+        "${app}/unmerged.fetch.partition.offsets.partial/server"})
+    public void shouldFetchMergedPartitionOffsetsPartial() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        Thread.sleep(400); // allow A2, B1, B2 to be merged
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.options.merged.yaml")
+    @Specification({
+        "${app}/merged.fetch.partition.offsets.below.log.start/client",
+        "${app}/unmerged.fetch.message.values/server"})
+    public void shouldFetchMergedPartitionOffsetsBelowLogStart() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("CHANGING_PARTITION_COUNT");
+        Thread.sleep(400); // allow A1, B1, A2, B2 to be merged
+        k3po.notifyBarrier("CHANGED_PARTITION_COUNT");
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.options.convert.yaml")
     @Specification({
         "${app}/merged.fetch.message.value.convert/client",

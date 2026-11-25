@@ -16,6 +16,9 @@ package io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.MAXIMUM_PACKET_ID;
 import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.NO_PACKET_ID;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.PUBLISH_SENT;
+import static io.aklivity.zilla.runtime.binding.mqtt.kafka.internal.stream.MqttKafkaPacketIds.PUBREL_PENDING;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -233,5 +236,70 @@ public class MqttKafkaPacketIdsTest
         assertEquals(12345, packetIds.allocate(0L, 0, 99L));
         assertEquals(99L, packetIds.offset(12345));
         assertEquals(NO_PACKET_ID, packetIds.allocate(0L, 0, 0L));
+    }
+
+    @Test
+    public void shouldAllocateWithQosAsPublishSent()
+    {
+        final MqttKafkaPacketIds packetIds = new MqttKafkaPacketIds();
+
+        final int packetId = packetIds.allocate(11L, 1, 100L, 2);
+
+        assertEquals(2, packetIds.qos(packetId));
+        assertEquals(PUBLISH_SENT, packetIds.state(packetId));
+        assertEquals(11L, packetIds.topicKey(packetId));
+        assertEquals(100L, packetIds.offset(packetId));
+    }
+
+    @Test
+    public void shouldMarkPubrelPending()
+    {
+        final MqttKafkaPacketIds packetIds = new MqttKafkaPacketIds();
+
+        final int packetId = packetIds.allocate(11L, 1, 100L, 2);
+        packetIds.pubrelPending(packetId);
+
+        assertEquals(PUBREL_PENDING, packetIds.state(packetId));
+        assertEquals(2, packetIds.qos(packetId));
+    }
+
+    @Test
+    public void shouldNotKeepQosAndStateOfReleasedPacketId()
+    {
+        final MqttKafkaPacketIds packetIds = new MqttKafkaPacketIds();
+
+        final int first = packetIds.allocate(11L, 1, 100L, 2);
+        packetIds.pubrelPending(first);
+        packetIds.release(first);
+
+        for (int i = 1; i < MAXIMUM_PACKET_ID; i++)
+        {
+            packetIds.allocate(0L, 0, i);
+        }
+
+        final int reused = packetIds.allocate(22L, 0, 5L, 1);
+
+        assertEquals(first, reused);
+        assertEquals(1, packetIds.qos(reused));
+        assertEquals(PUBLISH_SENT, packetIds.state(reused));
+    }
+
+    @Test
+    public void shouldListAllocatedPacketIdsInAscendingOrder()
+    {
+        final MqttKafkaPacketIds packetIds = new MqttKafkaPacketIds();
+
+        packetIds.allocate(1L, 0, 10L, 1);
+        packetIds.allocate(1L, 0, 11L, 1);
+        packetIds.allocate(1L, 0, 12L, 2);
+        packetIds.release(2);
+
+        assertArrayEquals(new int[] {1, 3}, packetIds.packetIds());
+    }
+
+    @Test
+    public void shouldListNoPacketIdsWhenEmpty()
+    {
+        assertEquals(0, new MqttKafkaPacketIds().packetIds().length);
     }
 }

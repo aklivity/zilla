@@ -21,7 +21,7 @@ stores:
         type: test
         options:
             entries:
-                "client#state": "AwQAAAAAAAAABAAAAAAAAAAOAGRlYWQtcmVwbGljYS0xAAAAAAUAAABzdGF0ZQ"
+                "client#state": "AwQAAAAAAAAABAAAAAAAAAAOAGRlYWQtcmVwbGljYS0xAAAAAAAAAAAFAAAAc3RhdGU"
 bindings:
     net0:
         type: mqtt
