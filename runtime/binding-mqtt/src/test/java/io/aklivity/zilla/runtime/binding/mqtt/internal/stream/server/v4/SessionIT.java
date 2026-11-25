@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
@@ -165,6 +166,17 @@ public class SessionIT
         "${net}/session.exists.clean.start/client",
         "${app}/session.exists.clean.start.v4/server"})
     public void shouldCloseExistingConnectionCleanStart() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.reconnect.non.clean.start.stored/client",
+        "${app}/session.reconnect.non.clean.start.stored/server"})
+    public void shouldReconnectNonCleanStartStored() throws Exception
     {
         k3po.finish();
     }

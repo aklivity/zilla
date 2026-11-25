@@ -795,6 +795,53 @@ public class MqttIT
 
     @Test
     @Specification({
+        "${mqtt}/session.store.subscribe.qos.max.1/client",
+        "${mqtt}/session.store.subscribe.qos.max.1/server"})
+    public void shouldSessionStoreSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.unsubscribe.after.subscribe.qos.max.1/client",
+        "${mqtt}/session.store.unsubscribe.after.subscribe.qos.max.1/server"})
+    public void shouldSessionStoreUnsubscribeAfterSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.persistent.subscribe.qos.max.1/client",
+        "${mqtt}/session.store.persistent.subscribe.qos.max.1/server"})
+    public void shouldSessionStorePersistentSubscribeQosMax1() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.persistent.close.reconnect.non.expiring/client",
+        "${mqtt}/session.store.persistent.close.reconnect.non.expiring/server"})
+    public void shouldSessionStorePersistentCloseReconnectNonExpiring() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.will.message.subscribe/client",
+        "${mqtt}/session.store.will.message.subscribe/server"})
+    public void shouldSessionStoreWillMessageSubscribe() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${mqtt}/session.abort.expire.session.state/client",
         "${mqtt}/session.abort.expire.session.state/server"})
     public void shouldExpireSessionOnAbort() throws Exception
@@ -908,6 +955,28 @@ public class MqttIT
         "${mqtt}/session.will.message/client",
         "${mqtt}/session.will.message/server"})
     public void shouldSaveWillMessage() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.store.will.message.qos2.abort.deliver.will/client",
+        "${mqtt}/session.store.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionStoreWillMessageQos2AbortDeliverWill() throws Exception
+    {
+        k3po.start();
+        k3po.notifyBarrier("WILL_STREAM_STARTED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/client",
+        "${mqtt}/session.will.message.qos2.abort.deliver.will/server"})
+    public void shouldSessionWillMessageQos2AbortDeliverWill() throws Exception
     {
         k3po.start();
         k3po.notifyBarrier("WILL_STREAM_STARTED");

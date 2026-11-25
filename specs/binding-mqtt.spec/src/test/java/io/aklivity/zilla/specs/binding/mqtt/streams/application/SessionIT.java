@@ -49,6 +49,15 @@ public class SessionIT
 
     @Test
     @Specification({
+        "${app}/session.reconnect.non.clean.start.stored/client",
+        "${app}/session.reconnect.non.clean.start.stored/server"})
+    public void shouldReconnectNonCleanStartStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/session.connect.non.clean.start/client",
         "${app}/session.connect.non.clean.start/server"})
     public void shouldConnectNonCleanStart() throws Exception
@@ -251,6 +260,51 @@ public class SessionIT
         "${app}/session.client.takeover.persistent/client",
         "${app}/session.client.takeover.persistent/server"})
     public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.stored/client",
+        "${app}/session.client.takeover.persistent.stored/server"})
+    public void shouldTakeOverPersistentSessionStored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldTakeOverPersistentSessionPipelinedSubscribe() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${app}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectNonCleanStartStoreUnreadableState() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/client",
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowAfterReady() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/session.client.takeover.persistent.stored.window.too.small/client",
+        "${app}/session.client.takeover.persistent.stored.window.too.small/server"})
+    public void shouldTakeOverPersistentSessionStoredWindowTooSmall() throws Exception
     {
         k3po.finish();
     }

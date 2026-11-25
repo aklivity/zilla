@@ -24,6 +24,8 @@ import io.aklivity.zilla.runtime.engine.store.StoreHandler;
 
 final class MqttClientStateEntry
 {
+    private static final byte[] NO_SUBSCRIPTIONS = new byte[0];
+
     private final StoreHandler store;
     private final String key;
     private final MqttClientStates states;
@@ -37,6 +39,7 @@ final class MqttClientStateEntry
     private String stored;
     private MqttClientStateRecord record;
     private List<Runnable> loading;
+    private List<Runnable> reloading;
     private List<Runnable> writing;
     private List<Runnable> pending;
     private List<Runnable> idling;
@@ -58,9 +61,17 @@ final class MqttClientStateEntry
     void reload(
         Runnable continuation)
     {
-        loading = new ArrayList<>();
-        loading.add(continuation);
-        store.get(key, (k, value) -> onLoaded(value));
+        if (reloading == null)
+        {
+            reloading = new ArrayList<>();
+        }
+
+        reloading.add(continuation);
+
+        if (loading == null)
+        {
+            doLoad();
+        }
     }
 
     void awaitLoaded(
@@ -100,7 +111,7 @@ final class MqttClientStateEntry
 
     boolean idle()
     {
-        return loading == null && writing == null && pending == null;
+        return loading == null && reloading == null && writing == null && pending == null;
     }
 
     List<MqttPacketRecord> packets()
@@ -113,9 +124,20 @@ final class MqttClientStateEntry
         return record.memberships;
     }
 
+    byte[] subscriptions()
+    {
+        return record.subscriptions;
+    }
+
+    void subscriptions(
+        byte[] subscriptions)
+    {
+        record.subscriptions = subscriptions;
+    }
+
     boolean empty()
     {
-        return record.packets.isEmpty() && record.memberships.isEmpty();
+        return record.packets.isEmpty() && record.memberships.isEmpty() && record.subscriptions.length == 0;
     }
 
     boolean held()
@@ -153,6 +175,7 @@ final class MqttClientStateEntry
 
         record.packets.clear();
         record.memberships.clear();
+        record.subscriptions = NO_SUBSCRIPTIONS;
 
         return discarded;
     }
@@ -229,7 +252,21 @@ final class MqttClientStateEntry
         loading = null;
 
         continuations.forEach(Runnable::run);
+
+        if (reloading != null && loading == null)
+        {
+            doLoad();
+        }
+
         settled();
+    }
+
+    private void doLoad()
+    {
+        loading = reloading;
+        reloading = null;
+
+        store.get(key, (k, value) -> onLoaded(value));
     }
 
     private void doWrite()
@@ -242,19 +279,21 @@ final class MqttClientStateEntry
 
     private void doWriteShared()
     {
-        if (record.packets.isEmpty() && record.memberships.isEmpty())
+        if (empty())
         {
             store.delete(key, v -> onWriteCompleted());
         }
         else
         {
-            store.put(key, states.encode(record.memberships, record.packets, holder), ttl.get(), v -> onWriteCompleted());
+            final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions);
+
+            store.put(key, value, ttl.get(), v -> onWriteCompleted());
         }
     }
 
     private void doWriteHeld()
     {
-        final String value = states.encode(record.memberships, record.packets, holder);
+        final String value = states.encode(record.memberships, record.packets, holder, record.subscriptions);
 
         if (stored != null)
         {

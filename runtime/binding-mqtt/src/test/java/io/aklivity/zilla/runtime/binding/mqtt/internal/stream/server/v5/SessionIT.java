@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfiguration.
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.KEEP_ALIVE_MINIMUM_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_LEASE_NAME;
 import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_RENEW_NAME;
+import static io.aklivity.zilla.runtime.binding.mqtt.internal.MqttConfigurationTest.SESSION_STATE_STORE_ENABLED_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static io.aklivity.zilla.runtime.engine.test.EngineRule.ENGINE_BUFFER_SLOT_CAPACITY_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -348,6 +349,69 @@ public class SessionIT
         "${net}/session.client.takeover.persistent/client",
         "${app}/session.client.takeover.persistent/server"})
     public void shouldTakeOverPersistentSession() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent.stored/server"})
+    public void shouldRestoreSubscriptionsFromStoreOnPersistentTakeOver() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent.pipelined.subscribe/client",
+        "${app}/session.client.takeover.persistent.pipelined.subscribe/server"})
+    public void shouldHoldPipelinedSubscribeUntilStoredSubscriptionsAreRestored() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.unreadable.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.connect.non.clean.start.store.unreadable.state/client",
+        "${app}/session.connect.non.clean.start.store.unreadable.state/server"})
+    public void shouldConnectAsNewSessionWhenStoredStateIsUnreadable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent/client",
+        "${app}/session.client.takeover.persistent.stored.window.after.ready/server"})
+    public void shouldWaitForSessionWindowBeforeRestoringStoredSubscriptions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
+    @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
+    @Specification({
+        "${net}/session.client.takeover.persistent.stored.window.too.small/client",
+        "${app}/session.client.takeover.persistent.stored.window.too.small/server"})
+    public void shouldStartNewSessionWhenStoredSubscriptionsExceedSessionWindow() throws Exception
     {
         k3po.finish();
     }
