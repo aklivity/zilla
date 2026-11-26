@@ -150,8 +150,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_PRODUCE_DIRECTORY = config.property(Path.class, "cache.produce.directory",
             (c, v) -> cacheDirectory(c, v), c -> KAFKA_CACHE_DIRECTORY.get(c));
-        KAFKA_CACHE_PRODUCE_SEGMENT_BYTES = config.property("cache.produce.segment.bytes",
-            KAFKA_CACHE_SEGMENT_BYTES::getAsInt);
+        KAFKA_CACHE_PRODUCE_SEGMENT_BYTES = config.property("cache.produce.segment.bytes", 0x4000000);
         KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES = config.property("cache.produce.segment.index.bytes",
             KAFKA_CACHE_SEGMENT_INDEX_BYTES::getAsInt);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);

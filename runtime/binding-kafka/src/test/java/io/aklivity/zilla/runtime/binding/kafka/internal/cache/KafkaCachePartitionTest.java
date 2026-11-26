@@ -30,12 +30,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.CRC32C;
 
@@ -54,12 +57,14 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaHeaderFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.OctetsFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCacheEntryFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedKeyFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.cache.KafkaCachePaddedValueFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.model.ModelCache;
 import io.aklivity.zilla.runtime.engine.model.ModelEnvelope;
 import io.aklivity.zilla.runtime.engine.model.ModelFieldBridge;
@@ -315,6 +320,16 @@ public class KafkaCachePartitionTest
         assertProduceEntriesReadableAcrossRolls(key, headers, value, 5);
     }
 
+    private KafkaCachePartition newProducePartition(
+        int segmentBytes,
+        AtomicLong produceCapacity) throws Exception
+    {
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = segmentBytes;
+        return new KafkaCachePartition(Clock.systemUTC(), tempFolder.newFolder().toPath(), config, "cache",
+            produceCapacity, Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
+    }
+
     private void assertProduceEntriesReadableAcrossRolls(
         KafkaKeyFW key,
         Array32FW<KafkaHeaderFW> headers,
@@ -354,6 +369,97 @@ public class KafkaCachePartitionTest
         }
 
         assertTrue("expected the head to roll at least once", rolls > 0);
+    }
+
+    @Test
+    public void shouldRejectProduceEntryThatCannotFitFreshSegment() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCachePartition partition = newProducePartition(1024, produceCapacity);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 2000, 0, headers.sizeof(), 256);
+
+        assertNull(head);
+        assertTrue(partition.head().sentinel());
+        assertEquals(0L, produceCapacity.get());
+    }
+
+    @Test
+    public void shouldKeepHeadWhenProduceEntryCannotFitFreshSegment() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCachePartition partition = newProducePartition(1024, produceCapacity);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+
+        Node oversized = partition.newProduceHeadIfNecessary(1L, key, 2000, 0, headers.sizeof(), 256);
+
+        assertNotNull(head);
+        assertNull(oversized);
+        assertSame(head, partition.head());
+        assertEquals(1024L, produceCapacity.get());
+    }
+
+    @Test
+    public void shouldStageProduceEntryOfMaxMessageBytesWhenSegmentBytesIsSmaller() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.binding.kafka.cache.produce.segment.bytes", "65536");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+        KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
+            "cache", new AtomicLong(), "test", long[]::new);
+        KafkaCachePartition partition = topic.supplyProducePartition(Clock.systemUTC(), 0, 0);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+
+        final int valueLength = config.cacheMaxMessageBytes() - key.sizeof() - headers.sizeof();
+
+        Node head = partition.newProduceHeadIfNecessary(0L, key, valueLength, 0, headers.sizeof(), 256);
+
+        assertNotNull(head);
+        assertTrue(partition.segmentBytes() > config.cacheMaxMessageBytes());
+    }
+
+    @Test
+    public void shouldKeepConfiguredProduceSegmentBytesWhenLargerThanMaxMessageBytes() throws Exception
+    {
+        KafkaConfiguration config = new KafkaConfiguration();
+        KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
+            "cache", new AtomicLong(), "test", long[]::new);
+
+        assertEquals(64 * 1024 * 1024, topic.supplyProducePartition(Clock.systemUTC(), 0, 0).segmentBytes());
+    }
+
+    @Test
+    public void shouldSizeNewProduceSegmentsForChangedMaxMessageBytes() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.binding.kafka.cache.produce.segment.bytes", "1048576");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+        KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
+            "cache", new AtomicLong(), "test", long[]::new);
+        KafkaCachePartition partition = topic.supplyProducePartition(Clock.systemUTC(), 0, 0);
+
+        topic.onConfigChanged(new String16FW("max.message.bytes"), new String16FW("104857600"));
+
+        assertTrue(partition.segmentBytes() > 104857600);
+    }
+
+    @Test
+    public void shouldRejectProduceSegmentIndexBytesThatCannotHoldOneRecord() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.binding.kafka.cache.produce.segment.index.bytes", "4");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+
+        assertThrows(IllegalArgumentException.class, () -> new KafkaCacheTopic(tempFolder.newFolder().toPath(),
+            tempFolder.newFolder().toPath(), config, "cache", new AtomicLong(), "test", long[]::new));
     }
 
     @Test

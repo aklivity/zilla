@@ -147,14 +147,14 @@ public class KafkaConfigurationTest
     }
 
     @Test
-    public void shouldDefaultProduceSegmentSizesToCacheSegmentSizes() throws Exception
+    public void shouldDefaultProduceSegmentBytesTo64MiBAndIndexBytesToCacheIndexBytes() throws Exception
     {
         Properties properties = new Properties();
         properties.setProperty("zilla.binding.kafka.cache.segment.bytes", "2097152");
         properties.setProperty("zilla.binding.kafka.cache.segment.index.bytes", "65536");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
-        assertEquals(2097152, config.cacheProduceSegmentBytes());
+        assertEquals(64 * 1024 * 1024, config.cacheProduceSegmentBytes());
         assertEquals(65536, config.cacheProduceSegmentIndexBytes());
     }
 

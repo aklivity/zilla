@@ -27,6 +27,7 @@ import java.util.function.IntFunction;
 import org.agrona.IoUtil;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
 
 public final class KafkaCacheTopic
 {
@@ -80,6 +81,14 @@ public final class KafkaCacheTopic
     public KafkaCacheTopicConfig config()
     {
         return config;
+    }
+
+    public void onConfigChanged(
+        String16FW configName,
+        String16FW configValue)
+    {
+        config.onChanged(configName, configValue);
+        produceConfig.onMaxMessageBytes(configName, configValue);
     }
 
     public KafkaCachePartition supplyFetchPartition(
