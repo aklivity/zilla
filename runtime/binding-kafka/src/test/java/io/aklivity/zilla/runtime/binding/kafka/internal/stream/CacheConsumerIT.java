@@ -104,9 +104,9 @@ public class CacheConsumerIT
     @Test
     @Configuration("cache.when.topic.yaml")
     @Specification({
-        "${app}/acknowledge.message.offsets.coalesced/client",
+        "${app}/acknowledge.message.offsets.queued/client",
         "${app}/commit.acknowledge.message.offsets.coalesced/server"})
-    public void shouldCommitAcknowledgeMessageOffsetsCoalesced() throws Exception
+    public void shouldCommitAcknowledgeMessageOffsetsQueued() throws Exception
     {
         k3po.finish();
     }
