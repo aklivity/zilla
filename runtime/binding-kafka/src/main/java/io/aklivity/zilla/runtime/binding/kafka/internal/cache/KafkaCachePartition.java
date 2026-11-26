@@ -349,7 +349,7 @@ public final class KafkaCachePartition
             final Node removed = node;
             node = node.next;
             removed.remove();
-            produceCapacity.addAndGet(-segmentBytes());
+            produceCapacity.addAndGet(-removed.segmentBytes);
         }
     }
 

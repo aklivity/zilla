@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_PRODUCE_DIRECTORY_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
@@ -284,6 +285,7 @@ public class CacheProduceIT
         "${app}/message.value.repeated.acknowledged/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
     @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
     public void shouldReclaimAcknowledgedProduceSegments() throws Exception
     {
         k3po.finish();

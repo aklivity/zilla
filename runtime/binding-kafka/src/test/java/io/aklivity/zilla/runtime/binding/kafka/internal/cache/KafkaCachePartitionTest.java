@@ -626,6 +626,30 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldReleaseCapacityOfSegmentSizeAtCreationWhenMaxMessageBytesChanged() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCacheTopicConfig config = KafkaCacheTopicConfig.produce(new KafkaConfiguration());
+        config.segmentBytes = 4096;
+        config.maxMessageBytes = 100;
+        config.segmentIndexBytes = 1 << 16;
+        KafkaCachePartition partition = new KafkaCachePartition(Clock.systemUTC(), tempFolder.newFolder().toPath(), config,
+            "cache", produceCapacity, Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
+        Node first = partition.append(10L);
+        writeProduceEntry(partition, first, 11L);
+        config.maxMessageBytes = 100000;
+        Node second = partition.append(20L);
+        writeProduceEntry(partition, second, 21L);
+        partition.append(30L);
+        final long secondBytes = config.effectiveSegmentBytes();
+
+        partition.removeAcknowledgedSegments(20L);
+        partition.removeAcknowledgedSegments(30L);
+
+        assertEquals(secondBytes, produceCapacity.get());
+    }
+
+    @Test
     public void shouldNotRemoveHeadSegmentWhenAllAcknowledged() throws Exception
     {
         AtomicLong produceCapacity = new AtomicLong();
