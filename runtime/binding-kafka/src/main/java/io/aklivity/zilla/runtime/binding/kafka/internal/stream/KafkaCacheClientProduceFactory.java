@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ADVANCE;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_DIRTY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
@@ -642,7 +642,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             members.remove(member.initialId);
 
-            member.markEntriesDirty(traceId);
+            member.markEntriesAborted();
 
             if (members.isEmpty())
             {
@@ -710,7 +710,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                                        .topic(partition.topic())
                                        .partition(par -> par
                                            .partitionId(partitionId)
-                                           .partitionOffset(DEFAULT_LATEST_OFFSET)))
+                                           .partitionOffset(lastAckOffsetHighWatermark - 1)))
                         .build()
                         .sizeof()));
         }
@@ -839,7 +839,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (hasIncomplete(flags) || error == ERROR_INVALID_RECORD)
             {
-                markEntryDirty(traceId, stream.partitionOffset);
+                markEntryAborted(stream.partitionOffset);
             }
 
             if (error != NO_ERROR)
@@ -887,14 +887,14 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq,
                     trailers, false);
-                markEntryDirty(traceId, stream.partitionOffset);
+                markEntryAborted(stream.partitionOffset);
                 reclaimSegments();
                 flushClientFanInitialIfNecessary(traceId);
             }
             else
             {
                 error = ERROR_RECORD_LIST_TOO_LARGE;
-                markEntryDirty(traceId, stream.partitionOffset);
+                markEntryAborted(stream.partitionOffset);
             }
 
             if (error != NO_ERROR)
@@ -1202,7 +1202,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             while (lastAckOffsetHighWatermark <= partitionOffset)
             {
-                final KafkaCacheEntryFW entry = markEntryDirty(traceId, lastAckOffsetHighWatermark);
+                final KafkaCacheEntryFW entry = findEntry(lastAckOffsetHighWatermark);
                 if (entry == null)
                 {
                     lastAckOffsetHighWatermark++;
@@ -1243,15 +1243,20 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private boolean isEntryFinal(
             long offset)
         {
-            final KafkaCacheEntryFW entry = partition.seekNotAfter(offset).findEntry(entryRO, offset);
-            return entry != null && (entry.flags() & CACHE_ENTRY_FLAGS_DIRTY) != 0;
+            final KafkaCacheEntryFW entry = findEntry(offset);
+            return entry != null && (entry.flags() & CACHE_ENTRY_FLAGS_ABORTED) != 0;
         }
 
-        private KafkaCacheEntryFW markEntryDirty(
-            long traceId,
+        private KafkaCacheEntryFW findEntry(
             long partitionOffset)
         {
-            return this.partition.seekNotAfter(partitionOffset).findAndMarkDirty(entryRO, partitionOffset);
+            return this.partition.seekNotAfter(partitionOffset).findEntry(entryRO, partitionOffset);
+        }
+
+        private void markEntryAborted(
+            long partitionOffset)
+        {
+            this.partition.seekNotAfter(partitionOffset).markAbortedIfPresent(entryRO, partitionOffset);
         }
 
         private void onClientFanReplyEnd(
@@ -1543,7 +1548,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             if (partitionOffset != DEFAULT_LATEST_OFFSET && dataFlags != FIN)
             {
-                fan.markEntryDirty(traceId, partitionOffset);
+                fan.markEntryAborted(partitionOffset);
             }
 
             fan.onClientFanMemberClosed(traceId, this);
@@ -1794,13 +1799,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
         }
 
-        private void markEntriesDirty(
-            long traceId)
+        private void markEntriesAborted()
         {
             while (!unackedOffsets.isEmpty())
             {
-                final long unackedOffset = unackedOffsets.removeLong();
-                fan.partition.seekNotAfter(unackedOffset).markDirtyIfPresent(entryRO, unackedOffset);
+                fan.markEntryAborted(unackedOffsets.removeLong());
             }
         }
     }

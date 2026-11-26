@@ -90,7 +90,7 @@ public final class KafkaCachePartition
     public static final int CACHE_ENTRY_FLAGS_ABORTED = KafkaCacheEntryFlags.ABORTED.value();
     public static final int CACHE_ENTRY_FLAGS_CONTROL = KafkaCacheEntryFlags.CONTROL.value();
     public static final int CACHE_ENTRY_FLAGS_AUTHORITATIVE = KafkaCacheEntryFlags.AUTHORITATIVE.value();
-    public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_DIRTY;
+    public static final int CACHE_ENTRY_FLAGS_ADVANCE = CACHE_ENTRY_FLAGS_COMPLETED | CACHE_ENTRY_FLAGS_ABORTED;
 
     private static final int STAGING_PARTITION_ID = -1;
     private static final long NO_DIRTY_SINCE = -1L;
@@ -1540,41 +1540,15 @@ public final class KafkaCachePartition
             return found;
         }
 
-        public KafkaCacheEntryFW findAndMarkDirty(
-            KafkaCacheEntryFW dirty,
+        public void markAbortedIfPresent(
+            KafkaCacheEntryFW entry,
             long partitionOffset)
         {
-            final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
-            final long cursor = segment.indexFile().first((int) offsetDelta);
-            final int position = KafkaCacheCursorRecord.cursorValue(cursor);
+            final KafkaCacheEntryFW present = findEntry(entry, partitionOffset);
 
-            final KafkaCacheFile logFile = segment.logFile();
-            final KafkaCacheEntryFW dirtyEntry = logFile.readBytes(position, dirty::tryWrap);
-            assert dirtyEntry != null;
-
-            markDirty(dirtyEntry);
-
-            return dirtyEntry;
-        }
-
-        public void markDirtyIfPresent(
-            KafkaCacheEntryFW dirty,
-            long partitionOffset)
-        {
-            if (!sentinel())
+            if (present != null && (present.flags() & CACHE_ENTRY_FLAGS_ABORTED) == 0)
             {
-                final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
-                final long cursor = segment.indexFile().first(offsetDelta);
-                final int position = KafkaCacheCursorRecord.cursorValue(cursor);
-
-                if (position != NEXT_SEGMENT_VALUE && position != RETRY_SEGMENT_VALUE)
-                {
-                    final KafkaCacheEntryFW present = segment.logFile().readBytes(position, dirty::tryWrap);
-                    if (present != null)
-                    {
-                        markDirty(present);
-                    }
-                }
+                segment.logFile().writeInt(present.offset() + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_ABORTED);
             }
         }
 
