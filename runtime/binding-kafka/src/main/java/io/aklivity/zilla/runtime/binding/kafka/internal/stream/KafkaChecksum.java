@@ -33,68 +33,70 @@ public final class KafkaChecksum
      * Copyright (c) 2000-2011 ymnk, JCraft,Inc. All rights reserved.
      */
     private static final int GF2_DIM = 32;
+    private static final long CRC32C_POLYNOMIAL = 0x82F63B78L;
+    private static final long[][] ZERO_BYTES_OPERATORS = newZeroBytesOperators();
+
     public static long combineCRC32C(
         long crc1,
         long crc2,
         long len2)
     {
-        long row;
-        long[] even = new long[GF2_DIM];
-        long[] odd = new long[GF2_DIM];
+        long combined = crc1;
 
-        // degenerate case (also disallow negative lengths)
-        if (len2 <= 0)
+        if (len2 > 0)
         {
-            return crc1;
+            long remaining = len2;
+            int power = 0;
+            while (remaining != 0)
+            {
+                if ((remaining & 1) != 0)
+                {
+                    combined = gfTwoMatrixTimes(ZERO_BYTES_OPERATORS[power], combined);
+                }
+                remaining >>>= 1;
+                power++;
+            }
+
+            combined ^= crc2;
         }
 
-        // put operator for one zero bit in odd
-        odd[0] = 0x82F63B78L;          // CRC-32C polynomial
-        row = 1;
+        return combined;
+    }
+
+    private static long[][] newZeroBytesOperators()
+    {
+        final long[][] operators = new long[Long.SIZE - 1][];
+
+        long[] operator = new long[GF2_DIM];
+        operator[0] = CRC32C_POLYNOMIAL;
+        long row = 1;
         for (int n = 1; n < GF2_DIM; n++)
         {
-            odd[n] = row;
+            operator[n] = row;
             row <<= 1;
         }
 
-        // put operator for two zero bits in even
-        gfTwoMatrixSquare(even, odd);
-
-        // put operator for four zero bits in odd
-        gfTwoMatrixSquare(odd, even);
-
-        // apply len2 zeros to crc1 (first square will put the operator for one
-        // zero byte, eight zero bits, in even)
-        do
+        // one zero bit squared three times is one zero byte
+        for (int squares = 0; squares < 3; squares++)
         {
-            // apply zeros operator for this bit of len2
-            gfTwoMatrixSquare(even, odd);
-            if ((len2 & 1) != 0)
-            {
-                crc1 = gfTwoMatrixTimes(even, crc1);
-            }
-            len2 >>= 1;
+            operator = newSquare(operator);
+        }
 
-            // if no more bits set, then done
-            if (len2 == 0)
-            {
-                break;
-            }
+        for (int power = 0; power < operators.length; power++)
+        {
+            operators[power] = operator;
+            operator = newSquare(operator);
+        }
 
-            // another iteration of the loop with odd and even swapped
-            gfTwoMatrixSquare(odd, even);
-            if ((len2 & 1) != 0)
-            {
-                crc1 = gfTwoMatrixTimes(odd, crc1);
-            }
-            len2 >>= 1;
+        return operators;
+    }
 
-            // if no more bits set, then done
-        } while (len2 != 0);
-
-        /* return combined crc */
-        crc1 ^= crc2;
-        return crc1;
+    private static long[] newSquare(
+        long[] mat)
+    {
+        final long[] square = new long[GF2_DIM];
+        gfTwoMatrixSquare(square, mat);
+        return square;
     }
 
     private static long gfTwoMatrixTimes(
