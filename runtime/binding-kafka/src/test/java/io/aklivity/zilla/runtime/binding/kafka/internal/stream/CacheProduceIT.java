@@ -281,6 +281,37 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.flushes/client",
+        "${app}/message.flushes/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    public void shouldReclaimProduceSegmentsOfFlushMarkersNeverAcknowledged() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FLUSHES_WRITTEN");
+
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.directory", "target/zilla-itests");
+        KafkaConfiguration config = new KafkaConfiguration(new io.aklivity.zilla.runtime.engine.Configuration(properties));
+
+        List<String> logs = produceLogs(config.cacheProduceDirectory());
+        for (int attempt = 0; attempt < 50 && !isOnlyRolledLog(logs); attempt++)
+        {
+            Thread.sleep(100);
+            logs = produceLogs(config.cacheProduceDirectory());
+        }
+
+        assertEquals(1, logs.size());
+        assertNotEquals("0000000000000000000.log", logs.get(0));
+
+        k3po.notifyBarrier("FLUSHES_CHECKED");
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.repeated.acknowledged/client",
         "${app}/message.value.repeated.acknowledged/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -616,6 +647,12 @@ public class CacheProduceIT
             }
         }
         return found;
+    }
+
+    private static boolean isOnlyRolledLog(
+        List<String> logs)
+    {
+        return logs.size() == 1 && !"0000000000000000000.log".equals(logs.get(0));
     }
 
     private static List<String> produceLogs(

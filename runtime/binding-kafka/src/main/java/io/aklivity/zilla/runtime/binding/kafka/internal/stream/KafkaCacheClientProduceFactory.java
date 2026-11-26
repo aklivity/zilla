@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ADVANCE;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_DIRTY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
@@ -560,6 +561,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final Consumer<OctetsFW.Builder> flushExtension = ex -> ex.set(flushExtensionVisitor);
 
         private long lastAckOffsetHighWatermark;
+        private long reclaimOffsetNext;
         private long offsetHighWatermark = DEFAULT_LATEST_OFFSET;
         private int partitionOffset;
         private long memberLeaderId = KafkaCacheRoute.LEADER_UNKNOWN;
@@ -886,6 +888,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq,
                     trailers, false);
                 markEntryDirty(traceId, stream.partitionOffset);
+                reclaimSegments();
                 flushClientFanInitialIfNecessary(traceId);
             }
             else
@@ -1222,7 +1225,26 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 lastAckOffsetHighWatermark++;
             }
 
-            partition.removeAcknowledgedSegments(lastAckOffsetHighWatermark);
+            reclaimSegments();
+        }
+
+        private void reclaimSegments()
+        {
+            reclaimOffsetNext = Math.max(reclaimOffsetNext, lastAckOffsetHighWatermark);
+
+            while (reclaimOffsetNext < partitionOffset && isEntryFinal(reclaimOffsetNext))
+            {
+                reclaimOffsetNext++;
+            }
+
+            partition.removeAcknowledgedSegments(reclaimOffsetNext);
+        }
+
+        private boolean isEntryFinal(
+            long offset)
+        {
+            final KafkaCacheEntryFW entry = partition.seekNotAfter(offset).findEntry(entryRO, offset);
+            return entry != null && (entry.flags() & CACHE_ENTRY_FLAGS_DIRTY) != 0;
         }
 
         private KafkaCacheEntryFW markEntryDirty(

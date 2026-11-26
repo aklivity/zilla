@@ -1519,6 +1519,27 @@ public final class KafkaCachePartition
             return ancestor;
         }
 
+        public KafkaCacheEntryFW findEntry(
+            KafkaCacheEntryFW entry,
+            long partitionOffset)
+        {
+            KafkaCacheEntryFW found = null;
+
+            if (!sentinel())
+            {
+                final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
+                final long cursor = segment.indexFile().first(offsetDelta);
+                final int position = KafkaCacheCursorRecord.cursorValue(cursor);
+
+                if (position != NEXT_SEGMENT_VALUE && position != RETRY_SEGMENT_VALUE)
+                {
+                    found = segment.logFile().readBytes(position, entry::tryWrap);
+                }
+            }
+
+            return found;
+        }
+
         public KafkaCacheEntryFW findAndMarkDirty(
             KafkaCacheEntryFW dirty,
             long partitionOffset)

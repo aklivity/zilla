@@ -103,6 +103,18 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.flushes/client",
+        "${app}/message.flushes/server"})
+    public void shouldSendMessageFlushes() throws Exception
+    {
+        k3po.start();
+        k3po.awaitBarrier("FLUSHES_WRITTEN");
+        k3po.notifyBarrier("FLUSHES_CHECKED");
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.repeated.acknowledged/client",
         "${app}/message.value.repeated.acknowledged/server"})
     public void shouldSendMessageValueRepeatedAcknowledged() throws Exception
