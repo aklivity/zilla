@@ -387,6 +387,18 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldIgnoreOffsetOlderThanOldestSegmentWhenMarkingDirtyIfPresent() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+
+        partition.seekNotAfter(5L).markDirtyIfPresent(entryRO, 5L);
+
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
     public void shouldWriteProduceEntryWithPinnedFileContents() throws Exception
     {
         KafkaCachePartition partition = newPartition();

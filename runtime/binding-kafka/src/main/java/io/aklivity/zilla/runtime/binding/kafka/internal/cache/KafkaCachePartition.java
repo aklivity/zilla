@@ -1481,16 +1481,19 @@ public final class KafkaCachePartition
             KafkaCacheEntryFW dirty,
             long partitionOffset)
         {
-            final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
-            final long cursor = segment.indexFile().first(offsetDelta);
-            final int position = KafkaCacheCursorRecord.cursorValue(cursor);
-
-            if (position != NEXT_SEGMENT_VALUE && position != RETRY_SEGMENT_VALUE)
+            if (!sentinel())
             {
-                final KafkaCacheEntryFW present = segment.logFile().readBytes(position, dirty::tryWrap);
-                if (present != null)
+                final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
+                final long cursor = segment.indexFile().first(offsetDelta);
+                final int position = KafkaCacheCursorRecord.cursorValue(cursor);
+
+                if (position != NEXT_SEGMENT_VALUE && position != RETRY_SEGMENT_VALUE)
                 {
-                    markDirty(present);
+                    final KafkaCacheEntryFW present = segment.logFile().readBytes(position, dirty::tryWrap);
+                    if (present != null)
+                    {
+                        markDirty(present);
+                    }
                 }
             }
         }
