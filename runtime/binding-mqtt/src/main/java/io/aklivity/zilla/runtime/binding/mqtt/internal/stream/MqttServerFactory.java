@@ -10368,6 +10368,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert !StreamState.replyClosed(state);
 
                 final boolean beforeBegin = !StreamState.replyOpening(state);
+                final boolean truncating = deliveringMessage();
 
                 state = StreamState.closeReply(state);
                 setSubscribeAppClosed();
@@ -10375,6 +10376,10 @@ public final class MqttServerFactory implements MqttStreamFactory
                 if (beforeBegin)
                 {
                     onSubscribeRejected(end.traceId(), end.authorization(), UNSPECIFIED_ERROR, IMPLEMENTATION_SPECIFIC_ERROR);
+                }
+                else if (truncating)
+                {
+                    cleanupNetwork(end.traceId(), end.authorization());
                 }
 
                 onSubscribeReplyClosed();
@@ -10386,6 +10391,7 @@ public final class MqttServerFactory implements MqttStreamFactory
                 assert !StreamState.replyClosed(state);
 
                 final boolean beforeBegin = !StreamState.replyOpening(state);
+                final boolean truncating = deliveringMessage();
 
                 state = StreamState.closeReply(state);
                 setSubscribeAppClosed();
@@ -10402,6 +10408,11 @@ public final class MqttServerFactory implements MqttStreamFactory
                     final boolean unsubscribing = stopped();
 
                     cleanupAbort(traceId);
+
+                    if (truncating)
+                    {
+                        cleanupNetwork(traceId, authorization);
+                    }
 
                     if (unsubscribing)
                     {
