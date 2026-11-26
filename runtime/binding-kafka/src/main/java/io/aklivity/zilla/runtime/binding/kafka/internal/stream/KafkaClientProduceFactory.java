@@ -2127,40 +2127,34 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 final MutableDirectBufferEx encodeSlotBuffer = encodePool.buffer(encodeSlot);
 
                 final int encodeLimit = encodeSlotLimit;
-                int encodeProgress = encodeSlotOffset;
 
-                while (encodeProgress < encodeLimit)
+                final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeSlotOffset, encodeLimit);
+
+                final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
+                final int recordBatchLimit = recordBatch.offset() + recordBatchLength;
+
+                final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
+                final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
+                final int recordHeaderLimit = encodeableRecordValueSlotOffset;
+                final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordHeaderLimit;
+
+                final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
+                final int encodePosition = encodeSlotByteBuffer.position();
+                encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
+                encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
+
+                final CRC32C crc = crc32c;
+                crc.reset();
+                crc.update(encodeSlotByteBuffer);
+
+                long checksum = crc.getValue();
+                if (crcDataLimit == recordHeaderLimit && valueCompleteSize != 0)
                 {
-                    final RecordBatchFW recordBatch = recordBatchRO.wrap(encodeSlotBuffer, encodeProgress, encodeLimit);
-
-                    final int recordBatchLength = RecordBatchFW.FIELD_OFFSET_LEADER_EPOCH + recordBatch.length();
-                    final int recordBatchLimit = recordBatch.offset() + recordBatchLength;
-
-                    final int crcOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_CRC;
-                    final int crcDataOffset = recordBatch.offset() + RecordBatchFW.FIELD_OFFSET_ATTRIBUTES;
-                    final int recordHeaderLimit = encodeableRecordValueSlotOffset;
-                    final int crcDataLimit = recordBatchLimit <= encodeLimit ? recordBatchLimit : recordHeaderLimit;
-
-                    final ByteBuffer encodeSlotByteBuffer = encodePool.byteBuffer(encodeSlot);
-                    final int encodePosition = encodeSlotByteBuffer.position();
-                    encodeSlotByteBuffer.position(encodePosition + crcDataOffset);
-                    encodeSlotByteBuffer.limit(encodePosition + crcDataLimit);
-
-                    final CRC32C crc = crc32c;
-                    crc.reset();
-                    crc.update(encodeSlotByteBuffer);
-
-                    long checksum = crc.getValue();
-                    if (crcDataLimit == recordHeaderLimit && valueCompleteSize != 0)
-                    {
-                        checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
-                        checksum = combineCRC32C(checksum, headersChecksum, headersSize);
-                    }
-
-                    encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
-
-                    encodeProgress += recordBatchLength;
+                    checksum = combineCRC32C(checksum, valueChecksum, valueCompleteSize);
+                    checksum = combineCRC32C(checksum, headersChecksum, headersSize);
                 }
+
+                encodeSlotBuffer.putInt(crcOffset, (int) checksum, BIG_ENDIAN);
             }
 
             private void encodeNetwork(
