@@ -225,7 +225,7 @@ public final class KafkaCachePartition
         int index)
     {
         this.clock = clock;
-        this.location = createDirectories(location.resolve(String.format(FORMAT_PRODUCE_PARTITION_DIRECTORY, topic, id, index)));
+        this.location = createDirectories(produceDirectory(location, topic, id, index));
         this.config = config;
         this.cache = cache;
         this.produceCapacity = produceCapacity;
@@ -236,6 +236,15 @@ public final class KafkaCachePartition
         this.sentinel = new Node();
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
+    }
+
+    static Path produceDirectory(
+        Path location,
+        String topic,
+        int id,
+        int index)
+    {
+        return location.resolve(String.format(FORMAT_PRODUCE_PARTITION_DIRECTORY, topic, id, index));
     }
 
     public String cache()

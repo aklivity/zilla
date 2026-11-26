@@ -33,6 +33,7 @@ public final class KafkaCache
     private final KafkaConfiguration config;
     private final String name;
     private final Path location;
+    private final Path produceLocation;
     private final Map<String, KafkaCacheTopic> topicsByName;
     private final ThreadLocal<long[]> sortSpaceRef;
 
@@ -43,6 +44,7 @@ public final class KafkaCache
         this.config = config;
         this.name = name;
         this.location = config.cacheDirectory().resolve(name);
+        this.produceLocation = config.cacheProduceDirectory().resolve(name);
         this.topicsByName = new ConcurrentHashMap<>();
         this.sortSpaceRef = ThreadLocal.withInitial(() -> EMPTY_SORT_SPACE);
     }
@@ -72,7 +74,8 @@ public final class KafkaCache
     private KafkaCacheTopic newTopic(
         String topic)
     {
-        return new KafkaCacheTopic(location, config, name, produceCapacity, topic.intern(), this::supplySortSpace);
+        return new KafkaCacheTopic(location, produceLocation, config, name, produceCapacity, topic.intern(),
+            this::supplySortSpace);
     }
 
     private long[] supplySortSpace(

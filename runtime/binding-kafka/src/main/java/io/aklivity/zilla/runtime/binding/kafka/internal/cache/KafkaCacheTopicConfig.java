@@ -92,6 +92,15 @@ public final class KafkaCacheTopicConfig
         this.minCleanableDirtyRatio = config.cacheMinCleanableDirtyRatio();
     }
 
+    public static KafkaCacheTopicConfig produce(
+        KafkaConfiguration config)
+    {
+        final KafkaCacheTopicConfig produce = new KafkaCacheTopicConfig(config);
+        produce.segmentBytes = config.cacheProduceSegmentBytes();
+        produce.segmentIndexBytes = config.cacheProduceSegmentIndexBytes();
+        return produce;
+    }
+
     public void onChanged(
         String16FW configName,
         String16FW configValue)

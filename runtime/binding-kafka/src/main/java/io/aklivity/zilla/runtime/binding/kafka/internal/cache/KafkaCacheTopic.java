@@ -24,16 +24,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntFunction;
 
+import org.agrona.IoUtil;
+
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 
 public final class KafkaCacheTopic
 {
     private final Path location;
+    private final Path produceLocation;
     private final String cache;
     private final long maxProduceCapacity;
     private final AtomicLong produceCapacity;
     private final String name;
     private final KafkaCacheTopicConfig config;
+    private final KafkaCacheTopicConfig produceConfig;
     private final int appendCapacity;
     private final Map<Integer, KafkaCachePartition> partitionsById;
     private final Map<Long, KafkaCachePartition> partitionsByIndex;
@@ -42,6 +46,7 @@ public final class KafkaCacheTopic
 
     public KafkaCacheTopic(
         Path location,
+        Path produceLocation,
         KafkaConfiguration config,
         String cache,
         AtomicLong produceCapacity,
@@ -49,7 +54,9 @@ public final class KafkaCacheTopic
         IntFunction<long[]> sortSpaceRef)
     {
         this.location = location;
+        this.produceLocation = produceLocation;
         this.config = new KafkaCacheTopicConfig(config);
+        this.produceConfig = KafkaCacheTopicConfig.produce(config);
         this.appendCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
         this.cache = cache;
         this.produceCapacity = produceCapacity;
@@ -123,8 +130,13 @@ public final class KafkaCacheTopic
         int id,
         int index)
     {
-        return new KafkaCachePartition(clock, location, config, cache, produceCapacity, maxProduceCapacity, name, id,
-            appendCapacity, sortSpaceRef, index);
+        if (!produceLocation.equals(location))
+        {
+            IoUtil.delete(KafkaCachePartition.produceDirectory(produceLocation, name, id, index).toFile(), true);
+        }
+
+        return new KafkaCachePartition(clock, produceLocation, produceConfig, cache, produceCapacity, maxProduceCapacity,
+            name, id, appendCapacity, sortSpaceRef, index);
     }
 
 }
