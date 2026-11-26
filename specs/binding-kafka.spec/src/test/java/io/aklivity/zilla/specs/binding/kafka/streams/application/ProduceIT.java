@@ -103,6 +103,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.value.repeated.acknowledged/client",
+        "${app}/message.value.repeated.acknowledged/server"})
+    public void shouldSendMessageValueRepeatedAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/partition.not.leader.reconnect.in.flight.acknowledged/client",
         "${app}/partition.not.leader.reconnect.in.flight.acknowledged/server"})
     public void shouldReconnectPartitionNotLeaderInFlightAcknowledged() throws Exception

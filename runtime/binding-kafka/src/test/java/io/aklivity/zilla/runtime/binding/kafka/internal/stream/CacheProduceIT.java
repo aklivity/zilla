@@ -20,17 +20,21 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_PRODUCE_DIRECTORY_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -271,6 +275,32 @@ public class CacheProduceIT
     public void shouldSendMessageValue() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.value.repeated.acknowledged/client",
+        "${app}/message.value.repeated.acknowledged/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    public void shouldReclaimAcknowledgedProduceSegments() throws Exception
+    {
+        k3po.finish();
+
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.directory", "target/zilla-itests");
+        KafkaConfiguration config = new KafkaConfiguration(new io.aklivity.zilla.runtime.engine.Configuration(properties));
+
+        List<String> logs = produceLogs(config.cacheProduceDirectory());
+        for (int attempt = 0; attempt < 50 && logs.size() != 1; attempt++)
+        {
+            Thread.sleep(100);
+            logs = produceLogs(config.cacheProduceDirectory());
+        }
+
+        assertEquals(1, logs.size());
+        assertNotEquals("0000000000000000000.log", logs.get(0));
     }
 
     @Test
@@ -584,5 +614,24 @@ public class CacheProduceIT
             }
         }
         return found;
+    }
+
+    private static List<String> produceLogs(
+        Path directory) throws IOException
+    {
+        List<String> logs = List.of();
+        if (Files.exists(directory))
+        {
+            try (Stream<Path> files = Files.walk(directory))
+            {
+                logs = files
+                    .filter(f -> f.getFileName().toString().endsWith(".log"))
+                    .filter(f -> f.getParent().getFileName().toString().equals("test-0-0"))
+                    .map(f -> f.getFileName().toString())
+                    .sorted()
+                    .toList();
+            }
+        }
+        return logs;
     }
 }

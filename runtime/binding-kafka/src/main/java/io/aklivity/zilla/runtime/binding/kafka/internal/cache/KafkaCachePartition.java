@@ -339,6 +339,20 @@ public final class KafkaCachePartition
         return node;
     }
 
+    public void removeAcknowledgedSegments(
+        long acknowledgedOffsetNext)
+    {
+        Node node = sentinel.next;
+
+        while (!node.next.sentinel() && node.next.segment.baseOffset() <= acknowledgedOffsetNext)
+        {
+            final Node removed = node;
+            node = node.next;
+            removed.remove();
+            produceCapacity.addAndGet(-segmentBytes());
+        }
+    }
+
     public Node seekNotAfter(
         long offset)
     {

@@ -36,6 +36,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Properties;
@@ -592,6 +593,70 @@ public class KafkaCachePartitionTest
         partition.seekNotAfter(11L).markDirtyIfPresent(entryRO, 11L);
 
         assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldRemoveAcknowledgedNonHeadSegmentsAndReleaseCapacity() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCachePartition partition = newProducePartition(produceCapacity);
+        Node first = partition.append(10L);
+        writeProduceEntry(partition, first, 11L);
+        writeProduceEntry(partition, first, 12L);
+        Node second = partition.append(20L);
+        writeProduceEntry(partition, second, 21L);
+        Node head = partition.append(30L);
+        Path firstLog = first.segment().logFile().location();
+        Path secondLog = second.segment().logFile().location();
+        long segmentBytes = partition.segmentBytes();
+        assertEquals(3 * segmentBytes, produceCapacity.get());
+
+        partition.removeAcknowledgedSegments(20L);
+
+        assertFalse(Files.exists(firstLog));
+        assertTrue(Files.exists(secondLog));
+        assertSame(second, partition.seekNotBefore(0L));
+        assertEquals(2 * segmentBytes, produceCapacity.get());
+
+        partition.removeAcknowledgedSegments(30L);
+
+        assertFalse(Files.exists(secondLog));
+        assertSame(head, partition.seekNotBefore(0L));
+        assertEquals(segmentBytes, produceCapacity.get());
+    }
+
+    @Test
+    public void shouldNotRemoveHeadSegmentWhenAllAcknowledged() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCachePartition partition = newProducePartition(produceCapacity);
+        Node first = partition.append(10L);
+        writeProduceEntry(partition, first, 11L);
+        Node head = partition.append(20L);
+        writeProduceEntry(partition, head, 21L);
+        Path headLog = head.segment().logFile().location();
+
+        partition.removeAcknowledgedSegments(Long.MAX_VALUE);
+
+        assertTrue(Files.exists(headLog));
+        assertSame(head, partition.head());
+        assertEquals(partition.segmentBytes(), produceCapacity.get());
+    }
+
+    @Test
+    public void shouldKeepRemovedSegmentReadableWhileReaderHoldsIt() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(new AtomicLong());
+        Node first = partition.append(10L);
+        writeProduceEntry(partition, first, 11L);
+        partition.append(20L);
+        KafkaCacheSegment held = first.segment().acquire();
+
+        partition.removeAcknowledgedSegments(20L);
+
+        final KafkaCacheEntryFW entry = held.logFile().readBytes(0, new KafkaCacheEntryFW()::wrap);
+        assertEquals(11L, entry.offset$());
+        held.release();
     }
 
     @Test
@@ -1533,6 +1598,17 @@ public class KafkaCachePartitionTest
         entry.trailers().forEach(t -> trailer.append(t.value().buffer().getStringWithoutLengthUtf8(t.value().offset(),
             t.value().sizeof())));
         return trailer.toString();
+    }
+
+    private KafkaCachePartition newProducePartition(
+        AtomicLong produceCapacity) throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = 1 << 20;
+        config.segmentIndexBytes = 1 << 16;
+        return new KafkaCachePartition(Clock.systemUTC(), location, config, "cache", produceCapacity, Long.MAX_VALUE,
+            "test", 0, 65536, long[]::new, 0);
     }
 
     private KafkaCachePartition newPartition() throws Exception
