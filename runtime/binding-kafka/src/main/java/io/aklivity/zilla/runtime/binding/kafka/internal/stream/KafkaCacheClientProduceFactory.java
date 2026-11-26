@@ -37,6 +37,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Int2IntHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.MutableInteger;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
@@ -108,6 +109,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 .wrap(new UnsafeBufferEx(new byte[8]), 0, 8)
                 .build();
     private static final long PRODUCE_FLUSH_PRODUCER_ID = -1;
+    private static final long NO_UNACKED_OFFSET = -1L;
     private static final short PRODUCE_FLUSH_PRODUCER_EPOCH = -1;
     private static final int PRODUCE_FLUSH_SEQUENCE = -1;
 
@@ -784,6 +786,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     stream.transformValueEnvelope.claim(stream.segment.segment().logFile(),
                         stream.trailersClaimMark.value, trailersSizeMax);
                     stream.partitionOffset = partitionOffset;
+                    stream.unackedOffsets.addLong(partitionOffset);
                     partitionOffset++;
                 }
                 else
@@ -880,6 +883,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     EMPTY_KEY, 0, valuePaddingMax, EMPTY_TRAILERS, trailersSizeMax, EMPTY_OCTETS, stream.transformKey,
                     stream.transformValue);
                 stream.partitionOffset = partitionOffset;
+                stream.unackedOffsets.addLong(partitionOffset);
                 partitionOffset++;
 
                 Array32FW<KafkaHeaderFW> trailers = EMPTY_TRAILERS;
@@ -1343,6 +1347,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final Consumer<OctetsFW.Builder> ackExtension = ex -> ex.set(ackExtensionVisitor);
 
         private final KafkaCacheCursor cursor;
+        private final LongArrayQueue unackedOffsets;
         private final MutableInteger entryMark;
         private final MutableInteger valueLimit;
         private final MutableInteger valueMark;
@@ -1390,6 +1395,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     cursorFactory
                         .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
                         KafkaDeltaType.NONE);
+            this.unackedOffsets = new LongArrayQueue(NO_UNACKED_OFFSET);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
             this.valueLimit = new MutableInteger(0);
@@ -1776,7 +1782,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long ackOffset,
             long timestamp)
         {
-            cursor.advance(partitionOffset);
+            advanceAcknowledged(partitionOffset);
             doClientInitialWindow(traceId, initialSeq - acknowledge,
                 Math.max(initialMax - (int) (acknowledge - initialAck), initialBudgetMax));
             if (ackOffset >= 0)
@@ -1796,7 +1802,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 long traceId,
                 long partitionOffset)
         {
-            cursor.advance(partitionOffset);
+            advanceAcknowledged(partitionOffset);
 
             final KafkaResetExFW kafkaResetEx = kafkaResetExRW.wrap(extBuffer, 0, extBuffer.capacity())
                     .typeId(kafkaTypeId)
@@ -1807,18 +1813,24 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             fan.onClientFanMemberClosed(traceId, this);
         }
 
+        private void advanceAcknowledged(
+            long partitionOffset)
+        {
+            cursor.advance(partitionOffset);
+
+            while (!unackedOffsets.isEmpty() && unackedOffsets.peekLong() <= partitionOffset)
+            {
+                unackedOffsets.removeLong();
+            }
+        }
+
         private void markEntriesDirty(
             long traceId)
         {
-            while (cursor.offset <= partitionOffset)
+            while (!unackedOffsets.isEmpty())
             {
-                final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
-
-                if (nextEntry != null && nextEntry.ownerId() == initialId)
-                {
-                    cursor.markEntryDirty(nextEntry);
-                }
-                cursor.advance(cursor.offset + 1);
+                final long unackedOffset = unackedOffsets.removeLong();
+                fan.partition.seekNotAfter(unackedOffset).markDirtyIfPresent(entryRO, unackedOffset);
             }
         }
     }

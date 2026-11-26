@@ -356,6 +356,37 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldCountDirtyBytesOnceWhenEntryMarkedDirtyTwice() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+        writeProduceEntry(partition, head, 12L);
+
+        head.findAndMarkDirty(entryRO, 11L);
+        final double dirtyRatio = head.segment().cleanableDirtyRatio();
+        head.findAndMarkDirty(entryRO, 11L);
+
+        assertTrue(dirtyRatio > 0.0);
+        assertEquals(dirtyRatio, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldMarkDirtyOnlyEntryPresentAtOffset() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+        writeProduceEntry(partition, head, 12L);
+
+        head.markDirtyIfPresent(entryRO, 99L);
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+
+        head.markDirtyIfPresent(entryRO, 11L);
+        assertEquals(0.5, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
     public void shouldWriteProduceEntryWithPinnedFileContents() throws Exception
     {
         KafkaCachePartition partition = newPartition();
