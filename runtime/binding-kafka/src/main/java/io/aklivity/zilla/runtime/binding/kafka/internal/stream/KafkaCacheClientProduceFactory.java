@@ -763,8 +763,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     ? stream.transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
                     : 0;
 
-                stream.segment = partition.newHeadIfNecessary(partitionOffset, key, valueLength, stream.valuePaddingMax,
-                    headersSizeMax);
+                stream.segment = partition.newProduceHeadIfNecessary(partitionOffset, key, valueLength,
+                    stream.valuePaddingMax, headers.sizeof(), trailersSizeMax);
 
                 if (stream.segment != null)
                 {
@@ -863,7 +863,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 ? stream.transformValue.padding(EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), 0)
                 : 0;
 
-            stream.segment = partition.newHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, valuePaddingMax, 0);
+            stream.segment = partition.newProduceHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, valuePaddingMax,
+                EMPTY_TRAILERS.sizeof(), trailersSizeMax);
 
             int error = NO_ERROR;
             if (stream.segment != null)

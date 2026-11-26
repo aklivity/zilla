@@ -36,6 +36,7 @@ import static org.junit.Assert.assertTrue;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.agrona.collections.MutableInteger;
 import org.junit.Rule;
@@ -288,6 +289,70 @@ public class KafkaCachePartitionTest
         Node second = partition.newHeadIfNecessary(11L, key, 10, 1_000_000, 0);
 
         assertSame(first, second);
+    }
+
+    @Test
+    public void shouldRollHeadBeforeFlushMarkerOverflowsSegment() throws Exception
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[64]);
+        KafkaKeyFW emptyKey = new OctetsFW()
+            .wrap(new UnsafeBufferEx(new byte[] { 0x00 }), 0, 1)
+            .get(new KafkaKeyFW()::wrap);
+
+        assertProduceEntriesReadableAcrossRolls(emptyKey, noHeaders(buffer, 0),
+            new OctetsFW().wrap(new UnsafeBufferEx(), 0, 0), 0);
+    }
+
+    @Test
+    public void shouldRollHeadBeforeProduceEntryOverflowsSegment() throws Exception
+    {
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = headers(buffer, key.limit(), "h1", "v1", "h2", "v2");
+        OctetsFW value = value(buffer, headers.limit(), "hello");
+
+        assertProduceEntriesReadableAcrossRolls(key, headers, value, 5);
+    }
+
+    private void assertProduceEntriesReadableAcrossRolls(
+        KafkaKeyFW key,
+        Array32FW<KafkaHeaderFW> headers,
+        OctetsFW value,
+        int valueLength) throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = 16 * 1024;
+        KafkaCachePartition partition = new KafkaCachePartition(Clock.systemUTC(), location, config, "cache",
+            new AtomicLong(), Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
+        MutableDirectBufferEx trailersBuffer = new UnsafeBufferEx(new byte[64]);
+        Array32FW<KafkaHeaderFW> noTrailers = noHeaders(trailersBuffer, 0);
+        int trailersSizeMax = 256;
+        int rolls = 0;
+        Node previous = null;
+
+        for (long offset = 0L; offset < 200L; offset++)
+        {
+            Node head = partition.newProduceHeadIfNecessary(offset, key, valueLength, 0, headers.sizeof(), trailersSizeMax);
+            rolls += previous != null && head != previous ? 1 : 0;
+            previous = head;
+
+            MutableInteger entryMark = new MutableInteger(0);
+            MutableInteger valueMark = new MutableInteger(0);
+            MutableInteger valueLimit = new MutableInteger(0);
+            MutableInteger trailersClaimMark = new MutableInteger(0);
+            partition.writeProduceEntryStart(1L, 1L, 0L, offset, head, entryMark, valueMark, valueLimit, trailersClaimMark,
+                1234L, 7L, -1L, (short) 0, 0, KafkaAckMode.LEADER_ONLY, key, valueLength, 0, headers, trailersSizeMax,
+                value, KafkaCacheModel.NONE, KafkaCacheModel.NONE);
+            partition.writeProduceEntryContinue(1L, 1L, 0L, COMPLETE, head, entryMark, valueMark, valueLimit, value,
+                KafkaCacheModel.NONE, 0);
+            partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noTrailers, false);
+
+            assertNotNull("entry " + offset + " must be readable after write",
+                partition.seekNotAfter(offset).findAndMarkDirty(entryRO, offset));
+        }
+
+        assertTrue("expected the head to roll at least once", rolls > 0);
     }
 
     @Test
