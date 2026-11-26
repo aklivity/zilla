@@ -365,6 +365,20 @@ public final class KafkaCachePartition
             headersSizeMax + trailersSizeMax);
     }
 
+    public Node newProduceHeadIfNecessary(
+        long offset,
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int headersSizeMax,
+        int trailersSizeMax)
+    {
+        // writeProduceEntryStart claims the trailers twice: the merged trailers and the envelope block
+        final int trailersClaimMax = trailersSizeMax * 2 + SIZEOF_PADDING_LENGTH;
+        return rollHeadIfNecessary(offset, key, valueLength, valuePaddingMax, headersSizeMax + trailersClaimMax,
+            headersSizeMax + trailersSizeMax);
+    }
+
     private Node rollHeadIfNecessary(
         long offset,
         KafkaKeyFW key,
