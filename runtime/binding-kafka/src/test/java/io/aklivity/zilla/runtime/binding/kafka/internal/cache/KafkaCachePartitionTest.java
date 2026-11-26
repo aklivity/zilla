@@ -356,6 +356,68 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldCountDirtyBytesOnceWhenEntryMarkedDirtyTwice() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+        writeProduceEntry(partition, head, 12L);
+
+        head.findAndMarkDirty(entryRO, 11L);
+        final double dirtyRatio = head.segment().cleanableDirtyRatio();
+        head.findAndMarkDirty(entryRO, 11L);
+
+        assertTrue(dirtyRatio > 0.0);
+        assertEquals(dirtyRatio, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldMarkDirtyOnlyEntryPresentAtOffset() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+        writeProduceEntry(partition, head, 12L);
+
+        head.markDirtyIfPresent(entryRO, 99L);
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+
+        head.markDirtyIfPresent(entryRO, 11L);
+        assertEquals(0.5, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldIgnoreOffsetOlderThanOldestSegmentWhenMarkingDirtyIfPresent() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+
+        partition.seekNotAfter(5L).markDirtyIfPresent(entryRO, 5L);
+
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldIgnoreUnacknowledgedOffsetOfSegmentRemovedByCompaction() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node first = partition.append(10L);
+        writeProduceEntry(partition, first, 11L);
+        first.findAndMarkDirty(entryRO, 11L);
+        Node head = partition.append(20L);
+        Node tail = head.previous();
+        long now = currentTimeMillis();
+        tail.segment().cleanableAt(now);
+        tail.clean(now);
+        assertSame(head, partition.seekNotBefore(0L));
+
+        partition.seekNotAfter(11L).markDirtyIfPresent(entryRO, 11L);
+
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
     public void shouldWriteProduceEntryWithPinnedFileContents() throws Exception
     {
         KafkaCachePartition partition = newPartition();

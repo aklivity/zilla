@@ -1477,6 +1477,27 @@ public final class KafkaCachePartition
             return dirtyEntry;
         }
 
+        public void markDirtyIfPresent(
+            KafkaCacheEntryFW dirty,
+            long partitionOffset)
+        {
+            if (!sentinel())
+            {
+                final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
+                final long cursor = segment.indexFile().first(offsetDelta);
+                final int position = KafkaCacheCursorRecord.cursorValue(cursor);
+
+                if (position != NEXT_SEGMENT_VALUE && position != RETRY_SEGMENT_VALUE)
+                {
+                    final KafkaCacheEntryFW present = segment.logFile().readBytes(position, dirty::tryWrap);
+                    if (present != null)
+                    {
+                        markDirty(present);
+                    }
+                }
+            }
+        }
+
         private void markDescendantAndDirty(
             KafkaCacheEntryFW ancestor,
             long descendantOffset)
@@ -1490,9 +1511,12 @@ public final class KafkaCachePartition
         public void markDirty(
             KafkaCacheEntryFW entry)
         {
-            final KafkaCacheFile logFile = segment.logFile();
-            logFile.writeInt(entry.offset() + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_DIRTY);
-            segment.markDirtyBytes(entry.sizeof());
+            if ((entry.flags() & CACHE_ENTRY_FLAGS_DIRTY) == 0)
+            {
+                final KafkaCacheFile logFile = segment.logFile();
+                logFile.writeInt(entry.offset() + FIELD_OFFSET_FLAGS, CACHE_ENTRY_FLAGS_DIRTY);
+                segment.markDirtyBytes(entry.sizeof());
+            }
         }
 
         @Override
