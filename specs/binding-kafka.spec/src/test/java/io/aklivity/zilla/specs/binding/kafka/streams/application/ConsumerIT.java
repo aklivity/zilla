@@ -111,6 +111,15 @@ public class ConsumerIT
 
     @Test
     @Specification({
+        "${app}/acknowledge.message.offsets.queued/client",
+        "${app}/acknowledge.message.offsets.queued/server"})
+    public void shouldAcknowledgeMessageOffsetsQueued() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/commit.acknowledge.message.offsets.coalesced/client",
         "${app}/commit.acknowledge.message.offsets.coalesced/server"})
     public void shouldCommitAcknowledgeMessageOffsetsCoalesced() throws Exception
