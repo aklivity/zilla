@@ -24,7 +24,7 @@ read zilla:begin.ext ${http:matchBeginEx()
                            .header(":method", "POST")
                            .header(":path", "/a2a")
                            .header("content-type", "application/json")
-                           .header("accept", "application/json")
+                           .header("accept", "text/event-stream")
                            .header("a2a-version", "1.0")
                            .header("content-length", "73")
                            .build()}

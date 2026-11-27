@@ -47,9 +47,27 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/agent.card.guarded/client",
+        "${app}/agent.card.guarded/server"})
+    public void shouldAgentCardGuarded() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/agent.card.slug/client",
         "${app}/agent.card.slug/server"})
     public void shouldAgentCardSlug() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.v0.3/client",
+        "${app}/agent.card.v0.3/server"})
+    public void shouldAgentCardV03() throws Exception
     {
         k3po.finish();
     }
@@ -257,6 +275,15 @@ public class ApplicationIT
         "${app}/send.message.extensions/client",
         "${app}/send.message.extensions/server"})
     public void shouldSendMessageExtensions() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/send.message.interface.unsupported/client",
+        "${app}/send.message.interface.unsupported/server"})
+    public void shouldSendMessageInterfaceUnsupported() throws Exception
     {
         k3po.finish();
     }
