@@ -1088,14 +1088,7 @@ public final class KafkaCacheCursorFactory
             int length,
             CRC32C checksum)
         {
-            final ByteBuffer byteBuffer = buffer.byteBuffer();
-            assert byteBuffer != null;
-            byteBuffer.clear();
-            byteBuffer.position(index);
-            byteBuffer.limit(index + length);
-            checksum.reset();
-            checksum.update(byteBuffer);
-            return (int) checksum.getValue();
+            return (int) KafkaCacheChecksum.compute(checksum, buffer, index, length);
         }
     }
 
