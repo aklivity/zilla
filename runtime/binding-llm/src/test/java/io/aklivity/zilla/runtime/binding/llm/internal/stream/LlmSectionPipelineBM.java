@@ -121,8 +121,6 @@ public class LlmSectionPipelineBM
         "{\"text\":\"Let me think about it\",\"openai:id\":\"rs_1\",\"openai:encrypted_content\":\"" + DATA + "\"}";
     private static final String IMAGE_RESPONSES_NATIVE =
         "{\"type\":\"input_image\",\"image_url\":\"data:image/png;base64," + DATA + "\",\"detail\":\"low\"}";
-    private static final String IMAGE_RESPONSES_CANONICAL =
-        "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64," + DATA + "\",\"detail\":\"low\"}}";
     private static final String CITATIONS_RESPONSES_NATIVE =
         "[{\"type\":\"url_citation\",\"end_index\":8,\"start_index\":0,\"title\":\"Sky colour\"," +
         "\"url\":\"https://example.com/sky\"},{\"type\":\"file_citation\",\"file_id\":\"file_1\"," +
@@ -172,9 +170,7 @@ public class LlmSectionPipelineBM
     private LlmSectionPipeline controlAnthropicFromCanonical;
     private LlmSectionPipeline controlOpenaiToCanonical;
     private LlmSectionPipeline controlOpenaiFromCanonical;
-    private LlmSectionPipeline reasoningResponsesFromCanonical;
     private LlmSectionPipeline imageResponsesToCanonical;
-    private LlmSectionPipeline imageResponsesFromCanonical;
     private LlmSectionPipeline citationsResponsesToCanonical;
 
     private UnsafeBufferEx toolDefinitionNative;
@@ -198,7 +194,6 @@ public class LlmSectionPipelineBM
     private UnsafeBufferEx textObject;
     private UnsafeBufferEx reasoningResponsesCanonical;
     private UnsafeBufferEx imageResponsesNative;
-    private UnsafeBufferEx imageResponsesCanonical;
     private UnsafeBufferEx citationsResponsesNative;
 
     @Setup(Level.Trial)
@@ -227,9 +222,7 @@ public class LlmSectionPipelineBM
         controlOpenaiToCanonical = pipeline(new LlmOpenaiControlToCanonical("openai/ccs"));
         controlOpenaiFromCanonical = pipeline(new LlmOpenaiControlFromCanonical("openai/ccs", true));
 
-        reasoningResponsesFromCanonical = pipeline(new LlmOpenaiResponsesReasoningFromCanonical("openai/rs"));
         imageResponsesToCanonical = pipeline(LlmOpenaiResponsesMediaToCanonical.image());
-        imageResponsesFromCanonical = pipeline(LlmOpenaiResponsesMediaFromCanonical.image("openai/rs"));
         citationsResponsesToCanonical = pipeline(LlmOpenaiResponsesCitationsToCanonical.array());
 
         toolCallAttributes.toolCallId("toolu_1");
@@ -258,7 +251,6 @@ public class LlmSectionPipelineBM
         textObject = buffer(TEXT_OBJECT);
         reasoningResponsesCanonical = buffer(REASONING_RESPONSES_CANONICAL);
         imageResponsesNative = buffer(IMAGE_RESPONSES_NATIVE);
-        imageResponsesCanonical = buffer(IMAGE_RESPONSES_CANONICAL);
         citationsResponsesNative = buffer(CITATIONS_RESPONSES_NATIVE);
     }
 
@@ -416,28 +408,9 @@ public class LlmSectionPipelineBM
     }
 
     @Benchmark
-    public int reasoningFromCanonicalResponses()
-    {
-        return run(reasoningResponsesFromCanonical, none, reasoningResponsesCanonical,
-            reasoningResponsesCanonical.capacity());
-    }
-
-    @Benchmark
-    public int reasoningFromCanonicalResponsesFragmented()
-    {
-        return run(reasoningResponsesFromCanonical, none, reasoningResponsesCanonical, WINDOW);
-    }
-
-    @Benchmark
     public int imageToCanonicalResponses()
     {
         return run(imageResponsesToCanonical, none, imageResponsesNative, imageResponsesNative.capacity());
-    }
-
-    @Benchmark
-    public int imageFromCanonicalResponses()
-    {
-        return run(imageResponsesFromCanonical, none, imageResponsesCanonical, imageResponsesCanonical.capacity());
     }
 
     @Benchmark

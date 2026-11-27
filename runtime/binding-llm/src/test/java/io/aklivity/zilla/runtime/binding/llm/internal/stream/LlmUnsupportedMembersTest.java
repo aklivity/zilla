@@ -42,7 +42,6 @@ public class LlmUnsupportedMembersTest
 
     private static final List<Function<LlmModelCapability, LlmToolTransform>> DIALECTS = List.of(
         capability -> LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
-        capability -> LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
         capability -> LlmAnthropicControlFromCanonical.members(false, capability),
         capability -> LlmGeminiControlFromCanonical.members(false, capability));
 
@@ -210,8 +209,6 @@ public class LlmUnsupportedMembersTest
 
         assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
             json(RESPONSES_HARMLESS), "{}");
-        assertTransforms(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
-            json(CHAT_HARMLESS), "{}");
         assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
         assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability), json(RESPONSES_HARMLESS), "{}");
         assertTransforms(LlmGeminiControlFromCanonical.members(false, capability), json(CHAT_HARMLESS), "{}");
@@ -239,9 +236,6 @@ public class LlmUnsupportedMembersTest
         final LlmModelCapability capability = unsupported("seed");
 
         assertTransforms(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
-            json("{'x:seed':1,'x:parallel_tool_calls':false}"),
-            json("{'parallel_tool_calls':false}"));
-        assertTransforms(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
             json("{'x:seed':1,'x:parallel_tool_calls':false}"),
             json("{'parallel_tool_calls':false}"));
         assertTransforms(LlmAnthropicControlFromCanonical.members(false, capability),
@@ -279,8 +273,7 @@ public class LlmUnsupportedMembersTest
     {
         final LlmModelCapability capability = LlmModelCapability.UNSPECIFIED;
         final List<LlmToolTransform> transforms = member.startsWith("openai/ccs")
-            ? List.of(LlmOpenaiResponsesControlFromCanonical.members("openai/rs", capability),
-                LlmAnthropicControlFromCanonical.members(false, capability),
+            ? List.of(LlmAnthropicControlFromCanonical.members(false, capability),
                 LlmGeminiControlFromCanonical.members(false, capability))
             : List.of(LlmOpenaiControlFromCanonical.members("openai/ccs", false, capability),
                 LlmAnthropicControlFromCanonical.members(false, capability),

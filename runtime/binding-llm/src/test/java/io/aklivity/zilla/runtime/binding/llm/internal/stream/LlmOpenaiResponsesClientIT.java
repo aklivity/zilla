@@ -87,6 +87,16 @@ public class LlmOpenaiResponsesClientIT
     }
 
     @Test
+    @Configuration("client.openai.unsupported.yaml")
+    @Specification({
+        "${app}/openai.responses.text.stream.options.shared.dropped/client",
+        "${net}/openai.responses.text.stream.options.shared.dropped/server"})
+    public void shouldDropStreamOptionsWhenSharedMemberIsDroppedAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("client.openai.yaml")
     @Specification({
         "${app}/openai.responses.incomplete.max.output.tokens/client",
@@ -162,6 +172,17 @@ public class LlmOpenaiResponsesClientIT
         "${app}/openai.responses.section.user.text.parts/client",
         "${net}/openai.responses.section.user.text.parts/server"})
     public void shouldEncodeOpenaiResponsesSectionUserTextParts() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.responses.section.user.text.100k/client",
+        "${net}/openai.responses.section.user.text.100k/server"})
+    public void shouldEncodeOpenaiResponsesSectionUserText100kWithSmallSlots() throws Exception
     {
         k3po.finish();
     }
@@ -1180,6 +1201,16 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @Specification({
+        "${app}/openai.responses.text.citations.members.small.window/client",
+        "${net}/openai.responses.text.citations.members.small.window/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsMembersSmallWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
         "${app}/openai.responses.text.citations.members.stream/client",
         "${net}/openai.responses.text.citations.members.stream/server"})
     public void shouldForwardOpenaiResponsesTextCitationsMembersStream() throws Exception
@@ -1622,6 +1653,18 @@ public class LlmOpenaiResponsesClientIT
     @Test
     @Configuration("client.openai.yaml")
     @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/transform.assistant.tool.call.100k/client",
+        "${net}/openai.responses.transform.assistant.tool.call.100k/server"})
+    public void shouldTransformAssistantToolCall100kAsOpenaiResponsesWithSmallSlots() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
     @Specification({
         "${app}/transform.assistant.tool.call.10k/client",
         "${net}/openai.responses.transform.assistant.tool.call.10k/server"})
@@ -1670,6 +1713,18 @@ public class LlmOpenaiResponsesClientIT
         "${app}/transform.system.instruction.last.100k/client",
         "${net}/openai.responses.transform.system.instruction.last.100k/server"})
     public void shouldTransformSystemInstructionLast100kAsOpenaiResponses() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @ScriptProperty({"source \"openai/rs\"", "target \"openai/rs\""})
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/transform.system.instruction.last.100k/client",
+        "${net}/openai.responses.transform.system.instruction.last.100k/server"})
+    public void shouldTransformSystemInstructionLast100kAsOpenaiResponsesWithSmallSlots() throws Exception
     {
         k3po.finish();
     }
@@ -1876,6 +1931,28 @@ public class LlmOpenaiResponsesClientIT
         "${app}/openai.responses.text.citations.long/client",
         "${net}/openai.responses.text.citations.long/server"})
     public void shouldForwardOpenaiResponsesTextCitationsLong() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling/client",
+        "${net}/openai.responses.text.citations.straddling/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsStraddling() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Configure(name = ENGINE_BUFFER_SLOT_CAPACITY_NAME, value = "8192")
+    @Specification({
+        "${app}/openai.responses.text.citations.straddling.small.window/client",
+        "${net}/openai.responses.text.citations.straddling.small.window/server"})
+    public void shouldForwardOpenaiResponsesTextCitationsStraddlingSmallWindow() throws Exception
     {
         k3po.finish();
     }
@@ -2920,6 +2997,86 @@ public class LlmOpenaiResponsesClientIT
         "${app}/openai.responses.text/client",
         "${net}/openai.responses.circuit/server"})
     public void shouldScopeCircuitToModel() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.user.straddle/client",
+        "${net}/openai.responses.request.user.straddle/server"})
+    public void shouldEncodeOpenaiResponsesRequestUserStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.reasoning.effort.straddle/client",
+        "${net}/openai.responses.request.reasoning.effort.straddle/server"})
+    public void shouldEncodeOpenaiResponsesRequestReasoningEffortStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.service.tier.window/client",
+        "${net}/openai.responses.request.service.tier.window/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.user.window/client",
+        "${net}/openai.responses.request.user.window/server"})
+    public void shouldEncodeOpenaiResponsesRequestUserWindow() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.request.service.tier.straddle/client",
+        "${net}/openai.responses.request.service.tier.straddle/server"})
+    public void shouldEncodeOpenaiResponsesRequestServiceTierStraddle() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.tool.call.breakpoint/client",
+        "${net}/openai.responses.section.tool.call.breakpoint/server"})
+    public void shouldDropOpenaiResponsesSectionToolCallBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.tool.definition.breakpoint/client",
+        "${net}/openai.responses.section.tool.definition.breakpoint/server"})
+    public void shouldDropOpenaiResponsesSectionToolDefinitionBreakpoint() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.openai.yaml")
+    @Specification({
+        "${app}/openai.responses.section.user.image.breakpoint/client",
+        "${net}/openai.responses.section.user.image.breakpoint/server"})
+    public void shouldDropOpenaiResponsesSectionUserImageBreakpoint() throws Exception
     {
         k3po.finish();
     }
