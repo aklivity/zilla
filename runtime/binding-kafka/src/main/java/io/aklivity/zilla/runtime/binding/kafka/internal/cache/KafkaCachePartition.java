@@ -39,7 +39,6 @@ import static java.util.Objects.requireNonNull;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -802,10 +801,6 @@ public final class KafkaCachePartition
 
         if (!headers.isEmpty())
         {
-            final DirectBufferEx buffer = headers.buffer();
-            final ByteBuffer byteBuffer = buffer.byteBuffer();
-            assert byteBuffer != null;
-            byteBuffer.clear();
             headers.forEach(h ->
             {
                 final long hash = computeHash(h);
@@ -816,10 +811,6 @@ public final class KafkaCachePartition
 
         if (!trailers.isEmpty())
         {
-            final DirectBufferEx buffer = trailers.buffer();
-            final ByteBuffer byteBuffer = buffer.byteBuffer();
-            assert byteBuffer != null;
-            byteBuffer.clear();
             trailers.forEach(t ->
             {
                 final long hash = computeHash(t);
@@ -1218,15 +1209,7 @@ public final class KafkaCachePartition
         Flyweight keyOrHeader)
     {
         // TODO: compute null key hash in advance
-        final DirectBufferEx buffer = keyOrHeader.buffer();
-        final ByteBuffer byteBuffer = buffer.byteBuffer();
-        byteBuffer.clear();
-        assert byteBuffer != null;
-        checksum.reset();
-        byteBuffer.position(keyOrHeader.offset());
-        byteBuffer.limit(keyOrHeader.limit());
-        checksum.update(byteBuffer);
-        return checksum.getValue();
+        return KafkaCacheChecksum.compute(checksum, keyOrHeader.buffer(), keyOrHeader.offset(), keyOrHeader.sizeof());
     }
 
     // Overrides the already-reserved padded-key region in place with envelope's extracted key, in place of

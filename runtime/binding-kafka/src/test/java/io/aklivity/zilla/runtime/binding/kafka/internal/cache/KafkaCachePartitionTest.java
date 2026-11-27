@@ -37,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.CRC32C;
 
 import org.agrona.collections.MutableInteger;
 import org.junit.Rule;
@@ -384,6 +385,76 @@ public class KafkaCachePartitionTest
 
         head.markDirtyIfPresent(entryRO, 11L);
         assertEquals(0.5, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldNotMutateSharedBufferStateWhenComputingKeyHash() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        ByteBuffer shared = ByteBuffer.allocateDirect(256);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(shared);
+        KafkaKeyFW key = key(buffer, "k1");
+        shared.limit(200);
+        shared.position(7);
+
+        long hash = partition.computeKeyHash(key);
+
+        byte[] keyBytes = new byte[key.sizeof()];
+        buffer.getBytes(key.offset(), keyBytes);
+        CRC32C expected = new CRC32C();
+        expected.update(keyBytes, 0, keyBytes.length);
+        assertEquals(expected.getValue(), hash);
+        assertEquals(7, shared.position());
+        assertEquals(200, shared.limit());
+    }
+
+    @Test
+    public void shouldNotMutateMappedLogBufferStateWhenCleaning() throws Exception
+    {
+        KafkaConfiguration config = new KafkaConfiguration();
+        KafkaCacheTopicConfig topic = new KafkaCacheTopicConfig(config);
+        Path location = tempFolder.newFolder().toPath();
+        MutableDirectBufferEx writeBuffer = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+        MutableInteger entryMark = new MutableInteger(0);
+        MutableInteger valueMark = new MutableInteger(0);
+
+        KafkaKeyFW key = new KafkaKeyFW.Builder().wrap(writeBuffer, 0, writeBuffer.capacity())
+            .length(4)
+            .value(k -> k.set("test".getBytes(UTF_8)))
+            .build();
+        Array32FW<KafkaHeaderFW> headers = new Array32FW.Builder<>(new KafkaHeaderFW.Builder(), new KafkaHeaderFW())
+            .wrap(writeBuffer, key.limit(), writeBuffer.capacity())
+            .item(h -> h.nameLen(6).name(n -> n.set("header".getBytes(UTF_8)))
+                        .valueLen(5).value(v -> v.set("value".getBytes(UTF_8))))
+            .build();
+        OctetsFW value = new OctetsFW.Builder()
+            .wrap(writeBuffer, headers.limit(), writeBuffer.capacity())
+            .set(new byte[16])
+            .build();
+        KafkaCacheEntryFW ancestorRO = new KafkaCacheEntryFW();
+
+        KafkaCachePartition partition = new KafkaCachePartition(Clock.systemUTC(), location, topic, "cache", "test", 0,
+            65536, long[]::new);
+        Node head10 = partition.append(10L);
+        partition.writeEntry(null, 1L, 1L, 0L, 11L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, KafkaCacheModel.NONE,
+            new KafkaCacheKeyEnvelope(), new KafkaCacheTrailerEnvelope(), 0, false);
+        head10.findAndMarkAncestor(key, partition.computeKeyHash(key), 11L, ancestorRO);
+        partition.writeEntry(null, 1L, 1L, 0L, 12L, entryMark, valueMark, 0L, KafkaTimestampType.ADVISORY, -1L,
+            key, headers, value, 0x00, KafkaDeltaType.NONE, KafkaCacheModel.NONE, KafkaCacheModel.NONE,
+            new KafkaCacheKeyEnvelope(), new KafkaCacheTrailerEnvelope(), 0, false);
+        Node head15 = partition.append(15L);
+        Node tail10 = head15.previous();
+        ByteBuffer mappedLog = tail10.segment().logFile().buffer().byteBuffer();
+        mappedLog.limit(64);
+        mappedLog.position(5);
+
+        long now = currentTimeMillis();
+        tail10.segment().cleanableAt(now);
+        tail10.clean(now);
+
+        assertEquals(5, mappedLog.position());
+        assertEquals(64, mappedLog.limit());
     }
 
     @Test

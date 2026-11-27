@@ -31,7 +31,6 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +47,7 @@ import org.agrona.collections.Int2IntHashMap;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaBinding;
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCache;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheChecksum;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFactory.KafkaCacheCursor;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheDoorbell;
@@ -1510,12 +1510,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         long checksum = 0;
                         if (hasInit(flags) && value != null)
                         {
-                            final ByteBuffer buffer = value.value().byteBuffer();
-                            buffer.limit(value.limit());
-                            buffer.position(value.offset());
-                            crc32c.reset();
-                            crc32c.update(buffer);
-                            checksum = crc32c.getValue();
+                            checksum = KafkaCacheChecksum.compute(crc32c, value.buffer(), value.offset(), value.sizeof());
                         }
 
                         switch (flags)
