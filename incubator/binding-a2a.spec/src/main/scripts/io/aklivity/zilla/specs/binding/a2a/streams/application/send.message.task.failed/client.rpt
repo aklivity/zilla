@@ -37,6 +37,7 @@ read zilla:data.ext ${a2a:matchDataEx()
                              .taskId("t-1")
                              .contextId("c-1")
                              .state("FAILED")
+                             .messageId("m-2")
                              .build()
                          .build()}
 read '{"task":{"id":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_FAILED","message":{"messageId":"m-2","role":"ROLE_AGENT","parts":[{"text":"Weather service unavailable"}]}}}}'
