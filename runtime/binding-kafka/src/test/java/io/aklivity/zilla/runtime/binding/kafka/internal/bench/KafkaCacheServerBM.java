@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.bench;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_STREAMS_BUFFER_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -119,8 +119,8 @@ public class KafkaCacheServerBM
                 .directory(System.getProperty("zilla.bench.directory", "target/zilla-bench"))
                 .external("app1")
                 .configure(ENGINE_STREAMS_BUFFER_CAPACITY, STREAMS_BUFFER_CAPACITY)
-                .configure(KAFKA_CACHE_SEGMENT_BYTES, SEGMENT_BYTES)
-                .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, SEGMENT_INDEX_BYTES)
+                .configure(KAFKA_CACHE_FETCH_SEGMENT_BYTES, SEGMENT_BYTES)
+                .configure(KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES, SEGMENT_INDEX_BYTES)
                 .start(CONFIGURATION);
 
             final int kafkaTypeId = bench.labelId("kafka");

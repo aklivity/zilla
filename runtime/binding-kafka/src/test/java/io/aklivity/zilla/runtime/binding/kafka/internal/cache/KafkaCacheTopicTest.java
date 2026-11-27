@@ -42,7 +42,7 @@ public class KafkaCacheTopicTest
     public void shouldSupplyPartition() throws Exception
     {
         KafkaConfiguration config = new KafkaConfiguration();
-        Path location = config.cacheDirectory().resolve("cache");
+        Path location = config.cacheFetchDirectory().resolve("cache");
         KafkaCacheTopic topic = new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
 
         KafkaCachePartition partitionA = topic.supplyFetchPartition(Clock.systemUTC(), 0);
@@ -55,7 +55,7 @@ public class KafkaCacheTopicTest
     public void shouldDescribeObject() throws Exception
     {
         KafkaConfiguration config = new KafkaConfiguration();
-        Path location = config.cacheDirectory().resolve("cache");
+        Path location = config.cacheFetchDirectory().resolve("cache");
 
         KafkaCacheTopic topic = new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
 
@@ -122,7 +122,7 @@ public class KafkaCacheTopicTest
         KafkaCachePartition fetch = topic.supplyFetchPartition(Clock.systemUTC(), 0);
 
         assertEquals(1048576, produce.segmentBytes());
-        assertEquals(config.cacheSegmentBytes(), fetch.segmentBytes());
+        assertEquals(config.cacheFetchSegmentBytes(), fetch.segmentBytes());
     }
 
     @Test

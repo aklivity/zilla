@@ -43,7 +43,7 @@ public final class KafkaCache
     {
         this.config = config;
         this.name = name;
-        this.location = config.cacheDirectory().resolve(name);
+        this.location = config.cacheFetchDirectory().resolve(name);
         this.produceLocation = config.cacheProduceDirectory().resolve(name);
         this.topicsByName = new ConcurrentHashMap<>();
         this.sortSpaceRef = ThreadLocal.withInitial(() -> EMPTY_SORT_SPACE);

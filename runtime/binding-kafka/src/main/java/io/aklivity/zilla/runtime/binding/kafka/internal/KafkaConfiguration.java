@@ -57,21 +57,21 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE;
-    public static final PropertyDef<Path> KAFKA_CACHE_DIRECTORY;
+    public static final PropertyDef<Path> KAFKA_CACHE_FETCH_DIRECTORY;
     public static final PropertyDef<Path> KAFKA_CACHE_PRODUCE_DIRECTORY;
     public static final LongPropertyDef KAFKA_CACHE_PRODUCE_CAPACITY;
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
     public static final IntPropertyDef KAFKA_CACHE_MAX_MESSAGE_BYTES;
-    public static final LongPropertyDef KAFKA_CACHE_RETENTION_MILLIS;
-    public static final LongPropertyDef KAFKA_CACHE_RETENTION_MILLIS_MAX;
-    public static final LongPropertyDef KAFKA_CACHE_RETENTION_BYTES;
+    public static final LongPropertyDef KAFKA_CACHE_FETCH_RETENTION_MILLIS;
+    public static final LongPropertyDef KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX;
+    public static final LongPropertyDef KAFKA_CACHE_FETCH_RETENTION_BYTES;
     public static final LongPropertyDef KAFKA_CACHE_DELETE_RETENTION_MILLIS;
     public static final LongPropertyDef KAFKA_CACHE_MIN_COMPACTION_LAG_MILLIS;
     public static final LongPropertyDef KAFKA_CACHE_MAX_COMPACTION_LAG_MILLIS;
     public static final DoublePropertyDef KAFKA_CACHE_MIN_CLEANABLE_DIRTY_RATIO;
     public static final LongPropertyDef KAFKA_CACHE_SEGMENT_MILLIS;
-    public static final IntPropertyDef KAFKA_CACHE_SEGMENT_BYTES;
-    public static final IntPropertyDef KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+    public static final IntPropertyDef KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+    public static final IntPropertyDef KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
     public static final IntPropertyDef KAFKA_CACHE_PRODUCE_SEGMENT_BYTES;
     public static final IntPropertyDef KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES;
     public static final BooleanPropertyDef KAFKA_CACHE_SERVER_BOOTSTRAP;
@@ -130,7 +130,7 @@ public class KafkaConfiguration extends Configuration
             (int) Duration.ofMinutes(5).toMillis());
         KAFKA_CLIENT_GROUP_INITIAL_REBALANCE_DELAY_DEFAULT = config.property("client.group.initial.rebalance.delay.default",
             0);
-        KAFKA_CACHE_DIRECTORY = config.property(Path.class, "cache.directory",
+        KAFKA_CACHE_FETCH_DIRECTORY = config.property(Path.class, "cache.fetch.directory",
             KafkaConfiguration::cacheDirectory, KafkaBinding.NAME);
         KAFKA_CACHE_SERVER_BOOTSTRAP = config.property("cache.server.bootstrap", true);
         KAFKA_CACHE_PRODUCE_CAPACITY = config.property("cache.produce.capacity", Long.MAX_VALUE);
@@ -140,21 +140,20 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_CLEANUP_POLICY = config.property(KafkaCacheCleanupPolicy.class, "cache.cleanup.policy",
                 KafkaConfiguration::cleanupPolicy, "delete");
         KAFKA_CACHE_MAX_MESSAGE_BYTES = config.property("cache.max.message.bytes", 1000012);
-        KAFKA_CACHE_RETENTION_MILLIS = config.property("cache.retention.ms", 604800000L);
-        KAFKA_CACHE_RETENTION_MILLIS_MAX = config.property("cache.retention.ms.max", 30000L);
-        KAFKA_CACHE_RETENTION_BYTES = config.property("cache.retention.bytes", -1L);
+        KAFKA_CACHE_FETCH_RETENTION_MILLIS = config.property("cache.fetch.retention.ms", 604800000L);
+        KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX = config.property("cache.fetch.retention.ms.max", 30000L);
+        KAFKA_CACHE_FETCH_RETENTION_BYTES = config.property("cache.fetch.retention.bytes", -1L);
         KAFKA_CACHE_DELETE_RETENTION_MILLIS = config.property("cache.delete.retention.ms", 86400000L);
         KAFKA_CACHE_MIN_COMPACTION_LAG_MILLIS = config.property("cache.min.compaction.lag.ms", 0L);
         KAFKA_CACHE_MAX_COMPACTION_LAG_MILLIS = config.property("cache.max.compaction.lag.ms", Long.MAX_VALUE);
         KAFKA_CACHE_MIN_CLEANABLE_DIRTY_RATIO = config.property("cache.min.cleanable.dirty.ratio", 0.5);
         KAFKA_CACHE_SEGMENT_MILLIS = config.property("cache.segment.ms", 604800000L);
-        KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
-        KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
+        KAFKA_CACHE_FETCH_SEGMENT_BYTES = config.property("cache.fetch.segment.bytes", 0x40000000);
+        KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES = config.property("cache.fetch.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_PRODUCE_DIRECTORY = config.property(Path.class, "cache.produce.directory",
-            (c, v) -> cacheDirectory(c, v), c -> KAFKA_CACHE_DIRECTORY.get(c));
+            (c, v) -> cacheDirectory(c, v), c -> cacheDirectory(c, KafkaBinding.NAME));
         KAFKA_CACHE_PRODUCE_SEGMENT_BYTES = config.property("cache.produce.segment.bytes", 0x4000000);
-        KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES = config.property("cache.produce.segment.index.bytes",
-            KAFKA_CACHE_SEGMENT_INDEX_BYTES::getAsInt);
+        KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES = config.property("cache.produce.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX = config.property("cache.server.trailers.size.max", 256);
         KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES = config.property("cache.server.share.staging.max.bytes", 64 * 1024 * 1024);
@@ -260,9 +259,9 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE.getAsInt(this);
     }
 
-    public Path cacheDirectory()
+    public Path cacheFetchDirectory()
     {
-        return KAFKA_CACHE_DIRECTORY.get(this);
+        return KAFKA_CACHE_FETCH_DIRECTORY.get(this);
     }
 
     public Path cacheProduceDirectory()
@@ -290,19 +289,19 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CACHE_MAX_MESSAGE_BYTES.get(this);
     }
 
-    public long cacheRetentionBytes()
+    public long cacheFetchRetentionBytes()
     {
-        return KAFKA_CACHE_RETENTION_BYTES.getAsLong(this);
+        return KAFKA_CACHE_FETCH_RETENTION_BYTES.getAsLong(this);
     }
 
-    public long cacheRetentionMillis()
+    public long cacheFetchRetentionMillis()
     {
-        return KAFKA_CACHE_RETENTION_MILLIS.getAsLong(this);
+        return KAFKA_CACHE_FETCH_RETENTION_MILLIS.getAsLong(this);
     }
 
-    public long cacheRetentionMillisMax()
+    public long cacheFetchRetentionMillisMax()
     {
-        return KAFKA_CACHE_RETENTION_MILLIS_MAX.getAsLong(this);
+        return KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX.getAsLong(this);
     }
 
     public long cacheSegmentMillis()
@@ -330,14 +329,14 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CACHE_MIN_CLEANABLE_DIRTY_RATIO.getAsDouble(this);
     }
 
-    public int cacheSegmentBytes()
+    public int cacheFetchSegmentBytes()
     {
-        return KAFKA_CACHE_SEGMENT_BYTES.getAsInt(this);
+        return KAFKA_CACHE_FETCH_SEGMENT_BYTES.getAsInt(this);
     }
 
-    public int cacheSegmentIndexBytes()
+    public int cacheFetchSegmentIndexBytes()
     {
-        return KAFKA_CACHE_SEGMENT_INDEX_BYTES.getAsInt(this);
+        return KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES.getAsInt(this);
     }
 
     public int cacheProduceSegmentBytes()

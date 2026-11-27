@@ -354,7 +354,7 @@ public class CacheProduceIT
         KafkaConfiguration config = new KafkaConfiguration(new io.aklivity.zilla.runtime.engine.Configuration(properties));
 
         assertTrue(hasProduceLog(config.cacheProduceDirectory()));
-        assertFalse(hasProduceLog(config.cacheDirectory()));
+        assertFalse(hasProduceLog(config.cacheFetchDirectory()));
     }
 
     @Test

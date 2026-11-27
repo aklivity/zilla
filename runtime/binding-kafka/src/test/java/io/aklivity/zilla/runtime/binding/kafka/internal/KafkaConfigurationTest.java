@@ -17,11 +17,16 @@ package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_DIRECTORY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_RETENTION_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_RETENTION_MILLIS;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_CAPACITY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_DIRECTORY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_SEGMENT_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_RETENTION_MILLIS_MAX;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_SHARE_LOCK_MARGIN_PERCENT;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES;
@@ -90,8 +95,14 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME = "zilla.binding.kafka.cache.max.message.bytes";
     public static final String KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES_NAME =
         "zilla.binding.kafka.cache.produce.segment.index.bytes";
-    public static final String KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME =
-        "zilla.binding.kafka.cache.retention.ms.max";
+    public static final String KAFKA_CACHE_FETCH_DIRECTORY_NAME = "zilla.binding.kafka.cache.fetch.directory";
+    public static final String KAFKA_CACHE_FETCH_SEGMENT_BYTES_NAME = "zilla.binding.kafka.cache.fetch.segment.bytes";
+    public static final String KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES_NAME =
+        "zilla.binding.kafka.cache.fetch.segment.index.bytes";
+    public static final String KAFKA_CACHE_FETCH_RETENTION_MILLIS_NAME = "zilla.binding.kafka.cache.fetch.retention.ms";
+    public static final String KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX_NAME =
+        "zilla.binding.kafka.cache.fetch.retention.ms.max";
+    public static final String KAFKA_CACHE_FETCH_RETENTION_BYTES_NAME = "zilla.binding.kafka.cache.fetch.retention.bytes";
 
     @Test
     public void shouldVerifyConstants() throws Exception
@@ -110,7 +121,12 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CACHE_PRODUCE_CAPACITY.name(), KAFKA_CACHE_PRODUCE_CAPACITY_NAME);
         assertEquals(KAFKA_CACHE_PRODUCE_SEGMENT_BYTES.name(), KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME);
         assertEquals(KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES.name(), KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES_NAME);
-        assertEquals(KAFKA_CACHE_RETENTION_MILLIS_MAX.name(), KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME);
+        assertEquals(KAFKA_CACHE_FETCH_DIRECTORY.name(), KAFKA_CACHE_FETCH_DIRECTORY_NAME);
+        assertEquals(KAFKA_CACHE_FETCH_SEGMENT_BYTES.name(), KAFKA_CACHE_FETCH_SEGMENT_BYTES_NAME);
+        assertEquals(KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES.name(), KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES_NAME);
+        assertEquals(KAFKA_CACHE_FETCH_RETENTION_MILLIS.name(), KAFKA_CACHE_FETCH_RETENTION_MILLIS_NAME);
+        assertEquals(KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX.name(), KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX_NAME);
+        assertEquals(KAFKA_CACHE_FETCH_RETENTION_BYTES.name(), KAFKA_CACHE_FETCH_RETENTION_BYTES_NAME);
         assertEquals(KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS.name(), KAFKA_CLIENT_DESCRIBE_CONFIG_INCLUDE_SYNONYMS_NAME);
         assertEquals(KAFKA_CLIENT_API_VERSIONS.name(), KAFKA_CLIENT_API_VERSIONS_NAME);
         assertEquals(KAFKA_CLIENT_META_MAX_AGE_MILLIS.name(), KAFKA_CLIENT_META_MAX_AGE_MILLIS_NAME);
@@ -133,11 +149,36 @@ public class KafkaConfigurationTest
     }
 
     @Test
-    public void shouldDefaultProduceDirectoryToCacheDirectory() throws Exception
+    public void shouldNotFollowFetchDirectoryForProduceDirectory() throws Exception
     {
-        KafkaConfiguration config = new KafkaConfiguration();
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_CACHE_DIRECTORY.name(), "/var/zilla");
+        properties.setProperty(KAFKA_CACHE_FETCH_DIRECTORY.name(), "/var/cache/zilla");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
-        assertEquals(config.cacheDirectory(), config.cacheProduceDirectory());
+        assertEquals(Path.of("/var/cache/zilla"), config.cacheFetchDirectory());
+        assertEquals(Path.of("/var/zilla/kafka"), config.cacheProduceDirectory());
+    }
+
+    @Test
+    public void shouldIgnoreFetchPropertiesUnderTheirFormerNames() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.binding.kafka.cache.directory", "/former");
+        properties.setProperty("zilla.binding.kafka.cache.segment.bytes", "2097152");
+        properties.setProperty("zilla.binding.kafka.cache.segment.index.bytes", "65536");
+        properties.setProperty("zilla.binding.kafka.cache.retention.ms", "1");
+        properties.setProperty("zilla.binding.kafka.cache.retention.ms.max", "2");
+        properties.setProperty("zilla.binding.kafka.cache.retention.bytes", "3");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+        KafkaConfiguration defaults = new KafkaConfiguration();
+
+        assertEquals(defaults.cacheFetchDirectory(), config.cacheFetchDirectory());
+        assertEquals(defaults.cacheFetchSegmentBytes(), config.cacheFetchSegmentBytes());
+        assertEquals(defaults.cacheFetchSegmentIndexBytes(), config.cacheFetchSegmentIndexBytes());
+        assertEquals(defaults.cacheFetchRetentionMillis(), config.cacheFetchRetentionMillis());
+        assertEquals(defaults.cacheFetchRetentionMillisMax(), config.cacheFetchRetentionMillisMax());
+        assertEquals(defaults.cacheFetchRetentionBytes(), config.cacheFetchRetentionBytes());
     }
 
     @Test
@@ -162,27 +203,27 @@ public class KafkaConfigurationTest
     }
 
     @Test
-    public void shouldDefaultProduceSegmentBytesTo64MiBAndIndexBytesToCacheIndexBytes() throws Exception
+    public void shouldDefaultProduceSegmentSizesIndependentlyOfFetchSegmentSizes() throws Exception
     {
         Properties properties = new Properties();
-        properties.setProperty("zilla.binding.kafka.cache.segment.bytes", "2097152");
-        properties.setProperty("zilla.binding.kafka.cache.segment.index.bytes", "65536");
+        properties.setProperty("zilla.binding.kafka.cache.fetch.segment.bytes", "2097152");
+        properties.setProperty("zilla.binding.kafka.cache.fetch.segment.index.bytes", "65536");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
         assertEquals(64 * 1024 * 1024, config.cacheProduceSegmentBytes());
-        assertEquals(65536, config.cacheProduceSegmentIndexBytes());
+        assertEquals(0xA00000, config.cacheProduceSegmentIndexBytes());
     }
 
     @Test
     public void shouldOverrideProduceSegmentSizes() throws Exception
     {
         Properties properties = new Properties();
-        properties.setProperty("zilla.binding.kafka.cache.segment.bytes", "2097152");
+        properties.setProperty("zilla.binding.kafka.cache.fetch.segment.bytes", "2097152");
         properties.setProperty(KAFKA_CACHE_PRODUCE_SEGMENT_BYTES.name(), "1048576");
         properties.setProperty(KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES.name(), "32768");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
-        assertEquals(2097152, config.cacheSegmentBytes());
+        assertEquals(2097152, config.cacheFetchSegmentBytes());
         assertEquals(1048576, config.cacheProduceSegmentBytes());
         assertEquals(32768, config.cacheProduceSegmentIndexBytes());
     }

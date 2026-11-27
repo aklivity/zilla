@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -46,8 +46,8 @@ public class CacheMetaIT
         .countersBufferCapacity(8192)
         .configure(KAFKA_CACHE_SERVER_BOOTSTRAP, false)
         .configure(KAFKA_CACHE_SERVER_RECONNECT_DELAY, 0)
-        .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
-        .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
+        .configure(KAFKA_CACHE_FETCH_SEGMENT_BYTES, 1 * 1024 * 1024)
+        .configure(KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("app1")
         .clean();
