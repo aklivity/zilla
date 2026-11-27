@@ -1096,6 +1096,32 @@ class YamlJsonParserTest
         assertThrows(IllegalArgumentException.class, () -> YamlJson.provider(config));
     }
 
+    @Test
+    void shouldIgnoreByteOrderMark()
+    {
+        JsonObject object = YamlJson.createReader(new StringReader("\ufeffname: test\nkind: server\n")).readObject();
+
+        assertEquals(List.of("name", "kind"), List.copyOf(object.keySet()));
+        assertEquals("test", object.getString("name"));
+        assertEquals("server", object.getString("kind"));
+    }
+
+    @Test
+    void shouldIgnoreByteOrderMarkBeforeFlowRoot()
+    {
+        JsonObject object = YamlJson.createReader(new StringReader("\ufeff{\"name\":\"test\"}")).readObject();
+
+        assertEquals("test", object.getString("name"));
+    }
+
+    @Test
+    void shouldIgnoreByteOrderMarkBeforeComment()
+    {
+        JsonObject object = YamlJson.createReader(new StringReader("\ufeff# comment\nname: test\n")).readObject();
+
+        assertEquals("test", object.getString("name"));
+    }
+
     private static JsonParser parserFor(
         String text)
     {
