@@ -1128,6 +1128,11 @@ public final class A2aEventDecoder
     {
         final A2aEventDecoderState next;
 
+        if (tag.tagged() && !extension.enabled(AguiA2aExtension.FEATURE_SUBAGENTS))
+        {
+            tag.subagentRunId = null;
+        }
+
         if (!tag.tagged())
         {
             next = decodePartStart;
