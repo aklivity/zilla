@@ -95,7 +95,7 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int PRODUCE_REQUEST_RECORDS_OFFSET_MAX = 512;
-    private static final int PRODUCE_MAX_IN_FLIGHT_LIMIT = 5;
+    private static final int REQUEST_END_SEQUENCES_INITIAL = 4;
     private static final int BATCH_START_SEQUENCES_INITIAL = 16;
 
     private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
@@ -218,7 +218,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
         this.produceMaxWaitMillis = config.clientProduceMaxResponseMillis();
         this.produceRecordFramingSize = config.clientProduceRecordFramingSize();
         this.produceRequestMaxDelay = config.clientProduceMaxRequestMillis();
-        this.produceMaxInFlight = Math.max(1, Math.min(config.clientProduceMaxInFlight(), PRODUCE_MAX_IN_FLIGHT_LIMIT));
+        this.produceMaxInFlight = Math.max(1, config.clientProduceMaxInFlight());
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.proxyTypeId = context.supplyTypeId("proxy");
         this.clock = context.clock();
@@ -1389,7 +1389,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private int decodablePartitions;
 
             private int nextResponseId;
-            private final long[] requestEndSequences = new long[produceMaxInFlight];
+            private long[] requestEndSequences = new long[REQUEST_END_SEQUENCES_INITIAL];
             private long[] batchStartSequences = new long[BATCH_START_SEQUENCES_INITIAL];
             private int batchStartHead;
             private int batchStartCount;
@@ -2091,6 +2091,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert encodeProgress <= PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
 
                 final int encodeSizeOf = encodeProgress - encodeOffset;
+                growRequestEndSequences(nextRequestId - nextResponseId + 1);
                 final int requestId = nextRequestId++;
                 removeBatchStartSequence();
 
@@ -2482,7 +2483,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private void onDecodeProduceResponse(
                 long traceId)
             {
-                final long acknowledgedSequence = requestEndSequences[nextResponseId % produceMaxInFlight];
+                final long acknowledgedSequence = requestEndSequences[nextResponseId & (requestEndSequences.length - 1)];
                 nextResponseId++;
 
                 stream.doAppWindow(traceId, (int) (stream.initialSeq - acknowledgedSequence), encodeMaxBytes);
@@ -2524,7 +2525,28 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             {
                 final long endSequence = batchStartCount > 0 ? batchStartSequences[batchStartHead] : stream.initialSeq;
 
-                requestEndSequences[(nextRequestId - 1) % produceMaxInFlight] = endSequence;
+                requestEndSequences[(nextRequestId - 1) & (requestEndSequences.length - 1)] = endSequence;
+            }
+
+            private void growRequestEndSequences(
+                int inFlightRequests)
+            {
+                int capacity = requestEndSequences.length;
+
+                if (inFlightRequests > capacity)
+                {
+                    while (capacity < inFlightRequests)
+                    {
+                        capacity <<= 1;
+                    }
+
+                    final long[] grown = new long[capacity];
+                    for (int requestId = nextResponseId; requestId < nextRequestId; requestId++)
+                    {
+                        grown[requestId & (capacity - 1)] = requestEndSequences[requestId & (requestEndSequences.length - 1)];
+                    }
+                    requestEndSequences = grown;
+                }
             }
 
             private void cleanupNetwork(
