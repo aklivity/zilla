@@ -57,6 +57,16 @@ public class A2aServerCardIT
     }
 
     @Test
+    @Configuration("server.push.yaml")
+    @Specification({
+        "${net}/agent.card.push/client",
+        "${app}/agent.card.push/server"})
+    public void shouldAdvertisePushNotificationsWhenPushConfigured() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("server.url.yaml")
     @Specification({
         "${net}/agent.card.slug/client",

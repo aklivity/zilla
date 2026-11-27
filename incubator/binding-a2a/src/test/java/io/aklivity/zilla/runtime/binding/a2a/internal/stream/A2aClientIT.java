@@ -28,9 +28,13 @@ import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
+import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
 
 public class A2aClientIT
 {
+    private static final String HOST_RESOLVER =
+        "io.aklivity.zilla.runtime.binding.a2a.internal.stream.A2aPushFixtures::resolveHost";
+
     private final K3poRule k3po = new K3poRule()
         .addScriptRoot("net", "io/aklivity/zilla/specs/binding/a2a/streams/network")
         .addScriptRoot("app", "io/aklivity/zilla/specs/binding/a2a/streams/application");
@@ -514,6 +518,8 @@ public class A2aClientIT
     @Specification({
         "${app}/push.deliver/client",
         "${net}/push.deliver/server"})
+    @Configure(name = "zilla.engine.host.resolver", value = HOST_RESOLVER)
+    @Configure(name = "zilla.binding.a2a.push.delivery.backoff", value = "PT0.05S")
     public void shouldPushDeliver() throws Exception
     {
         k3po.finish();
@@ -524,6 +530,8 @@ public class A2aClientIT
     @Specification({
         "${app}/push.deliver.retry/client",
         "${net}/push.deliver.retry/server"})
+    @Configure(name = "zilla.engine.host.resolver", value = HOST_RESOLVER)
+    @Configure(name = "zilla.binding.a2a.push.delivery.backoff", value = "PT0.05S")
     public void shouldPushDeliverRetry() throws Exception
     {
         k3po.finish();
@@ -534,6 +542,8 @@ public class A2aClientIT
     @Specification({
         "${app}/push.deliver.unreachable/client",
         "${net}/push.deliver.unreachable/server"})
+    @Configure(name = "zilla.engine.host.resolver", value = HOST_RESOLVER)
+    @Configure(name = "zilla.binding.a2a.push.delivery.backoff", value = "PT0.05S")
     public void shouldPushDeliverUnreachable() throws Exception
     {
         k3po.finish();

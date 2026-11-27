@@ -32,6 +32,7 @@ public final class A2aOptionsConfigBuilder<T> extends ConfigBuilder<T, A2aOption
     private A2aCacheConfig cache;
     private A2aDiscoveryConfig discovery;
     private A2aProxyPushConfig proxyPush;
+    private A2aClientPushConfig clientPush;
 
     public A2aOptionsConfigBuilder(
         Function<OptionsConfig, T> mapper)
@@ -127,9 +128,22 @@ public final class A2aOptionsConfigBuilder<T> extends ConfigBuilder<T, A2aOption
         return A2aProxyPushConfig.builder(this::proxyPush);
     }
 
+    public A2aOptionsConfigBuilder<T> clientPush(
+        A2aClientPushConfig clientPush)
+    {
+        this.clientPush = clientPush;
+        return this;
+    }
+
+    public A2aClientPushConfigBuilder<A2aOptionsConfigBuilder<T>> clientPush()
+    {
+        return A2aClientPushConfig.builder(this::clientPush);
+    }
+
     @Override
     public T build()
     {
-        return mapper.apply(new A2aOptionsConfig(url, versions, serverPush, authorization, server, cache, discovery, proxyPush));
+        return mapper.apply(new A2aOptionsConfig(url, versions, serverPush, authorization, server, cache, discovery, proxyPush,
+            clientPush));
     }
 }

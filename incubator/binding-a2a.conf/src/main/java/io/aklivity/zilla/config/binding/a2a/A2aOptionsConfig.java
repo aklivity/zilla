@@ -29,6 +29,7 @@ public final class A2aOptionsConfig extends OptionsConfig
     public final A2aCacheConfig cache;
     public final A2aDiscoveryConfig discovery;
     public final A2aProxyPushConfig proxyPush;
+    public final A2aClientPushConfig clientPush;
 
     A2aOptionsConfig(
         String url,
@@ -38,7 +39,8 @@ public final class A2aOptionsConfig extends OptionsConfig
         String server,
         A2aCacheConfig cache,
         A2aDiscoveryConfig discovery,
-        A2aProxyPushConfig proxyPush)
+        A2aProxyPushConfig proxyPush,
+        A2aClientPushConfig clientPush)
     {
         super(null, discovery != null ? discovery.refs() : null);
         this.url = url;
@@ -49,6 +51,7 @@ public final class A2aOptionsConfig extends OptionsConfig
         this.cache = cache;
         this.discovery = discovery;
         this.proxyPush = proxyPush;
+        this.clientPush = clientPush;
     }
 
     public static A2aOptionsConfigBuilder<A2aOptionsConfig> builder()

@@ -31,6 +31,8 @@ public final class A2aProxyPushConfigAdapter extends ConfigAdapter<A2aProxyPushC
 {
     static final String VAULT_NAME = "vault";
 
+    private static final String URL_NAME = "url";
+
     private static final String KEY_NAME = "key";
     private static final String TTL_NAME = "ttl";
     private static final String TTL_DEFAULT = "PT24H";
@@ -47,6 +49,11 @@ public final class A2aProxyPushConfigAdapter extends ConfigAdapter<A2aProxyPushC
         A2aProxyPushConfig push)
     {
         JsonObjectBuilder object = Json.createObjectBuilder();
+
+        if (push.url != null)
+        {
+            object.add(URL_NAME, push.url);
+        }
 
         object.add(VAULT_NAME, push.vault);
         object.add(KEY_NAME, push.key);
@@ -88,6 +95,11 @@ public final class A2aProxyPushConfigAdapter extends ConfigAdapter<A2aProxyPushC
             .ttl(Duration.parse(object.getString(TTL_NAME, TTL_DEFAULT)))
             .maxLength(object.getInt(MAX_LENGTH_NAME, MAX_LENGTH_DEFAULT))
             .exit(object.getString(EXIT_NAME));
+
+        if (object.containsKey(URL_NAME))
+        {
+            builder.url(object.getString(URL_NAME));
+        }
 
         if (object.containsKey(ALLOW_NAME))
         {
