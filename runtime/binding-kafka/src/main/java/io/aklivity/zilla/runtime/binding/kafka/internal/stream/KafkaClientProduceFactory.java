@@ -1262,14 +1262,15 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             int minInitialMax)
         {
             final long newInitialAck = Math.max(initialSeq - minInitialNoAck, initialAck);
+            final int newInitialMax = (int) Math.max(minInitialMax, initialAck + initialMax - newInitialAck);
 
-            if (newInitialAck > initialAck || minInitialMax > initialMax || initialPadMin > initialPad ||
+            if (newInitialAck > initialAck || newInitialMax > initialMax || initialPadMin > initialPad ||
                 !StreamState.initialOpened(state))
             {
                 if (KafkaConfiguration.DEBUG_PRODUCE)
                 {
                     final int initialBudget = initialMax - (int)(initialSeq - initialAck);
-                    final int newInitialBudget = minInitialMax - (int)(initialSeq - newInitialAck);
+                    final int newInitialBudget = newInitialMax - (int)(initialSeq - newInitialAck);
                     final int credit = newInitialBudget - initialBudget;
                     System.out.format("[%d] [%d] [%d] kafka client [%s[%d] %d + %d => %d\n",
                             currentTimeMillis(), currentThread().getId(),
@@ -1279,7 +1280,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 initialAck = newInitialAck;
                 assert initialAck <= initialSeq;
 
-                initialMax = minInitialMax;
+                initialMax = newInitialMax;
                 initialPad = initialPadMin;
 
                 state = StreamState.openInitial(state);
