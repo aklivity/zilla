@@ -32,6 +32,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_INSTANCE_ID;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_META_MAX_AGE_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SASL_SCRAM_NONCE;
@@ -54,6 +55,7 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME =
             "zilla.binding.kafka.client.produce.max.request.millis";
     public static final String KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME = "zilla.binding.kafka.client.produce.max.bytes";
+    public static final String KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT_NAME = "zilla.binding.kafka.client.produce.max.in.flight";
     public static final String KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME =
         "zilla.binding.kafka.client.connection.pool.cleanup.millis";
     public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.binding.kafka.cache.server.reconnect";
@@ -95,6 +97,7 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS.name(), KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME);
         assertEquals(KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS.name(), KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME);
         assertEquals(KAFKA_CLIENT_PRODUCE_MAX_BYTES.name(), KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME);
+        assertEquals(KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT.name(), KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT_NAME);
         assertEquals(KAFKA_CACHE_SERVER_RECONNECT_DELAY.name(), KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME);
         assertEquals(KAFKA_CACHE_CLIENT_CLEANUP_DELAY.name(), KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME);
         assertEquals(KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX.name(), KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME);
