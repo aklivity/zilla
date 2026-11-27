@@ -1,0 +1,236 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+scope agui
+{
+    scope stream
+    {
+        struct AguiBeginEx extends core::stream::Extension
+        {
+            string16 threadId;
+            string16 runId;
+            string16 parentRunId = null;
+        }
+
+        struct AguiEventMeta
+        {
+            int64 timestamp = -1;
+            string16 subagentRunId = null;
+            varint32 metadataLength;
+            octets[metadataLength] metadata = null;
+        }
+
+        enum AguiRole (uint8)
+        {
+            ASSISTANT(0),
+            DEVELOPER(1),
+            SYSTEM(2),
+            USER(3)
+        }
+
+        struct AguiTextDataEx
+        {
+            AguiEventMeta meta;
+            string16 messageId;
+            AguiRole role = ASSISTANT;
+        }
+
+        struct AguiReasoningDataEx
+        {
+            AguiEventMeta meta;
+            string16 messageId;
+            string16 groupId = null;
+        }
+
+        enum AguiEncryptedSubtype (uint8)
+        {
+            MESSAGE(0),
+            TOOL_CALL(1)
+        }
+
+        struct AguiReasoningEncryptedDataEx
+        {
+            AguiEventMeta meta;
+            AguiEncryptedSubtype subtype;
+            string16 entityId;
+        }
+
+        struct AguiToolCallDataEx
+        {
+            AguiEventMeta meta;
+            string16 toolCallId;
+            string16 toolCallName;
+            string16 parentMessageId = null;
+        }
+
+        enum AguiContentType (uint8)
+        {
+            TEXT(0),
+            PARTS(1)
+        }
+
+        struct AguiToolResultDataEx
+        {
+            AguiEventMeta meta;
+            string16 messageId;
+            string16 toolCallId;
+            AguiContentType content = TEXT;
+        }
+
+        enum AguiStateType (uint8)
+        {
+            SNAPSHOT(0),
+            DELTA(1),
+            MESSAGES_SNAPSHOT(2)
+        }
+
+        struct AguiStateDataEx
+        {
+            AguiEventMeta meta;
+            AguiStateType type;
+        }
+
+        enum AguiActivityType (uint8)
+        {
+            SNAPSHOT(0),
+            DELTA(1)
+        }
+
+        struct AguiActivityDataEx
+        {
+            AguiEventMeta meta;
+            AguiActivityType type;
+            string16 messageId;
+            string16 activityType;
+            uint8 replace = 1;
+        }
+
+        enum AguiStepType (uint8)
+        {
+            STARTED(0),
+            FINISHED(1)
+        }
+
+        struct AguiStepDataEx
+        {
+            AguiEventMeta meta;
+            AguiStepType type;
+            string16 stepName;
+        }
+
+        enum AguiSubagentType (uint8)
+        {
+            STARTED(0),
+            FINISHED(1),
+            ERROR(2)
+        }
+
+        enum AguiSubagentOutcome (uint8)
+        {
+            NONE(0),
+            SUCCESS(1),
+            SUSPENDED(2)
+        }
+
+        struct AguiSubagentDataEx
+        {
+            AguiEventMeta meta;
+            AguiSubagentType type;
+            string16 subagentRunId;
+            string16 name = null;
+            string16 description = null;
+            string16 parentSubagentRunId = null;
+            string16 parentToolCallId = null;
+            string16 parentMessageId = null;
+            string16 code = null;
+            string16 message = null;
+            AguiSubagentOutcome outcome = NONE;
+            string16[] interruptIds;
+        }
+
+        struct AguiRawDataEx
+        {
+            AguiEventMeta meta;
+            string16 source = null;
+        }
+
+        struct AguiCustomDataEx
+        {
+            AguiEventMeta meta;
+            string16 name;
+        }
+
+        // Only the init frame of a message carries the extension, the frames that follow carry payload only.
+        // Payload by case:
+        //   text, reasoning                  text, as UTF-8 fragments
+        //   toolCall                         the arguments, as JSON fragments
+        //   toolResult                       TEXT content as UTF-8 fragments, PARTS content as a JSON array of content parts
+        //   state, activity, raw, custom     the JSON value (snapshot, patch, event, value)
+        //   reasoningEncrypted               the encrypted value, as UTF-8
+        //   subagent                         for FINISHED, the result as a JSON value, absent when the only frame is empty
+        //   step                             none
+        // The members of the event carried by the init frame extension (timestamp, subagentRunId, metadata) apply to
+        // the event emitted for the init frame, with subagentRunId repeated on every event of the message
+        union AguiDataEx switch (uint8) extends core::stream::Extension
+        {
+            case 0: agui::stream::AguiTextDataEx text;
+            case 1: agui::stream::AguiReasoningDataEx reasoning;
+            case 2: agui::stream::AguiReasoningEncryptedDataEx reasoningEncrypted;
+            case 3: agui::stream::AguiToolCallDataEx toolCall;
+            case 4: agui::stream::AguiToolResultDataEx toolResult;
+            case 5: agui::stream::AguiStateDataEx state;
+            case 6: agui::stream::AguiActivityDataEx activity;
+            case 7: agui::stream::AguiStepDataEx step;
+            case 8: agui::stream::AguiSubagentDataEx subagent;
+            case 9: agui::stream::AguiRawDataEx raw;
+            case 10: agui::stream::AguiCustomDataEx custom;
+        }
+
+        enum AguiOutcomeType (uint8)
+        {
+            NONE(0),
+            SUCCESS(1),
+            INTERRUPT(2),
+            CANCELLED(3)
+        }
+
+        // detail holds the JSON members of RUN_FINISHED other than threadId, runId and the outcome type:
+        // result, usage, and outcome carrying only the members specific to the outcome type
+        struct AguiEndEx extends core::stream::Extension
+        {
+            int64 timestamp = -1;
+            AguiOutcomeType outcome = NONE;
+            varint32 detailLength;
+            octets[detailLength] detail = null;
+        }
+
+        struct AguiError
+        {
+            int32 status = -1;
+            string16 code = null;
+            string16 message = null;
+        }
+
+        struct AguiAbortEx extends core::stream::Extension
+        {
+            int64 timestamp = -1;
+            AguiError error;
+        }
+
+        struct AguiResetEx extends core::stream::Extension
+        {
+            AguiError error;
+        }
+    }
+}
