@@ -14,15 +14,21 @@
  */
 package io.aklivity.zilla.runtime.binding.a2a.internal;
 
+import java.time.Duration;
+
 import io.aklivity.zilla.runtime.engine.Configuration;
 
 public class A2aConfiguration extends Configuration
 {
     private static final ConfigurationDef A2A_CONFIG;
 
+    public static final PropertyDef<Duration> A2A_CACHE_LEASE_TTL;
+
     static
     {
         final ConfigurationDef config = new ConfigurationDef("zilla.binding.a2a");
+        A2A_CACHE_LEASE_TTL = config.property(Duration.class, "cache.lease.ttl",
+            (c, v) -> Duration.parse(v), "PT30S");
         A2A_CONFIG = config;
     }
 
@@ -30,5 +36,10 @@ public class A2aConfiguration extends Configuration
         Configuration config)
     {
         super(A2A_CONFIG, config);
+    }
+
+    public Duration cacheLeaseTtl()
+    {
+        return A2A_CACHE_LEASE_TTL.get(this);
     }
 }

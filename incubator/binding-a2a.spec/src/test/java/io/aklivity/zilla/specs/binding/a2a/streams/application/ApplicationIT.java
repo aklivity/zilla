@@ -368,4 +368,58 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.not.found/client",
+        "${app}/agent.card.not.found/server"})
+    public void shouldRejectAgentCardNotFound() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.forbidden/client",
+        "${app}/agent.card.forbidden/server"})
+    public void shouldRejectAgentCardForbidden() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.skills/client",
+        "${app}/agent.card.skills/server"})
+    public void shouldAgentCardSkills() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.skills.filtered/client",
+        "${app}/agent.card.skills.filtered/server"})
+    public void shouldAgentCardSkillsFiltered() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.skills.restricted/client",
+        "${app}/agent.card.skills.restricted/server"})
+    public void shouldRejectAgentCardSkillsRestricted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/agent.card.extended.twice/client",
+        "${app}/agent.card.extended.twice/server"})
+    public void shouldExtendedAgentCardTwice() throws Exception
+    {
+        k3po.finish();
+    }
 }
