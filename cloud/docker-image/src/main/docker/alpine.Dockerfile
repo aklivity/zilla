@@ -35,5 +35,13 @@ ENV PATH="/opt/zilla:${PATH}"
 COPY --from=build /.zpm /opt/zilla/.zpm
 COPY --from=build /zilla /opt/zilla/zilla
 COPY zilla.properties /opt/zilla/.zilla/zilla.properties
+COPY zilla.training.yaml /opt/zilla/zilla.training.yaml
+COPY aot-training.sh /opt/zilla/aot-training.sh
+
+RUN apk add --no-cache bash \
+    && /opt/zilla/aot-training.sh \
+    && apk del bash
+
+ENV JAVA_OPTIONS="-XX:AOTCache=/opt/zilla/zilla.aot"
 
 ENTRYPOINT ["/opt/zilla/zilla"]
