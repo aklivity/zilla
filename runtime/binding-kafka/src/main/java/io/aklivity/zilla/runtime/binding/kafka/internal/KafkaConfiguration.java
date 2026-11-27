@@ -118,7 +118,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS = config.property("client.produce.max.request.millis", 0);
         KAFKA_CLIENT_PRODUCE_MAX_RESPONSE_MILLIS = config.property("client.produce.max.response.millis", 120000);
         KAFKA_CLIENT_PRODUCE_MAX_BYTES = config.property("client.produce.max.bytes", Integer.MAX_VALUE);
-        KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT = config.property("client.produce.max.in.flight", 1);
+        KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT = config.property("client.produce.max.in.flight", Integer.MAX_VALUE);
         KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE = config.property("client.produce.record.framing.size", 512);
         KAFKA_CLIENT_SASL_SCRAM_NONCE = config.property(NonceSupplier.class, "client.sasl.scram.nonce",
             KafkaConfiguration::decodeNonceSupplier, KafkaConfiguration::defaultNonceSupplier);

@@ -125,6 +125,14 @@ public class KafkaConfigurationTest
     }
 
     @Test
+    public void shouldDefaultProduceMaxInFlightToUnbounded() throws Exception
+    {
+        KafkaConfiguration config = new KafkaConfiguration();
+
+        assertEquals(Integer.MAX_VALUE, config.clientProduceMaxInFlight());
+    }
+
+    @Test
     public void shouldDefaultProduceDirectoryToCacheDirectory() throws Exception
     {
         KafkaConfiguration config = new KafkaConfiguration();
