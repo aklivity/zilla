@@ -18,7 +18,6 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,10 +27,6 @@ import java.util.Set;
 
 import jakarta.json.Json;
 import jakarta.json.JsonException;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonString;
-import jakarta.json.JsonValue;
 
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiActivityType;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiContentType;
@@ -47,6 +42,10 @@ import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.AguiSubagent
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
+import io.aklivity.zilla.runtime.common.json.JsonEvent;
+import io.aklivity.zilla.runtime.common.json.JsonEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx;
+import io.aklivity.zilla.runtime.common.json.JsonParserEx.StringEventPositions;
 
 public final class AguiEventDecoder
 {
@@ -54,9 +53,9 @@ public final class AguiEventDecoder
     public static final String CODE_INVALID_SEQUENCE = "invalid_sequence";
 
     public static final int EX_MAX = 1024;
-    private static final int CARRY_MAX = 16;
     private static final String MEMBER_TYPE = "type";
     private static final String MEMBER_OUTCOME = "outcome";
+    private static final String MEMBER_INTERRUPT_IDS = "interruptIds";
     private static final String ERROR_MALFORMED = "Malformed event";
     private static final String ERROR_TOO_LARGE = "Event too large";
     private static final String ERROR_TRUNCATED = "Truncated event";
@@ -66,15 +65,6 @@ public final class AguiEventDecoder
         "developer", AguiRole.DEVELOPER,
         "system", AguiRole.SYSTEM,
         "user", AguiRole.USER);
-
-    private enum State
-    {
-        IDLE,
-        ASSEMBLING,
-        STREAMING,
-        TAIL,
-        FAILED
-    }
 
     private enum RunState
     {
@@ -90,13 +80,6 @@ public final class AguiEventDecoder
         EMITTED
     }
 
-    private enum Scan
-    {
-        COMPLETE,
-        INCOMPLETE,
-        MALFORMED
-    }
-
     private enum PayloadMode
     {
         NONE,
@@ -104,11 +87,20 @@ public final class AguiEventDecoder
         TEXT
     }
 
-    private record Member(
-        String name,
-        int valueStart,
-        int valueEnd)
+    private static final class Member
     {
+        private final String name;
+
+        private JsonEvent kind;
+        private String text;
+        private int valueStart;
+        private int valueEnd = -1;
+
+        private Member(
+            String name)
+        {
+            this.name = name;
+        }
     }
 
     private static final class Rejection extends RuntimeException
@@ -126,23 +118,42 @@ public final class AguiEventDecoder
         }
     }
 
+    @FunctionalInterface
+    private interface AguiEventDecoderState
+    {
+        int decode();
+    }
+
+    private final AguiEventDecoderState decodeIdle = this::decodeIdle;
+    private final AguiEventDecoderState decodeStart = this::decodeStart;
+    private final AguiEventDecoderState decodeLookahead = this::decodeLookahead;
+    private final AguiEventDecoderState decodeEventStart = this::decodeEventStart;
+    private final AguiEventDecoderState decodeEvent = this::decodeEvent;
+    private final AguiEventDecoderState decodeRawValue = this::decodeRawValue;
+    private final AguiEventDecoderState decodeTextValue = this::decodeTextValue;
+    private final AguiEventDecoderState decodeEventEnd = this::decodeEventEnd;
+    private final AguiEventDecoderState decodeEnd = this::decodeEnd;
+    private final AguiEventDecoderState decodeIgnore = this::decodeIgnore;
+
     private final AguiEventSink sink;
     private final int typeId;
     private final int maximum;
+    private final JsonParserEx parser =
+        JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
+    private final MutableDirectBufferEx slotBuffer;
     private final MutableDirectBufferEx eventBuffer;
     private final MutableDirectBufferEx holdBuffer;
-    private final MutableDirectBufferEx payloadBuffer;
+    private final MutableDirectBufferEx textBuffer;
     private final MutableDirectBufferEx pendingExBuffer;
-    private final MutableDirectBufferEx carryBuffer;
-    private final MutableDirectBufferEx scratchBuffer;
     private final AguiDataExFW.Builder dataExRW = new AguiDataExFW.Builder();
     private final AguiDataExFW dataExRO = new AguiDataExFW();
-    private final AguiValueExtent extent = new AguiValueExtent();
     private final List<Member> members = new ArrayList<>();
+    private final List<Member> specifics = new ArrayList<>();
+    private final List<String> interruptIds = new ArrayList<>();
     private final Set<String> steps = new HashSet<>();
     private final Set<String> subagents = new HashSet<>();
 
-    private State state = State.IDLE;
+    private AguiEventDecoderState decoder = decodeIdle;
     private RunState run = RunState.NEW;
     private GroupState group = GroupState.NONE;
     private String groupId;
@@ -150,11 +161,18 @@ public final class AguiEventDecoder
     private String openId;
     private AguiEventType eventType;
     private PayloadMode streamMode = PayloadMode.NONE;
-    private int eventLength;
+    private String outcomeType;
+    private DirectBufferEx windowBuffer;
+    private int windowOffset;
+    private int windowLimit;
+    private boolean windowLast;
+    private int carryLength;
+    private int rawFrom;
+    private int rawSkip;
+    private int valueDepth;
+    private char highSurrogate;
     private int pendingExLength;
     private int holdLength;
-    private int carryLength;
-    private boolean streamFirst;
 
     public AguiEventDecoder(
         AguiEventSink sink,
@@ -164,12 +182,11 @@ public final class AguiEventDecoder
         this.sink = sink;
         this.typeId = typeId;
         this.maximum = maximum;
+        this.slotBuffer = new UnsafeBufferEx(new byte[maximum]);
         this.eventBuffer = new UnsafeBufferEx(new byte[maximum]);
         this.holdBuffer = new UnsafeBufferEx(new byte[maximum]);
-        this.payloadBuffer = new UnsafeBufferEx(new byte[maximum + CARRY_MAX]);
+        this.textBuffer = new UnsafeBufferEx(new byte[maximum + Integer.BYTES]);
         this.pendingExBuffer = new UnsafeBufferEx(new byte[maximum + EX_MAX]);
-        this.carryBuffer = new UnsafeBufferEx(new byte[CARRY_MAX]);
-        this.scratchBuffer = new UnsafeBufferEx(new byte[maximum + CARRY_MAX]);
     }
 
     public void decode(
@@ -181,351 +198,625 @@ public final class AguiEventDecoder
         final boolean init = (flags & INIT) != 0;
         final boolean fin = (flags & FIN) != 0;
 
-        if (state == State.IDLE && init)
+        if (decoder == decodeIdle && init)
         {
-            state = State.ASSEMBLING;
-            eventLength = 0;
+            parser.reset();
+            carryLength = 0;
+            decoder = decodeStart;
         }
-        else if (state == State.IDLE || init && state != State.FAILED)
+        else if (decoder == decodeIdle || init && decoder != decodeIgnore)
         {
             fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
         }
 
-        switch (state)
+        if (decoder != decodeIgnore)
         {
-        case ASSEMBLING:
-            decodeAssembling(fin, buffer, offset, limit);
-            break;
-        case STREAMING:
-        case TAIL:
-            decodeStreaming(fin, buffer, offset, limit);
-            break;
-        default:
-            break;
+            decodeInput(fin, buffer, offset, limit);
+        }
+
+        if (fin && decoder == decodeEventEnd)
+        {
+            decoder = decodeIdle;
+            completeEvent();
+        }
+        else if (fin && decoder == decodeEnd)
+        {
+            decoder = decodeIdle;
+        }
+        else if (fin && decoder != decodeIgnore)
+        {
+            fail(CODE_INVALID_MESSAGE, ERROR_TRUNCATED);
         }
     }
 
     public void finish()
     {
-        if (state == State.ASSEMBLING || state == State.STREAMING || state == State.TAIL)
+        if (decoder == decodeIdle)
+        {
+            if (run != RunState.FINISHED)
+            {
+                fail(CODE_INVALID_SEQUENCE, "Run not finished");
+            }
+        }
+        else if (decoder != decodeIgnore)
         {
             fail(CODE_INVALID_MESSAGE, ERROR_TRUNCATED);
         }
-        else if (state == State.IDLE && run != RunState.FINISHED)
-        {
-            fail(CODE_INVALID_SEQUENCE, "Run not finished");
-        }
     }
 
-    private void decodeAssembling(
+    private void decodeInput(
         boolean fin,
         DirectBufferEx buffer,
         int offset,
         int limit)
     {
-        final int before = eventLength;
-        final int appended = Math.min(maximum - eventLength, limit - offset);
-        eventBuffer.putBytes(eventLength, buffer, offset, appended);
-        eventLength += appended;
+        int progress = offset;
 
-        final boolean whole = appended == limit - offset;
-        final Scan scan = scanMembers();
-
-        if (scan == Scan.MALFORMED || scan == Scan.INCOMPLETE && whole && fin || scan == Scan.COMPLETE && !whole)
+        do
         {
-            fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
-        }
-        else if (scan == Scan.COMPLETE && fin)
-        {
-            decodeEvent();
-        }
-        else if (scan == Scan.INCOMPLETE && streamable())
-        {
-            startStreaming(fin, before, buffer, offset, limit);
-        }
-        else if (!whole)
-        {
-            fail(CODE_INVALID_MESSAGE, ERROR_TOO_LARGE);
-        }
-    }
+            final boolean carried = carryLength > 0;
+            final int copied = carried ? Math.min(maximum - carryLength, limit - progress) : limit - progress;
 
-    private void decodeStreaming(
-        boolean fin,
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        if (state == State.STREAMING)
-        {
-            streamChunk(buffer, offset, limit);
-        }
-
-        if (fin)
-        {
-            endStreaming();
-        }
-    }
-
-    private void endStreaming()
-    {
-        if (state == State.TAIL)
-        {
-            state = State.IDLE;
-        }
-        else if (state == State.STREAMING)
-        {
-            fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
-        }
-    }
-
-    private boolean streamable()
-    {
-        final Member typeMember = member(MEMBER_TYPE);
-        final AguiEventType type = typeMember != null && typeMember.valueEnd() >= 0 && stringValue(typeMember) != null
-            ? AguiEventType.of(stringValue(typeMember))
-            : null;
-        final Member payload = type != null && type.streamable ? member(type.payload) : null;
-
-        eventType = type;
-
-        return payload != null && payload.valueEnd() < 0;
-    }
-
-    private void startStreaming(
-        boolean fin,
-        int before,
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
-    {
-        final Member payload = member(eventType.payload);
-        final int start = payload.valueStart();
-
-        try
-        {
-            gate(eventType);
-            streamMode = prepare(eventType, true);
-
-            extent.reset();
-            streamFirst = true;
-            carryLength = 0;
-            state = State.STREAMING;
-
-            if (start >= before)
+            if (carried)
             {
-                streamChunk(buffer, offset + start - before, limit);
+                slotBuffer.putBytes(carryLength, buffer, progress, copied);
+                windowBuffer = slotBuffer;
+                windowOffset = 0;
+                windowLimit = carryLength + copied;
             }
             else
             {
-                streamChunk(eventBuffer, start, before);
+                windowBuffer = buffer;
+                windowOffset = progress;
+                windowLimit = progress + copied;
+            }
 
-                if (state == State.STREAMING)
+            progress += copied;
+            windowLast = fin && progress == limit;
+            parser.wrap(windowBuffer, windowOffset, windowLimit, windowLast);
+
+            final int consumed = decodeWindow();
+
+            if (decoder != decodeIgnore)
+            {
+                flushRaw(consumed);
+                carry(consumed);
+
+                if (copied == 0 && consumed == windowOffset && windowLimit - windowOffset == maximum)
                 {
-                    streamChunk(buffer, offset, limit);
+                    fail(CODE_INVALID_MESSAGE, ERROR_TOO_LARGE);
                 }
             }
+        }
+        while (decoder != decodeIgnore && progress < limit);
+    }
 
-            if (fin)
+    private int decodeWindow()
+    {
+        int position = windowOffset;
+
+        if (decoder == decodeRawValue)
+        {
+            rawFrom = windowOffset + rawSkip;
+        }
+
+        try
+        {
+            int previous;
+            AguiEventDecoderState previousDecoder;
+
+            do
             {
-                endStreaming();
+                previous = position;
+                previousDecoder = decoder;
+                position = decoder.decode();
             }
+            while ((position != previous || decoder != previousDecoder) && decoder != decodeIgnore);
+        }
+        catch (JsonException ex)
+        {
+            fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
         }
         catch (Rejection ex)
         {
             fail(ex.code, ex.getMessage());
         }
+
+        return position;
     }
 
-    private void streamChunk(
-        DirectBufferEx buffer,
-        int offset,
-        int limit)
+    private void flushRaw(
+        int consumed)
     {
-        final int consumed = extent.advance(buffer, offset, limit);
-
-        if (consumed == AguiValueExtent.MALFORMED)
+        if (decoder == decodeRawValue)
         {
-            fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            emitRaw(rawFrom, windowLimit, false);
+            rawSkip = windowLimit - consumed;
+        }
+    }
+
+    private void carry(
+        int consumed)
+    {
+        final int tail = windowLimit - consumed;
+
+        if (tail > maximum)
+        {
+            fail(CODE_INVALID_MESSAGE, ERROR_TOO_LARGE);
+        }
+        else if (windowBuffer == slotBuffer)
+        {
+            System.arraycopy(slotBuffer.byteArray(), consumed, slotBuffer.byteArray(), 0, tail);
         }
         else
         {
-            final boolean text = streamMode == PayloadMode.TEXT;
-            final boolean complete = extent.complete();
-            final int from = offset + (text && streamFirst ? 1 : 0);
-            final int to = offset + consumed - (text && complete ? 1 : 0);
+            slotBuffer.putBytes(0, windowBuffer, consumed, tail);
+        }
 
-            final int flags = (streamFirst ? INIT : 0) | (complete ? FIN : 0);
-            final int length = text ? unescapeChunk(buffer, from, to, complete) : to - from;
+        carryLength = tail;
+    }
 
-            if (length != AguiJsonUnescape.MALFORMED)
+    private int position()
+    {
+        return windowLimit - parser.remaining();
+    }
+
+    private int decodeIdle()
+    {
+        return position();
+    }
+
+    private int decodeStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            if (parser.nextEvent() == JsonEvent.START_DOCUMENT)
             {
-                if (flags != 0 || length > 0)
-                {
-                    final DirectBufferEx payload = text ? payloadBuffer : buffer;
-                    final int payloadOffset = text ? 0 : from;
-
-                    sink.message(flags, streamFirst ? pendingEx() : null, payload, payloadOffset, payloadOffset + length);
-                }
-
-                streamFirst = false;
-                pendingExLength = 0;
-                state = complete ? State.TAIL : State.STREAMING;
+                decoder = decodeLookahead;
+            }
+            else
+            {
+                fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
             }
         }
+
+        return position();
     }
 
-    private int unescapeChunk(
-        DirectBufferEx buffer,
-        int from,
-        int to,
-        boolean complete)
+    private int decodeLookahead()
     {
-        scratchBuffer.putBytes(0, carryBuffer, 0, carryLength);
-        scratchBuffer.putBytes(carryLength, buffer, from, Math.max(to - from, 0));
-        final int available = carryLength + Math.max(to - from, 0);
+        final int start = position();
+        final int fullLimit = windowLimit;
+        final int lookaheadLimit = Math.min(fullLimit, start + maximum);
+        final boolean capped = lookaheadLimit < fullLimit;
 
-        final int whole = AguiJsonUnescape.completeLength(scratchBuffer, 0, available);
-        int length = AguiJsonUnescape.MALFORMED;
+        windowLimit = lookaheadLimit;
+        parser.wrap(windowBuffer, start, lookaheadLimit, windowLast && !capped);
+        parser.mark();
 
-        if (whole == AguiJsonUnescape.MALFORMED || complete && whole != available)
-        {
-            fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
-        }
-        else
-        {
-            length = AguiJsonUnescape.unescape(scratchBuffer, 0, whole, payloadBuffer, 0);
-            carryLength = available - whole;
-            carryBuffer.putBytes(0, scratchBuffer, whole, carryLength);
-        }
-
-        return length;
-    }
-
-    private Scan scanMembers()
-    {
         members.clear();
+        specifics.clear();
+        interruptIds.clear();
+        outcomeType = null;
 
-        Scan scan = Scan.INCOMPLETE;
-        int progress = skipWhitespace(0);
+        final boolean complete = lookaheadObject();
+        int progress;
 
-        if (progress < eventLength)
+        if (complete)
         {
-            scan = eventBuffer.getByte(progress) == '{' ? scanObject(progress + 1) : Scan.MALFORMED;
+            progress = position();
+            eventBuffer.putBytes(0, windowBuffer, start, lookaheadLimit - start);
+            rebase(start);
+            windowLimit = fullLimit;
+            parser.wrap(windowBuffer, progress, fullLimit, windowLast);
+            decoder = decodeEventEnd;
         }
-
-        return scan;
-    }
-
-    private Scan scanObject(
-        int start)
-    {
-        Scan scan = Scan.INCOMPLETE;
-        int progress = skipWhitespace(start);
-        boolean first = true;
-
-        scanning:
-        while (progress < eventLength)
+        else
         {
-            final byte octet = eventBuffer.getByte(progress);
+            parser.rewind();
+            progress = position();
+            windowLimit = fullLimit;
+            eventBuffer.putBytes(0, windowBuffer, start, lookaheadLimit - start);
+            rebase(start);
 
-            if (octet == '}' && first)
+            if (windowLast && !capped)
             {
-                scan = trailing(progress + 1);
-                break;
+                fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
             }
-
-            if (octet != '"')
+            else if (streamable())
             {
-                scan = Scan.MALFORMED;
-                break;
+                gate(eventType);
+                streamMode = prepare(eventType, true);
+                parser.wrap(windowBuffer, progress, fullLimit, windowLast);
+                decoder = decodeEventStart;
             }
-
-            final int keyEnd = stringEnd(progress);
-
-            if (keyEnd < 0)
+            else if (capped)
             {
-                break;
+                fail(CODE_INVALID_MESSAGE, ERROR_TOO_LARGE);
             }
-
-            final String name = stringValue(progress, keyEnd);
-            progress = skipWhitespace(keyEnd);
-
-            if (progress >= eventLength)
-            {
-                break;
-            }
-
-            if (eventBuffer.getByte(progress) != ':')
-            {
-                scan = Scan.MALFORMED;
-                break;
-            }
-
-            final int valueStart = skipWhitespace(progress + 1);
-
-            if (valueStart >= eventLength)
-            {
-                break;
-            }
-
-            extent.reset();
-            final int length = extent.advance(eventBuffer, valueStart, eventLength);
-
-            if (length == AguiValueExtent.MALFORMED)
-            {
-                scan = Scan.MALFORMED;
-                break;
-            }
-
-            if (!extent.complete())
-            {
-                members.add(new Member(name, valueStart, -1));
-                break;
-            }
-
-            members.add(new Member(name, valueStart, valueStart + length));
-            progress = skipWhitespace(valueStart + length);
-
-            if (progress >= eventLength)
-            {
-                break;
-            }
-
-            switch (eventBuffer.getByte(progress))
-            {
-            case ',':
-                progress = skipWhitespace(progress + 1);
-                first = false;
-                break;
-            case '}':
-                scan = trailing(progress + 1);
-                break scanning;
-            default:
-                scan = Scan.MALFORMED;
-                break scanning;
-            }
-        }
-
-        return scan;
-    }
-
-    private Scan trailing(
-        int start)
-    {
-        return skipWhitespace(start) == eventLength ? Scan.COMPLETE : Scan.MALFORMED;
-    }
-
-    private int skipWhitespace(
-        int start)
-    {
-        int progress = start;
-
-        while (progress < eventLength && isWhitespace(eventBuffer.getByte(progress)))
-        {
-            progress++;
         }
 
         return progress;
+    }
+
+    private void rebase(
+        int start)
+    {
+        members.forEach(member -> rebase(member, start));
+        specifics.forEach(member -> rebase(member, start));
+    }
+
+    private static void rebase(
+        Member member,
+        int start)
+    {
+        member.valueStart -= start;
+        member.valueEnd = member.valueEnd >= 0 ? member.valueEnd - start : member.valueEnd;
+    }
+
+    private boolean lookaheadObject()
+    {
+        boolean complete = false;
+        boolean pending = parser.hasNextEvent();
+
+        if (pending && parser.nextEvent() != JsonEvent.START_OBJECT)
+        {
+            throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+        }
+
+        while (pending && parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else
+                {
+                    final Member member = new Member(parser.getStringView().toString());
+                    members.add(member);
+                    pending = lookaheadValue(member, false);
+                }
+                break;
+            case END_OBJECT:
+                complete = true;
+                pending = false;
+                break;
+            default:
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+        }
+
+        return complete;
+    }
+
+    private boolean lookaheadValue(
+        Member member,
+        boolean outcome)
+    {
+        member.valueStart = position();
+
+        final JsonEvent event = lookaheadEvent(member);
+        boolean complete = false;
+
+        if (event != null)
+        {
+            member.kind = event;
+
+            switch (event)
+            {
+            case VALUE_STRING:
+            case VALUE_NUMBER:
+                member.text = parser.getString();
+                complete = true;
+                break;
+            case VALUE_TRUE:
+            case VALUE_FALSE:
+            case VALUE_NULL:
+                complete = true;
+                break;
+            case START_OBJECT:
+                complete = MEMBER_OUTCOME.equals(member.name) && !outcome ? lookaheadOutcome() : lookaheadComposite();
+                break;
+            case START_ARRAY:
+                complete = outcome && MEMBER_INTERRUPT_IDS.equals(member.name) ? lookaheadInterruptIds() : lookaheadComposite();
+                break;
+            default:
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+
+            member.valueEnd = complete ? position() : -1;
+        }
+
+        return complete;
+    }
+
+    private JsonEvent lookaheadEvent(
+        Member member)
+    {
+        JsonEvent event = null;
+
+        while (event == null && parser.hasNextEvent())
+        {
+            final JsonEvent next = parser.nextEvent();
+
+            if (fragment(next))
+            {
+                member.kind = next;
+                parser.consumed(0);
+            }
+            else
+            {
+                event = next;
+            }
+        }
+
+        return event;
+    }
+
+    private boolean fragment(
+        JsonEvent event)
+    {
+        return (event == JsonEvent.VALUE_STRING || event == JsonEvent.VALUE_NUMBER || event == JsonEvent.KEY_NAME) &&
+            parser.deferredBytes();
+    }
+
+    private boolean lookaheadComposite()
+    {
+        int depth = 1;
+
+        while (depth > 0 && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (fragment(event))
+            {
+                parser.consumed(0);
+            }
+            else if (event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY)
+            {
+                depth++;
+            }
+            else if (event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY)
+            {
+                depth--;
+            }
+        }
+
+        return depth == 0;
+    }
+
+    private boolean lookaheadOutcome()
+    {
+        boolean complete = false;
+        boolean pending = true;
+
+        while (pending && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (fragment(event))
+            {
+                parser.consumed(0);
+            }
+            else if (event == JsonEvent.KEY_NAME)
+            {
+                final Member member = new Member(parser.getStringView().toString());
+
+                pending = lookaheadValue(member, true);
+
+                if (MEMBER_TYPE.equals(member.name))
+                {
+                    outcomeType = member.kind == JsonEvent.VALUE_STRING ? member.text : null;
+                }
+                else
+                {
+                    specifics.add(member);
+                }
+            }
+            else if (event == JsonEvent.END_OBJECT)
+            {
+                complete = true;
+                pending = false;
+            }
+            else
+            {
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+        }
+
+        return complete;
+    }
+
+    private boolean lookaheadInterruptIds()
+    {
+        boolean complete = false;
+        boolean pending = true;
+
+        while (pending && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (fragment(event))
+            {
+                parser.consumed(0);
+            }
+            else if (event == JsonEvent.VALUE_STRING)
+            {
+                interruptIds.add(parser.getString());
+            }
+            else if (event == JsonEvent.END_ARRAY)
+            {
+                complete = true;
+                pending = false;
+            }
+            else
+            {
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+        }
+
+        return complete;
+    }
+
+    private boolean streamable()
+    {
+        final Member typeMember = member(MEMBER_TYPE);
+        final AguiEventType type = typeMember != null && typeMember.valueEnd >= 0 && typeMember.kind == JsonEvent.VALUE_STRING
+            ? AguiEventType.of(typeMember.text)
+            : null;
+        final Member payload = type != null && type.streamable ? member(type.payload) : null;
+
+        eventType = type;
+
+        return payload != null && payload.valueEnd < 0 && payload.kind != null;
+    }
+
+    private int decodeEventStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            if (parser.nextEvent() == JsonEvent.START_OBJECT)
+            {
+                decoder = decodeEvent;
+            }
+            else
+            {
+                fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeEvent()
+    {
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case KEY_NAME:
+                if (parser.deferredBytes())
+                {
+                    parser.consumed(0);
+                }
+                else if (eventType.payload.contentEquals(parser.getStringView()))
+                {
+                    rawFrom = position();
+                    rawSkip = 0;
+                    valueDepth = 0;
+                    decoder = streamMode == PayloadMode.TEXT ? decodeTextValue : decodeRawValue;
+                }
+                else
+                {
+                    parser.skipValue();
+                }
+                break;
+            case END_OBJECT:
+                decoder = decodeEnd;
+                break;
+            default:
+                fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeRawValue()
+    {
+        while (decoder == decodeRawValue && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+            final boolean deferred = fragment(event);
+
+            switch (event)
+            {
+            case START_OBJECT:
+            case START_ARRAY:
+                valueDepth++;
+                break;
+            case END_OBJECT:
+            case END_ARRAY:
+                valueDepth--;
+                break;
+            default:
+                break;
+            }
+
+            if (deferred)
+            {
+                parser.consumed(parser.getStringView().length());
+            }
+            else if (event != JsonEvent.KEY_NAME && valueDepth == 0)
+            {
+                emitRaw(rawFrom, position(), true);
+                rawSkip = 0;
+                decoder = decodeEvent;
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeTextValue()
+    {
+        if (parser.hasNextEvent())
+        {
+            if (parser.nextEvent() == JsonEvent.VALUE_STRING)
+            {
+                final CharSequence chars = parser.getStringView();
+                final boolean deferred = parser.deferredBytes();
+
+                emitText(chars, deferred ? 0 : FIN);
+
+                if (deferred)
+                {
+                    parser.consumed(chars.length());
+                }
+                else
+                {
+                    decoder = decodeEvent;
+                }
+            }
+            else
+            {
+                fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeEventEnd()
+    {
+        return decodeTrailing();
+    }
+
+    private int decodeEnd()
+    {
+        return decodeTrailing();
+    }
+
+    private int decodeTrailing()
+    {
+        for (int index = position(); index < windowLimit; index++)
+        {
+            if (!isWhitespace(windowBuffer.getByte(index)))
+            {
+                fail(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+        }
+
+        return windowLimit;
+    }
+
+    private int decodeIgnore()
+    {
+        return windowLimit;
     }
 
     private static boolean isWhitespace(
@@ -534,59 +825,102 @@ public final class AguiEventDecoder
         return octet == ' ' || octet == '\n' || octet == '\r' || octet == '\t';
     }
 
-    private int stringEnd(
-        int start)
+    private void emitRaw(
+        int from,
+        int to,
+        boolean last)
     {
-        int progress = start + 1;
-        boolean escaped = false;
-        int end = -1;
+        final int flags = (pendingExLength > 0 ? INIT : 0) | (last ? FIN : 0);
 
-        while (end < 0 && progress < eventLength)
+        if (flags != 0 || to > from)
         {
-            final byte octet = eventBuffer.getByte(progress++);
+            sink.message(flags, pendingExLength > 0 ? pendingEx() : null, windowBuffer, from, to);
+            pendingExLength = 0;
+        }
+    }
 
-            if (escaped)
+    private void emitText(
+        CharSequence chars,
+        int flags)
+    {
+        int textLength = 0;
+
+        for (int index = 0; index < chars.length(); index++)
+        {
+            final char unit = chars.charAt(index);
+
+            if (textLength + Integer.BYTES > maximum)
             {
-                escaped = false;
+                emitTextChunk(textLength, 0);
+                textLength = 0;
             }
-            else if (octet == '\\')
+
+            if (Character.isHighSurrogate(unit))
             {
-                escaped = true;
+                highSurrogate = unit;
             }
-            else if (octet == '"')
+            else if (Character.isLowSurrogate(unit) && highSurrogate != 0)
             {
-                end = progress;
+                textLength = putCodePoint(textLength, Character.toCodePoint(highSurrogate, unit));
+                highSurrogate = 0;
+            }
+            else
+            {
+                textLength = putCodePoint(textLength, unit);
             }
         }
 
-        return end;
-    }
+        emitTextChunk(textLength, flags & FIN);
 
-    private String stringValue(
-        int start,
-        int end)
-    {
-        final int length = AguiJsonUnescape.unescape(eventBuffer, start + 1, end - 1, scratchBuffer, 0);
-
-        return scratchBuffer.getStringWithoutLengthUtf8(0, length);
-    }
-
-    private String stringValue(
-        Member member)
-    {
-        String value = null;
-
-        if (member.valueEnd() >= 0 && eventBuffer.getByte(member.valueStart()) == '"')
+        if ((flags & FIN) != 0)
         {
-            final int whole = AguiJsonUnescape.completeLength(eventBuffer, member.valueStart() + 1, member.valueEnd() - 1);
+            highSurrogate = 0;
+        }
+    }
 
-            if (whole == member.valueEnd() - member.valueStart() - 2)
-            {
-                value = stringValue(member.valueStart(), member.valueEnd());
-            }
+    private void emitTextChunk(
+        int length,
+        int fin)
+    {
+        final int flags = (pendingExLength > 0 ? INIT : 0) | fin;
+
+        if (flags != 0 || length > 0)
+        {
+            sink.message(flags, pendingExLength > 0 ? pendingEx() : null, textBuffer, 0, length);
+            pendingExLength = 0;
+        }
+    }
+
+    private int putCodePoint(
+        int offset,
+        int codePoint)
+    {
+        int length = offset;
+
+        if (codePoint < 0x80)
+        {
+            textBuffer.putByte(length++, (byte) codePoint);
+        }
+        else if (codePoint < 0x800)
+        {
+            textBuffer.putByte(length++, (byte) (0xC0 | codePoint >> 6));
+            textBuffer.putByte(length++, (byte) (0x80 | codePoint & 0x3F));
+        }
+        else if (codePoint < 0x10000)
+        {
+            textBuffer.putByte(length++, (byte) (0xE0 | codePoint >> 12));
+            textBuffer.putByte(length++, (byte) (0x80 | codePoint >> 6 & 0x3F));
+            textBuffer.putByte(length++, (byte) (0x80 | codePoint & 0x3F));
+        }
+        else
+        {
+            textBuffer.putByte(length++, (byte) (0xF0 | codePoint >> 18));
+            textBuffer.putByte(length++, (byte) (0x80 | codePoint >> 12 & 0x3F));
+            textBuffer.putByte(length++, (byte) (0x80 | codePoint >> 6 & 0x3F));
+            textBuffer.putByte(length++, (byte) (0x80 | codePoint & 0x3F));
         }
 
-        return value;
+        return length;
     }
 
     private Member member(
@@ -598,7 +932,7 @@ public final class AguiEventDecoder
         {
             final Member candidate = members.get(index);
 
-            if (candidate.name().equals(name))
+            if (candidate.name.equals(name))
             {
                 found = candidate;
             }
@@ -607,27 +941,20 @@ public final class AguiEventDecoder
         return found;
     }
 
-    private boolean isNull(
-        Member member)
-    {
-        return member.valueEnd() - member.valueStart() == 4 &&
-            eventBuffer.getStringWithoutLengthUtf8(member.valueStart(), 4).equals("null");
-    }
-
     private String optional(
         String name)
     {
         final Member member = member(name);
         String value = null;
 
-        if (member != null && !isNull(member))
+        if (member != null && member.kind != JsonEvent.VALUE_NULL)
         {
-            value = stringValue(member);
-
-            if (value == null)
+            if (member.kind != JsonEvent.VALUE_STRING)
             {
                 throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
             }
+
+            value = member.text;
         }
 
         return value;
@@ -651,12 +978,16 @@ public final class AguiEventDecoder
         final Member member = member("timestamp");
         long timestamp = -1L;
 
-        if (member != null && !isNull(member))
+        if (member != null && member.kind != JsonEvent.VALUE_NULL)
         {
+            if (member.kind != JsonEvent.VALUE_NUMBER)
+            {
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+
             try
             {
-                timestamp = Long.parseLong(eventBuffer.getStringWithoutLengthUtf8(member.valueStart(),
-                    member.valueEnd() - member.valueStart()));
+                timestamp = Long.parseLong(member.text);
             }
             catch (NumberFormatException ex)
             {
@@ -676,10 +1007,10 @@ public final class AguiEventDecoder
             .timestamp(timestamp())
             .subagentRunId(attribution ? optional("subagentRunId") : null);
 
-        if (metadata != null && !isNull(metadata))
+        if (metadata != null && metadata.kind != JsonEvent.VALUE_NULL)
         {
-            timed.metadataLength(metadata.valueEnd() - metadata.valueStart())
-                .metadata(eventBuffer, metadata.valueStart(), metadata.valueEnd() - metadata.valueStart());
+            timed.metadataLength(metadata.valueEnd - metadata.valueStart)
+                .metadata(eventBuffer, metadata.valueStart, metadata.valueEnd - metadata.valueStart);
         }
 
         return timed;
@@ -705,7 +1036,7 @@ public final class AguiEventDecoder
         String code,
         String message)
     {
-        state = State.FAILED;
+        decoder = decodeIgnore;
         sink.failed(code, message);
     }
 
@@ -715,10 +1046,8 @@ public final class AguiEventDecoder
         throw new Rejection(CODE_INVALID_SEQUENCE, message);
     }
 
-    private void decodeEvent()
+    private void completeEvent()
     {
-        state = State.IDLE;
-
         try
         {
             final Member typeMember = member(MEMBER_TYPE);
@@ -728,21 +1057,19 @@ public final class AguiEventDecoder
                 throw new Rejection(CODE_INVALID_MESSAGE, "Missing event type");
             }
 
-            final String name = stringValue(typeMember);
-
-            if (name == null)
+            if (typeMember.kind != JsonEvent.VALUE_STRING)
             {
                 throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
             }
 
-            final AguiEventType type = AguiEventType.of(name);
+            final AguiEventType type = AguiEventType.of(typeMember.text);
 
             if (type == null)
             {
-                throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported event type: " + name);
+                throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported event type: " + typeMember.text);
             }
 
-            decodeEvent(type);
+            completeEvent(type);
         }
         catch (Rejection ex)
         {
@@ -750,7 +1077,7 @@ public final class AguiEventDecoder
         }
     }
 
-    private void decodeEvent(
+    private void completeEvent(
         AguiEventType type)
     {
         if (run == RunState.FINISHED)
@@ -845,13 +1172,12 @@ public final class AguiEventDecoder
         }
 
         final long timestamp = timestamp();
-        final JsonObject event = readObject();
-        final JsonObjectBuilder detail = Json.createObjectBuilder();
+        final StringBuilder detail = new StringBuilder();
         AguiOutcomeType outcome = AguiOutcomeType.NONE;
 
-        for (Map.Entry<String, JsonValue> entry : event.entrySet())
+        for (Member member : members)
         {
-            switch (entry.getKey())
+            switch (member.name)
             {
             case MEMBER_TYPE:
             case "threadId":
@@ -859,32 +1185,30 @@ public final class AguiEventDecoder
             case "timestamp":
                 break;
             case MEMBER_OUTCOME:
-                outcome = outcome(entry.getValue(), detail);
+                outcome = outcome(member, detail);
                 break;
             default:
-                detail.add(entry.getKey(), entry.getValue());
+                detail(detail, member);
                 break;
             }
         }
 
-        final JsonObject detailObject = detail.build();
-
         run = RunState.FINISHED;
-        sink.runFinished(outcome, timestamp, detailObject.isEmpty() ? null : detailObject.toString());
+        sink.runFinished(outcome, timestamp, detail.length() == 0 ? null : "{" + detail + "}");
     }
 
     private AguiOutcomeType outcome(
-        JsonValue value,
-        JsonObjectBuilder detail)
+        Member member,
+        StringBuilder detail)
     {
-        if (!(value instanceof JsonObject object) || !(object.get(MEMBER_TYPE) instanceof JsonString type))
+        if (member.kind != JsonEvent.START_OBJECT || outcomeType == null)
         {
             throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
         }
 
         final AguiOutcomeType outcome;
 
-        switch (type.getString())
+        switch (outcomeType)
         {
         case "success":
             outcome = AguiOutcomeType.SUCCESS;
@@ -896,38 +1220,39 @@ public final class AguiEventDecoder
             outcome = AguiOutcomeType.CANCELLED;
             break;
         default:
-            throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported outcome type: " + type.getString());
+            throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported outcome type: " + outcomeType);
         }
-
-        final JsonObjectBuilder specific = Json.createObjectBuilder();
-        object.forEach((name, member) ->
-        {
-            if (!MEMBER_TYPE.equals(name))
-            {
-                specific.add(name, member);
-            }
-        });
-
-        final JsonObject specifics = specific.build();
 
         if (!specifics.isEmpty())
         {
-            detail.add(MEMBER_OUTCOME, specifics);
+            final StringBuilder specific = new StringBuilder();
+            specifics.forEach(entry -> detail(specific, entry));
+            detail(detail, MEMBER_OUTCOME, "{" + specific + "}");
         }
 
         return outcome;
     }
 
-    private JsonObject readObject()
+    private void detail(
+        StringBuilder detail,
+        Member member)
     {
-        try
+        final String value = eventBuffer.getStringWithoutLengthUtf8(member.valueStart, member.valueEnd - member.valueStart);
+
+        detail(detail, member.name, value);
+    }
+
+    private void detail(
+        StringBuilder detail,
+        String name,
+        String value)
+    {
+        if (detail.length() > 0)
         {
-            return Json.createReader(new StringReader(eventBuffer.getStringWithoutLengthUtf8(0, eventLength))).readObject();
+            detail.append(',');
         }
-        catch (JsonException | IllegalStateException ex)
-        {
-            throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
-        }
+
+        detail.append(Json.createValue(name)).append(':').append(value);
     }
 
     private void decodeRunError()
@@ -985,8 +1310,7 @@ public final class AguiEventDecoder
                     emitOpen(false);
                 }
 
-                holdLength = AguiJsonUnescape.unescape(eventBuffer, member(type.payload).valueStart() + 1,
-                    member(type.payload).valueEnd() - 1, holdBuffer, 0);
+                holdLength = holdBuffer.putStringWithoutLengthUtf8(0, delta);
             }
         }
         else
@@ -1079,25 +1403,29 @@ public final class AguiEventDecoder
         gate(type);
 
         final PayloadMode mode = prepare(type, false);
-        final int length;
 
         switch (mode)
         {
         case RAW:
             final Member raw = member(type.payload);
-            sink.message(INIT | FIN, pendingEx(), eventBuffer, raw.valueStart(), raw.valueEnd());
+            sink.message(INIT | FIN, pendingEx(), eventBuffer, raw.valueStart, raw.valueEnd);
+            pendingExLength = 0;
             break;
         case TEXT:
             final Member text = member(type.payload);
-            length = AguiJsonUnescape.unescape(eventBuffer, text.valueStart() + 1, text.valueEnd() - 1, payloadBuffer, 0);
-            sink.message(INIT | FIN, pendingEx(), payloadBuffer, 0, length);
+
+            if (text.kind != JsonEvent.VALUE_STRING)
+            {
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
+
+            emitText(text.text, FIN);
             break;
         default:
             sink.message(INIT | FIN, pendingEx(), eventBuffer, 0, 0);
+            pendingExLength = 0;
             break;
         }
-
-        pendingExLength = 0;
     }
 
     private void gate(
@@ -1221,18 +1549,18 @@ public final class AguiEventDecoder
             throw new Rejection(CODE_INVALID_MESSAGE, "Missing member: content");
         }
 
-        final byte first = eventBuffer.getByte(content.valueStart());
         final AguiContentType type;
 
-        switch (first)
+        if (content.kind == JsonEvent.VALUE_STRING)
         {
-        case '"':
             type = AguiContentType.TEXT;
-            break;
-        case '[':
+        }
+        else if (content.kind == JsonEvent.START_ARRAY)
+        {
             type = AguiContentType.PARTS;
-            break;
-        default:
+        }
+        else
+        {
             throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported tool result content");
         }
 
@@ -1249,7 +1577,7 @@ public final class AguiEventDecoder
         final String activityType = required("activityType");
         final boolean snapshot = type == AguiEventType.ACTIVITY_SNAPSHOT;
         final Member replace = member("replace");
-        final int replaced = replace != null && eventBuffer.getByte(replace.valueStart()) == 'f' ? 0 : 1;
+        final int replaced = replace != null && replace.kind == JsonEvent.VALUE_FALSE ? 0 : 1;
 
         built(ex().activity(a -> a.meta(m -> meta(m, true))
             .type(t -> t.set(snapshot ? AguiActivityType.SNAPSHOT : AguiActivityType.DELTA))
@@ -1336,31 +1664,29 @@ public final class AguiEventDecoder
     }
 
     private AguiSubagentOutcome subagentOutcome(
-        List<String> interruptIds)
+        List<String> ids)
     {
         final Member member = member(MEMBER_OUTCOME);
         AguiSubagentOutcome outcome = AguiSubagentOutcome.NONE;
 
-        if (member != null && member.valueEnd() >= 0)
+        if (member != null && member.valueEnd >= 0)
         {
-            final JsonObject object = readObject().getJsonObject(MEMBER_OUTCOME);
-            final JsonValue typeValue = object != null ? object.get(MEMBER_TYPE) : null;
-            final String type = typeValue instanceof JsonString string ? string.getString() : null;
+            if (member.kind != JsonEvent.START_OBJECT)
+            {
+                throw new Rejection(CODE_INVALID_MESSAGE, ERROR_MALFORMED);
+            }
 
-            switch (type != null ? type.toLowerCase(Locale.ROOT) : "")
+            switch (outcomeType != null ? outcomeType.toLowerCase(Locale.ROOT) : "")
             {
             case "success":
                 outcome = AguiSubagentOutcome.SUCCESS;
                 break;
             case "suspended":
                 outcome = AguiSubagentOutcome.SUSPENDED;
-                if (object.containsKey("interruptIds"))
-                {
-                    object.getJsonArray("interruptIds").forEach(id -> interruptIds.add(((JsonString) id).getString()));
-                }
+                ids.addAll(interruptIds);
                 break;
             default:
-                throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported outcome type: " + type);
+                throw new Rejection(CODE_INVALID_MESSAGE, "Unsupported outcome type: " + outcomeType);
             }
         }
 

@@ -235,6 +235,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
         private int state;
         private int netState;
+        private boolean sseMode;
 
         private long initialSeq;
         private long initialAck;
@@ -354,7 +355,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             doNetBegin(traceId, authorization);
 
-            if (net != null)
+            if (AguiState.initialOpening(netState))
             {
                 doAppWindow(traceId, authorization);
             }
@@ -382,7 +383,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             if (initialSeq > initialAck + initialMax)
             {
-                cleanupApp(traceId, authorization);
+                cleanup(traceId, authorization);
             }
             else
             {
@@ -549,7 +550,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (encodeSlotOffset + limit - offset > encodeMax)
                 {
-                    cleanupApp(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -599,7 +600,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (encodeSlot == NO_SLOT)
                 {
-                    cleanupApp(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -623,7 +624,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
+            if (AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
             {
                 netState = AguiState.closedInitial(netState);
                 doEnd(net, routedId, resolvedId, netInitialId, netInitialSeq, netInitialAck, netInitialMax,
@@ -635,7 +636,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
+            if (AguiState.initialOpening(netState) && !AguiState.initialClosed(netState))
             {
                 netState = AguiState.closedInitial(netState);
                 doAbort(net, routedId, resolvedId, netInitialId, netInitialSeq, netInitialAck, netInitialMax,
@@ -647,7 +648,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && !AguiState.replyClosed(netState))
+            if (AguiState.initialOpening(netState) && !AguiState.replyClosed(netState))
             {
                 netState = AguiState.closedReply(netState);
                 doReset(net, routedId, resolvedId, netReplyId, netReplySeq, netReplyAck, netReplyMax,
@@ -671,7 +672,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             long traceId,
             long authorization)
         {
-            if (net != null && !AguiState.replyClosed(netState) && decoder != null)
+            if (sseMode && !AguiState.replyClosed(netState))
             {
                 final long netReplyAckMax = Math.max(netReplySeq - replySlotOffset, netReplyAck);
 
@@ -763,6 +764,7 @@ public final class AguiClientFactory implements AguiStreamFactory
             if (netStatus == STATUS_OK && contentType != null && contentType.startsWith(CONTENT_TYPE_EVENT_STREAM))
             {
                 decoder = new AguiEventDecoder(this, aguiTypeId, decodeMax);
+                sseMode = true;
                 netReplyMax = encodeMax;
 
                 doNetWindow(traceId, authorization, REPLY_PADDING, FRAMING_CAPABILITIES_MASK);
@@ -794,7 +796,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             if (netReplySeq > netReplyAck + netReplyMax)
             {
-                cleanupNet(traceId, authorization);
+                cleanup(traceId, authorization);
             }
             else
             {
@@ -803,7 +805,7 @@ public final class AguiClientFactory implements AguiStreamFactory
                 final int offset = payload != null ? payload.offset() : 0;
                 final int limit = payload != null ? payload.limit() : 0;
 
-                if (decoder != null)
+                if (sseMode)
                 {
                     decodeTraceId = traceId;
                     decoder.decode(data.flags(), buffer, offset, limit);
@@ -848,7 +850,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             netState = AguiState.closedReply(netState);
 
-            if (decoder != null)
+            if (sseMode)
             {
                 decodeTraceId = traceId;
                 decoder.finish();
@@ -870,17 +872,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             netState = AguiState.closedReply(netState);
 
-            if (AguiState.replyOpening(state))
-            {
-                doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
-            }
-            else
-            {
-                doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
-            }
-
-            doNetAbort(traceId, authorization);
-            cleanupDecodeSlot();
+            cleanup(traceId, authorization);
         }
 
         private void onNetFlush(
@@ -927,17 +919,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
             netState = AguiState.closedInitial(netState);
 
-            if (AguiState.replyOpening(state))
-            {
-                doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
-            }
-            else
-            {
-                doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
-            }
-
-            doNetReset(traceId, authorization);
-            cleanupEncodeSlot();
+            cleanup(traceId, authorization);
         }
 
         @Override
@@ -1051,7 +1033,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (replySlotOffset + limit - offset > encodeMax)
                 {
-                    cleanupNet(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -1093,7 +1075,7 @@ public final class AguiClientFactory implements AguiStreamFactory
 
                 if (replySlot == NO_SLOT)
                 {
-                    cleanupNet(traceId, authorization);
+                    cleanup(traceId, authorization);
                 }
                 else
                 {
@@ -1268,28 +1250,15 @@ public final class AguiClientFactory implements AguiStreamFactory
             return body;
         }
 
-        private void cleanupApp(
+        private void cleanup(
             long traceId,
             long authorization)
         {
-            doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
-            doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
-
             doNetAbort(traceId, authorization);
             doNetReset(traceId, authorization);
 
-            cleanupSlots();
-        }
-
-        private void cleanupNet(
-            long traceId,
-            long authorization)
-        {
-            doNetReset(traceId, authorization);
-            doNetAbort(traceId, authorization);
-
-            doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
             doAppResetRejected(traceId, authorization, STATUS_BAD_GATEWAY, null, ERROR_BAD_GATEWAY);
+            doAppAbortTerminal(traceId, authorization, abortEx(CODE_AGENT_ABORTED, MESSAGE_AGENT_ABORTED));
 
             cleanupSlots();
         }
