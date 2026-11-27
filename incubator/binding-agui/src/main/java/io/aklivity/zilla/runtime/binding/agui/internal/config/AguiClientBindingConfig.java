@@ -37,7 +37,7 @@ public final class AguiClientBindingConfig
     public final String serverPath;
 
     private final String credentials;
-    private final List<AguiRouteConfig> routes;
+    private final List<AguiClientRouteConfig> routes;
 
     public AguiClientBindingConfig(
         BindingConfig binding,
@@ -58,15 +58,16 @@ public final class AguiClientBindingConfig
         this.serverAuthority = authorityOf(server);
         this.serverPath = pathOf(server);
         this.routes = binding.routes.stream()
-            .map(AguiRouteConfig::new)
+            .map(r -> new AguiClientRouteConfig(r, server, this.serverPath))
             .toList();
     }
 
-    public AguiRouteConfig resolve(
+    public AguiClientRouteConfig resolve(
+        String agent,
         long authorization)
     {
         return routes.stream()
-            .filter(r -> r.authorized(authorization))
+            .filter(r -> r.matches(agent, authorization))
             .findFirst()
             .orElse(null);
     }
