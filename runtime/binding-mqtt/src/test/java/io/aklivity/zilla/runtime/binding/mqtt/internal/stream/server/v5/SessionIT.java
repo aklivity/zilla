@@ -481,6 +481,7 @@ public class SessionIT
 
     @Test
     @Configuration("server.store.takeover.yaml")
+    @Configure(name = SESSION_STATE_STORE_ENABLED_NAME, value = "true")
     @Configure(name = SESSION_LEASE_NAME, value = "PT1S")
     @Configure(name = SESSION_RENEW_NAME, value = "PT0.1S")
     @Specification({
