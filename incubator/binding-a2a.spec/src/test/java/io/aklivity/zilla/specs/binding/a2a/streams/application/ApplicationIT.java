@@ -587,6 +587,15 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/stream.message.client.aborted/client",
+        "${app}/stream.message.client.aborted/server"})
+    public void shouldStreamMessageClientAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/subscribe.task/client",
         "${app}/subscribe.task/server"})
     public void shouldSubscribeTask() throws Exception
