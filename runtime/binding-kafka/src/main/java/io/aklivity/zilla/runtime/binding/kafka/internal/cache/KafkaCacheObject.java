@@ -15,28 +15,29 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class KafkaCacheObject<T extends KafkaCacheObject<T>> implements AutoCloseable
 {
     private final AtomicInteger references;
-
-    private volatile boolean closed;
-    private volatile boolean closing;
+    private final AtomicBoolean closing;
 
     protected KafkaCacheObject()
     {
         this.references = new AtomicInteger(1);
+        this.closing = new AtomicBoolean();
     }
 
     public final T acquire()
     {
-        if (closed)
+        int count = references.get();
+        while (count > 0 && !references.compareAndSet(count, count + 1))
         {
-            return null;
+            count = references.get();
         }
-        references.incrementAndGet();
-        return self();
+
+        return count > 0 ? self() : null;
     }
 
     public final void release()
@@ -45,8 +46,6 @@ public abstract class KafkaCacheObject<T extends KafkaCacheObject<T>> implements
         assert count >= 0;
         if (count == 0)
         {
-            assert !closed;
-            closed = true;
             onClosed();
         }
     }
@@ -54,16 +53,15 @@ public abstract class KafkaCacheObject<T extends KafkaCacheObject<T>> implements
     @Override
     public final void close()
     {
-        if (!closing)
+        if (closing.compareAndSet(false, true))
         {
-            closing = true;
             release();
         }
     }
 
     public final boolean closed()
     {
-        return closed;
+        return references.get() <= 0;
     }
 
     protected final int references()

@@ -1467,8 +1467,9 @@ public final class KafkaCachePartition
             KafkaCacheSegment segment)
         {
             assert segment != null;
-            this.segment.close();
+            final KafkaCacheSegment previous = this.segment;
             this.segment = segment;
+            previous.close();
         }
 
         public void clean(
