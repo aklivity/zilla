@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.DataFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.EndFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.FlushFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.HttpBeginExFW;
+import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.RedirectFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.ResetFW;
 import io.aklivity.zilla.runtime.binding.agui.internal.types.stream.WindowFW;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -126,6 +127,7 @@ public final class AguiServerFactory implements AguiStreamFactory
     private final AbortFW abortRO = new AbortFW();
     private final FlushFW flushRO = new FlushFW();
     private final WindowFW windowRO = new WindowFW();
+    private final RedirectFW redirectRO = new RedirectFW();
     private final ResetFW resetRO = new ResetFW();
     private final HttpBeginExFW httpBeginExRO = new HttpBeginExFW();
     private final AguiBeginExFW aguiBeginExRO = new AguiBeginExFW();
@@ -1378,6 +1380,8 @@ public final class AguiServerFactory implements AguiStreamFactory
         private final AguiServer server;
         private final long originId;
         private final long routedId;
+        private final long redirectedId;
+        private final long affinity;
         private final long initialId;
         private final long replyId;
 
@@ -1403,11 +1407,25 @@ public final class AguiServerFactory implements AguiStreamFactory
         private AguiStream(
             AguiServer server)
         {
+            this(server, server.resolvedId, 0L, 0L);
+        }
+
+        private AguiStream(
+            AguiServer server,
+            long routedId,
+            long redirectedId,
+            long affinity)
+        {
             this.server = server;
             this.originId = server.routedId;
-            this.routedId = server.resolvedId;
-            this.initialId = supplyInitialId.applyAsLong(server.resolvedId);
+            this.routedId = routedId;
+            this.redirectedId = redirectedId;
+            this.affinity = affinity;
+            this.initialId = redirectedId != 0L
+                ? context.supplyInitialId(routedId, affinity)
+                : supplyInitialId.applyAsLong(routedId);
             this.replyId = supplyReplyId.applyAsLong(initialId);
+            this.state = redirectedId != 0L ? AguiState.redirected(0) : 0;
         }
 
         private void doAppBegin(
@@ -1415,8 +1433,8 @@ public final class AguiServerFactory implements AguiStreamFactory
             long authorization,
             Flyweight extension)
         {
-            app = newStream(this::onAppMessage, originId, routedId, initialId,
-                initialSeq, initialAck, initialMax, traceId, authorization, 0,
+            app = newStream(this::onAppMessage, originId, routedId, redirectedId, initialId,
+                initialSeq, initialAck, initialMax, traceId, authorization, affinity,
                 extension);
 
             state = AguiState.openingInitial(state);
@@ -1558,6 +1576,10 @@ public final class AguiServerFactory implements AguiStreamFactory
             case ResetFW.TYPE_ID:
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onAppReset(reset);
+                break;
+            case RedirectFW.TYPE_ID:
+                final RedirectFW redirect = redirectRO.wrap(buffer, index, index + length);
+                onAppRedirect(redirect);
                 break;
             default:
                 break;
@@ -2019,6 +2041,32 @@ public final class AguiServerFactory implements AguiStreamFactory
             doAppAbort(traceId, authorization);
         }
 
+        private void onAppRedirect(
+            RedirectFW redirect)
+        {
+            final long traceId = redirect.traceId();
+            final long authorization = redirect.authorization();
+            final long newAffinity = redirect.affinity();
+            final OctetsFW extension = redirect.extension();
+
+            if (AguiState.isRedirected(state) || initialSeq > 0L || AguiState.replyOpening(server.state))
+            {
+                server.cleanupDecodeSlot();
+                cleanupApp(traceId, authorization);
+            }
+            else
+            {
+                doAppReset(traceId, authorization);
+                doAppAbort(traceId, authorization);
+
+                final long newRoutedId = context.resolveRoutedId(routedId, newAffinity);
+
+                server.stream = new AguiStream(server, newRoutedId, routedId, newAffinity);
+                server.stream.doAppBegin(traceId, authorization, extension);
+                server.stream.doAppEnd(traceId, authorization);
+            }
+        }
+
         private void cleanupApp(
             long traceId,
             long authorization)
@@ -2261,6 +2309,7 @@ public final class AguiServerFactory implements AguiStreamFactory
         MessageConsumer sender,
         long originId,
         long routedId,
+        long redirectedId,
         long streamId,
         long sequence,
         long acknowledge,
@@ -2280,6 +2329,7 @@ public final class AguiServerFactory implements AguiStreamFactory
             .traceId(traceId)
             .authorization(authorization)
             .affinity(affinity)
+            .redirectedId(redirectedId)
             .extension(extension.buffer(), extension.offset(), extension.sizeof())
             .build();
 
