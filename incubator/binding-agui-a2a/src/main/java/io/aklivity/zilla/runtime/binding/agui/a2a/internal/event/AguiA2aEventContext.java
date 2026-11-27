@@ -20,6 +20,7 @@ import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.Ag
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.RUN_FINISHED;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.RUN_REDIRECTED;
 import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.RUN_ROUTED;
+import static io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.event.AguiA2aEventType.TAG_DROPPED;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
@@ -47,6 +48,7 @@ public class AguiA2aEventContext
     private final int runRedirectedId;
     private final int contextResetId;
     private final int handleRejectedId;
+    private final int tagDroppedId;
     private final MessageConsumer eventWriter;
     private final Clock clock;
 
@@ -60,6 +62,7 @@ public class AguiA2aEventContext
         this.runRedirectedId = context.supplyEventId("binding.agui.a2a.run.redirected");
         this.contextResetId = context.supplyEventId("binding.agui.a2a.context.reset");
         this.handleRejectedId = context.supplyEventId("binding.agui.a2a.handle.rejected");
+        this.tagDroppedId = context.supplyEventId("binding.agui.a2a.tag.dropped");
         this.eventWriter = context.supplyEventWriter();
         this.clock = context.clock();
     }
@@ -214,6 +217,33 @@ public class AguiA2aEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(handleRejectedId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(aguiA2aTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void tagDropped(
+        long traceId,
+        long bindingId,
+        String agent,
+        String taskId,
+        String tag)
+    {
+        AguiA2aEventExFW extension = aguiA2aEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .tagDropped(e -> e
+                .typeId(TAG_DROPPED.value())
+                .agent(agent)
+                .taskId(taskId)
+                .tag(tag)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(tagDroppedId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

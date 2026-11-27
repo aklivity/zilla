@@ -21,6 +21,7 @@ import java.util.Map;
 
 import jakarta.json.JsonException;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aExtension;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aFlag;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.A2aTaskState;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aArtifactUpdateDataExFW;
@@ -43,6 +44,14 @@ public final class A2aEventDecoder
     private static final String ERROR_MALFORMED = "Malformed event";
     private static final String ERROR_TOO_LARGE = "Event too large";
     private static final String ERROR_TRUNCATED = "Truncated event";
+
+    private enum TagSection
+    {
+        PART,
+        METADATA,
+        AGUI,
+        DATA
+    }
 
     private enum PartMember
     {
@@ -91,6 +100,14 @@ public final class A2aEventDecoder
     private final A2aEventDecoderState decodePartValue = this::decodePartValue;
     private final A2aEventDecoderState decodeData = this::decodeData;
     private final A2aEventDecoderState decodeDataSeparator = this::decodeDataSeparator;
+    private final A2aEventDecoderState decodePartStart = this::decodePartStart;
+    private final A2aEventDecoderState decodeTaggedPartStart = this::decodeTaggedPartStart;
+    private final A2aEventDecoderState decodeTaggedPart = this::decodeTaggedPart;
+    private final A2aEventDecoderState decodeToolDataValue = this::decodeToolDataValue;
+    private final A2aEventDecoderState decodeToolData = this::decodeToolData;
+    private final A2aEventDecoderState decodeDroppedPartStart = this::decodeDroppedPartStart;
+    private final A2aEventDecoderState decodeDroppedPart = this::decodeDroppedPart;
+    private final A2aEventDecoderState decodeMalformedPartStart = this::decodeMalformedPartStart;
 
     private final A2aEventSink sink;
     private final int maximum;
@@ -98,6 +115,7 @@ public final class A2aEventDecoder
         JsonEx.createParser(Map.of(JsonParserEx.STRING_EVENT_POSITIONS, StringEventPositions.QUOTED));
     private final MutableDirectBufferEx slotBuffer;
     private final MutableDirectBufferEx textBuffer;
+    private final A2aPartTag tag = new A2aPartTag();
 
     private final A2aEventDecoderState rootStart;
     private final A2aEventDecoderState taskThen;
@@ -107,6 +125,13 @@ public final class A2aEventDecoder
     private A2aEventDecoderState messageThen;
     private A2aEventDecoderState artifactThen;
     private A2aEventDecoderState partsThen;
+    private A2aEventDecoderState dataThen = decodePart;
+    private A2aEventDecoderState textThen = decodePart;
+    private TagSection tagSection;
+    private TagSection tagEntering;
+    private int tagSkipping;
+    private String tagMember;
+    private AguiA2aExtension extension;
     private A2aMessageScope messageScope;
     private PartMember partMember;
     private String taskId;
@@ -183,6 +208,12 @@ public final class A2aEventDecoder
         {
             fail(ERROR_TRUNCATED);
         }
+    }
+
+    public void activate(
+        AguiA2aExtension extension)
+    {
+        this.extension = extension;
     }
 
     public void finish()
@@ -879,13 +910,27 @@ public final class A2aEventDecoder
     }
     private int decodeParts()
     {
+        parser.mark();
+
         if (parser.hasNextEvent())
         {
             switch (parser.nextEvent())
             {
             case START_OBJECT:
-                clearPart();
-                decoder = decodePart;
+                if (extension == null)
+                {
+                    clearPart();
+                    decoder = decodePart;
+                }
+                else
+                {
+                    if (lookaheadTag())
+                    {
+                        decoder = tagStart();
+                    }
+
+                    parser.rewind();
+                }
                 break;
             case END_ARRAY:
                 decoder = partsThen;
@@ -894,6 +939,397 @@ public final class A2aEventDecoder
                 fail(ERROR_MALFORMED);
                 break;
             }
+        }
+
+        return position();
+    }
+
+    private boolean lookaheadTag()
+    {
+        boolean resolved = false;
+
+        tag.clear();
+        tagSection = TagSection.PART;
+        tagEntering = null;
+        tagSkipping = 0;
+        tagMember = null;
+
+        while (!resolved && parser.hasNextEvent())
+        {
+            final JsonEvent event = parser.nextEvent();
+
+            if (parser.deferredBytes())
+            {
+                parser.consumed(0);
+            }
+            else if (tagSkipping > 0)
+            {
+                tagSkipping += event == JsonEvent.START_OBJECT || event == JsonEvent.START_ARRAY ? 1 :
+                    event == JsonEvent.END_OBJECT || event == JsonEvent.END_ARRAY ? -1 : 0;
+            }
+            else
+            {
+                resolved = lookaheadTagEvent(event);
+            }
+        }
+
+        if (!resolved)
+        {
+            tag.clear();
+        }
+
+        return resolved || windowLimit == maximum || windowLast;
+    }
+
+    private boolean lookaheadTagEvent(
+        JsonEvent event)
+    {
+        boolean resolved = false;
+
+        switch (event)
+        {
+        case KEY_NAME:
+            lookaheadTagKey();
+            break;
+        case START_OBJECT:
+            if (tagEntering != null)
+            {
+                tagSection = tagEntering;
+            }
+            else
+            {
+                tagSkipping = 1;
+            }
+
+            tagEntering = null;
+            tagMember = null;
+            break;
+        case START_ARRAY:
+            tagEntering = null;
+            tagMember = null;
+            tagSkipping = 1;
+            break;
+        case VALUE_STRING:
+            if (tagMember != null)
+            {
+                lookaheadTagValue(parser.getString());
+            }
+
+            tagEntering = null;
+            tagMember = null;
+            break;
+        case VALUE_TRUE:
+        case VALUE_FALSE:
+            if (tagSection == TagSection.AGUI && "replace".equals(tagMember))
+            {
+                tag.replace = event == JsonEvent.VALUE_TRUE;
+            }
+
+            tagEntering = null;
+            tagMember = null;
+            break;
+        case END_OBJECT:
+            resolved = lookaheadTagEnd();
+            break;
+        default:
+            tagEntering = null;
+            tagMember = null;
+            break;
+        }
+
+        return resolved;
+    }
+
+    private void lookaheadTagKey()
+    {
+        final CharSequence key = parser.getStringView();
+
+        switch (tagSection)
+        {
+        case PART:
+            if (matches(key, "metadata"))
+            {
+                tagEntering = TagSection.METADATA;
+            }
+            else if (matches(key, "data"))
+            {
+                tagEntering = TagSection.DATA;
+            }
+            else
+            {
+                parser.skipValue();
+            }
+            break;
+        case METADATA:
+            if (matches(key, "agui"))
+            {
+                tagEntering = TagSection.AGUI;
+            }
+            else
+            {
+                parser.skipValue();
+            }
+            break;
+        case AGUI:
+            tagMember = A2aPartTag.TAG_MEMBERS.contains(key.toString()) ? key.toString() : null;
+            lookaheadTagSkip();
+            break;
+        default:
+            tagMember = A2aPartTag.DATA_MEMBERS.contains(key.toString()) ? key.toString() : null;
+            lookaheadTagSkip();
+            break;
+        }
+    }
+
+    private void lookaheadTagSkip()
+    {
+        if (tagMember == null)
+        {
+            parser.skipValue();
+        }
+    }
+
+    private void lookaheadTagValue(
+        String value)
+    {
+        if (tagSection == TagSection.AGUI)
+        {
+            tag.tag(tagMember, value);
+        }
+        else if (tagSection == TagSection.DATA)
+        {
+            tag.data(tagMember, value);
+        }
+    }
+
+    private boolean lookaheadTagEnd()
+    {
+        boolean resolved = false;
+
+        switch (tagSection)
+        {
+        case AGUI:
+            tagSection = TagSection.METADATA;
+            resolved = !tag.needsData();
+            break;
+        case METADATA:
+        case DATA:
+            tagSection = TagSection.PART;
+            break;
+        default:
+            resolved = true;
+            break;
+        }
+
+        return resolved;
+    }
+
+    private A2aEventDecoderState tagStart()
+    {
+        final A2aEventDecoderState next;
+
+        if (!tag.tagged())
+        {
+            next = decodePartStart;
+        }
+        else if (!tag.known())
+        {
+            next = decodeDroppedPartStart;
+        }
+        else if (!extension.enabled(tag.feature()))
+        {
+            next = decodePartStart;
+        }
+        else if (tag.clientExecuted())
+        {
+            next = decodeDroppedPartStart;
+        }
+        else if (tag.problem() != null)
+        {
+            next = decodeMalformedPartStart;
+        }
+        else
+        {
+            next = decodeTaggedPartStart;
+        }
+
+        return next;
+    }
+
+    private int decodePartStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            parser.nextEvent();
+            clearPart();
+            dataThen = decodePart;
+            textThen = decodePart;
+            decoder = decodePart;
+        }
+
+        return position();
+    }
+
+    private int decodeTaggedPartStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            parser.nextEvent();
+            clearPart();
+            dataThen = decodeTaggedPart;
+            textThen = decodeTaggedPart;
+            sink.tagStarted(tag);
+            decoder = decodeTaggedPart;
+        }
+
+        return position();
+    }
+
+    private int decodeTaggedPart()
+    {
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case KEY_NAME:
+                decodeTaggedPartMember();
+                break;
+            case END_OBJECT:
+                sink.tagEnded();
+                decoder = decodeParts;
+                break;
+            default:
+                fail(ERROR_MALFORMED);
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private void decodeTaggedPartMember()
+    {
+        final CharSequence key = key();
+
+        if (key != null)
+        {
+            if (matches(key, "text"))
+            {
+                decoder = decodePartText;
+            }
+            else if (matches(key, "data"))
+            {
+                if (tag.needsData())
+                {
+                    decoder = decodeToolDataValue;
+                }
+                else
+                {
+                    dataFrom = position();
+                    dataLength = 0;
+                    dataDepth = 0;
+                    dataThen = decodeTaggedPart;
+                    decoder = decodeDataSeparator;
+                }
+            }
+            else
+            {
+                parser.skipValue();
+            }
+        }
+    }
+
+    private int decodeToolDataValue()
+    {
+        if (parser.hasNextEvent())
+        {
+            decoder = parser.nextEvent() == JsonEvent.START_OBJECT ? decodeToolData : decodeTaggedPart;
+        }
+
+        return position();
+    }
+
+    private int decodeToolData()
+    {
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case KEY_NAME:
+                final CharSequence key = key();
+
+                if (key == null)
+                {
+                    break;
+                }
+                else if (matches(key, tag.dataMember()))
+                {
+                    dataFrom = position();
+                    dataLength = 0;
+                    dataDepth = 0;
+                    dataThen = decodeToolData;
+                    decoder = decodeDataSeparator;
+                }
+                else
+                {
+                    parser.skipValue();
+                }
+                break;
+            case END_OBJECT:
+                decoder = decodeTaggedPart;
+                break;
+            default:
+                fail(ERROR_MALFORMED);
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeDroppedPartStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            parser.nextEvent();
+            sink.tagDropped(tag.event);
+            decoder = decodeDroppedPart;
+        }
+
+        return position();
+    }
+
+    private int decodeDroppedPart()
+    {
+        if (parser.hasNextEvent())
+        {
+            switch (parser.nextEvent())
+            {
+            case KEY_NAME:
+                if (key() != null)
+                {
+                    parser.skipValue();
+                }
+                break;
+            case END_OBJECT:
+                decoder = decodeParts;
+                break;
+            default:
+                fail(ERROR_MALFORMED);
+                break;
+            }
+        }
+
+        return position();
+    }
+
+    private int decodeMalformedPartStart()
+    {
+        if (parser.hasNextEvent())
+        {
+            parser.nextEvent();
+            decoder = decodeIgnore;
+            sink.tagMalformed(tag.event, tag.problem());
         }
 
         return position();
@@ -936,6 +1372,7 @@ public final class A2aEventDecoder
                 dataFrom = position();
                 dataLength = 0;
                 dataDepth = 0;
+                dataThen = decodePart;
                 decoder = decodeDataSeparator;
             }
             else if (matches(key, "url"))
@@ -982,12 +1419,12 @@ public final class A2aEventDecoder
                 }
                 else
                 {
-                    decoder = decodePart;
+                    decoder = textThen;
                 }
             }
             else
             {
-                decoder = decodePart;
+                decoder = textThen;
             }
         }
 
@@ -1010,7 +1447,7 @@ public final class A2aEventDecoder
                 }
                 else
                 {
-                    decoder = decodePart;
+                    decoder = textThen;
                 }
             }
             else
@@ -1108,7 +1545,7 @@ public final class A2aEventDecoder
             else if (event != JsonEvent.KEY_NAME && dataDepth == 0)
             {
                 captureData(position(), true);
-                decoder = decodePart;
+                decoder = dataThen;
             }
         }
 

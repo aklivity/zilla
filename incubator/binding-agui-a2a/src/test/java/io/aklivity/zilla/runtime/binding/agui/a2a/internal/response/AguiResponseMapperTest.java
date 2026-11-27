@@ -289,7 +289,7 @@ public class AguiResponseMapperTest
         harness.event("{\"task\":[}", 4096);
 
         assertEquals(502, harness.errorStatus);
-        assertEquals("agent_invalid_response", harness.errorCode);
+        assertEquals("agent_protocol", harness.errorCode);
     }
 
     @Test
@@ -299,7 +299,7 @@ public class AguiResponseMapperTest
 
         harness.event(status("COMPLETED", "m-2", "x".repeat(5 * MAXIMUM)), 700);
 
-        assertEquals("agent_invalid_response", harness.errorCode);
+        assertEquals("agent_protocol", harness.errorCode);
         assertEquals("Event too large", harness.errorMessage);
     }
 

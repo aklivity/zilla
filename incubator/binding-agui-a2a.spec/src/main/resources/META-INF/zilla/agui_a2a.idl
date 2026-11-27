@@ -23,7 +23,8 @@ scope agui_a2a
             RUN_FAILED (3),
             RUN_REDIRECTED (4),
             CONTEXT_RESET (5),
-            HANDLE_REJECTED (6)
+            HANDLE_REJECTED (6),
+            TAG_DROPPED (7)
         }
 
         struct AguiA2aRunRoutedEx extends core::stream::Extension
@@ -66,6 +67,13 @@ scope agui_a2a
             string16 code;
         }
 
+        struct AguiA2aTagDroppedEx extends core::stream::Extension
+        {
+            string16 agent;
+            string16 taskId;
+            string16 tag;
+        }
+
         union AguiA2aEventEx switch (AguiA2aEventType)
         {
             case RUN_ROUTED: AguiA2aRunRoutedEx runRouted;
@@ -74,6 +82,7 @@ scope agui_a2a
             case RUN_REDIRECTED: AguiA2aRunRedirectedEx runRedirected;
             case CONTEXT_RESET: AguiA2aContextResetEx contextReset;
             case HANDLE_REJECTED: AguiA2aHandleRejectedEx handleRejected;
+            case TAG_DROPPED: AguiA2aTagDroppedEx tagDropped;
         }
     }
 }
