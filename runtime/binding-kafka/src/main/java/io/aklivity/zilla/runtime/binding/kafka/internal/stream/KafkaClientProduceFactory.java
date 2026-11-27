@@ -1631,6 +1631,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (signalId == SIGNAL_NEXT_REQUEST)
                 {
+                    signaledRequestId = nextRequestId;
                     doEncodeRequestIfNecessary(traceId, 0L);
                 }
             }
