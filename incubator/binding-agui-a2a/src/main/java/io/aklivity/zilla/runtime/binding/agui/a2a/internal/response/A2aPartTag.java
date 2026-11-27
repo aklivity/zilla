@@ -144,9 +144,9 @@ public final class A2aPartTag
         return EVENT_TOOL_CALL.equals(event) ? "arguments" : EVENT_TOOL_RESULT.equals(event) ? "payload" : null;
     }
 
-    public boolean clientExecuted()
+    public boolean agentExecuted()
     {
-        return EVENT_TOOL_CALL.equals(event) && !"agent".equals(executor);
+        return "agent".equals(executor);
     }
 
     public String problem()

@@ -51,6 +51,7 @@ public final class AguiA2aRequestDecoder
     {
         UNKNOWN,
         USER,
+        TOOL,
         OTHER
     }
 
@@ -104,7 +105,9 @@ public final class AguiA2aRequestDecoder
     private static final int RANGE_ID = 4;
     private static final int RANGE_PAYLOAD = 5;
     private static final int RANGE_RESUME_METADATA = 6;
-    private static final int RANGE_COUNT = 7;
+    private static final int RANGE_TOOL_CALL_ID = 7;
+    private static final int RANGE_TOOL_ERROR = 8;
+    private static final int RANGE_COUNT = 9;
 
     private static final String KEY_THREAD_ID = "threadId";
     private static final String KEY_RUN_ID = "runId";
@@ -112,6 +115,9 @@ public final class AguiA2aRequestDecoder
     private static final String KEY_MESSAGES = "messages";
     private static final String KEY_STATE = "state";
     private static final String KEY_CONTEXT = "context";
+    private static final String KEY_TOOLS = "tools";
+    private static final String KEY_TOOL_CALL_ID = "toolCallId";
+    private static final String KEY_ERROR = "error";
     private static final String KEY_FORWARDED_PROPS = "forwardedProps";
     private static final String KEY_RESUME = "resume";
     private static final String KEY_ROLE = "role";
@@ -141,6 +147,7 @@ public final class AguiA2aRequestDecoder
     private final Decoder decodeMessageCapture = this::decodeMessageCapture;
     private final Decoder decodeMessageDrain = this::decodeMessageDrain;
     private final Decoder decodeMessageRole = this::decodeMessageRole;
+    private final Decoder decodeSkip = this::decodeSkip;
     private final Decoder decodeDone = this::decodeDone;
     private final Decoder decodeReject = this::decodeReject;
     private final Decoder decodeIgnore = this::decodeIgnore;
@@ -344,6 +351,10 @@ public final class AguiA2aRequestDecoder
         {
             beginCapture(Kind.CONTEXT);
         }
+        else if (matches(name, KEY_TOOLS))
+        {
+            beginCapture(Kind.TOOLS);
+        }
         else if (matches(name, KEY_FORWARDED_PROPS))
         {
             beginCapture(Kind.FORWARDED_PROPS);
@@ -465,7 +476,12 @@ public final class AguiA2aRequestDecoder
         final boolean empty = captureFirst == JsonEvent.VALUE_NULL || container && captureEvents == 2;
         final Append result = empty ? Append.OK : retain(captureFrom, position());
 
-        if (result != Append.OK)
+        if (result == Append.FULL && captureKind == Kind.TOOLS)
+        {
+            retained.truncate(captureMark, retained.count());
+            decoder = decodeMembers;
+        }
+        else if (result != Append.OK)
         {
             rejectAppend(result, 1);
         }
@@ -546,6 +562,8 @@ public final class AguiA2aRequestDecoder
         partType = PartType.NONE;
         sourceType = SourceType.NONE;
         resetRange(RANGE_ID);
+        resetRange(RANGE_TOOL_CALL_ID);
+        resetRange(RANGE_TOOL_ERROR);
         recorder = recordMessageMember;
         decoder = decodeMessageCapture;
     }
@@ -609,6 +627,12 @@ public final class AguiA2aRequestDecoder
                 messageRole = Role.USER;
                 decoder = messageDecoder;
             }
+            else if (event == JsonEvent.VALUE_STRING && matches(value, ROLE_TOOL) && retained.indexOf(Kind.MESSAGE) == -1)
+            {
+                messageRole = Role.TOOL;
+                turns++;
+                decoder = messageDecoder;
+            }
             else
             {
                 messageRole = Role.OTHER;
@@ -642,7 +666,8 @@ public final class AguiA2aRequestDecoder
             }
             else
             {
-                final boolean kept = result == Append.OK && messageRole == Role.USER && commitMessage();
+                final boolean kept = result == Append.OK &&
+                    (messageRole == Role.USER && commitMessage() || messageRole == Role.TOOL && commitToolResult());
 
                 if (!kept)
                 {
@@ -658,6 +683,36 @@ public final class AguiA2aRequestDecoder
             oversize += messageRole == Role.USER ? 1 : 0;
             decoder = decodeMessageNext;
         }
+    }
+
+    private boolean commitToolResult()
+    {
+        final boolean identified = rangeEvent[RANGE_TOOL_CALL_ID] == JsonEvent.VALUE_STRING &&
+            rangeEnd[RANGE_TOOL_CALL_ID] != ABSENT;
+        final boolean errored = rangeEvent[RANGE_TOOL_ERROR] == JsonEvent.VALUE_STRING && rangeEnd[RANGE_TOOL_ERROR] != ABSENT;
+        final boolean fits = identified && retained.accommodates(stageCount / STAGE_ENTRY + (errored ? 3 : 2));
+
+        if (fits)
+        {
+            retained.range(Kind.TOOL_CALL_ID, rangeStart[RANGE_TOOL_CALL_ID], rangeEnd[RANGE_TOOL_CALL_ID]);
+
+            for (int index = 0; index < stageCount; index += STAGE_ENTRY)
+            {
+                if (Kind.values()[stage[index]] == Kind.PART_TEXT)
+                {
+                    retained.range(Kind.TOOL_CONTENT, stage[index + 1], stage[index + 2]);
+                }
+            }
+
+            if (errored)
+            {
+                retained.range(Kind.TOOL_ERROR, rangeStart[RANGE_TOOL_ERROR], rangeEnd[RANGE_TOOL_ERROR]);
+            }
+
+            retained.entry(Kind.TOOL_RESULT, messageMark);
+        }
+
+        return fits;
     }
 
     private boolean commitMessage()
@@ -683,13 +738,38 @@ public final class AguiA2aRequestDecoder
         return fits;
     }
 
+    private void decodeSkip()
+    {
+        final JsonEvent event = next();
+
+        switch (event)
+        {
+        case START_OBJECT:
+        case START_ARRAY:
+            depth++;
+            break;
+        case END_OBJECT:
+        case END_ARRAY:
+            depth--;
+            break;
+        default:
+            break;
+        }
+
+        if (depth == 0 && event != JsonEvent.KEY_NAME && !parser.deferredBytes())
+        {
+            decoder = decodeMembers;
+        }
+    }
+
     private void decodeFinish()
     {
         if ((seen & SEEN_REQUIRED) != SEEN_REQUIRED || parentRunId != null && (seen & SEEN_PARENT_RUN_ID) == 0)
         {
             reject(AguiA2aRejection.INVALID_RUN);
         }
-        else if (retained.indexOf(Kind.MESSAGE) == -1 && retained.indexOf(Kind.RESUME) == -1)
+        else if (retained.indexOf(Kind.MESSAGE) == -1 && retained.indexOf(Kind.RESUME) == -1 &&
+            retained.indexOf(Kind.TOOL_RESULT) == -1)
         {
             reject(AguiA2aRejection.NO_USER_MESSAGE);
         }
@@ -736,7 +816,12 @@ public final class AguiA2aRequestDecoder
         {
             final Append result = retain(captureFrom, position());
 
-            if (result != Append.OK)
+            if (result == Append.FULL && decoder == decodeCapture && captureKind == Kind.TOOLS)
+            {
+                retained.truncate(captureMark, retained.count());
+                decoder = decodeSkip;
+            }
+            else if (result != Append.OK)
             {
                 if (decoder == decodeCapture)
                 {
@@ -851,6 +936,14 @@ public final class AguiA2aRequestDecoder
         else if (key != null && matches(key, KEY_ID))
         {
             beginRange(RANGE_ID, recordMessageMember);
+        }
+        else if (key != null && matches(key, KEY_TOOL_CALL_ID))
+        {
+            beginRange(RANGE_TOOL_CALL_ID, recordMessageMember);
+        }
+        else if (key != null && matches(key, KEY_ERROR))
+        {
+            beginRange(RANGE_TOOL_ERROR, recordMessageMember);
         }
     }
 

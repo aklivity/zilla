@@ -19,7 +19,9 @@ import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.INIT;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
@@ -50,6 +52,7 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.AguiResponse
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.response.InterruptHandle;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aCompaction;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aHandleKind;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aHandleTarget;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aKeyHash;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aLocalOwnerState;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aOwnerState;
@@ -95,6 +98,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private static final int STATUS_CONFLICT = 409;
     private static final String CODE_HANDLE_UNKNOWN = "handle_unknown";
     private static final String MESSAGE_HANDLE_UNKNOWN = "Interrupt no longer available";
+    private static final String MESSAGE_TOOL_HANDLE_UNKNOWN = "Tool call no longer available";
     private static final String MESSAGE_INTERNAL_ERROR = "Internal error";
     private static final String MESSAGE_BAD_GATEWAY = "Bad Gateway";
     private static final int STATUS_UNSUPPORTED_MEDIA = 415;
@@ -328,6 +332,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         private final AguiA2aRetention retention;
         private final AguiA2aRequestDecoder requestDecoder;
         private final List<A2aStream> a2aStreams = new ArrayList<>(2);
+        private final Map<String, String> toolCalls = new HashMap<>();
 
         private AguiDecoder decoder = decodeRequest;
         private AguiA2aMessageAssembler assembler;
@@ -690,32 +695,75 @@ public final class AguiA2aProxyFactory implements BindingHandler
             long traceId,
             AguiA2aAgentCard card)
         {
-            final String contextId = resumeTaskId == null ? rememberedContextId : null;
-            assembler.wrap(requestDecoder.retained(), runId, contextId, resumeTaskId, resumeInterruptId,
-                card.acceptsAdvisory())
-                .extension(card.extension())
-                .accepting(card::acceptsInput);
-
-            final int contentLength = assembler.contentLength();
-
             this.offered = card.extension();
+
+            final AguiA2aRetained retained = requestDecoder.retained();
+            final boolean tools = offered != null && offered.enabled(AguiA2aExtension.FEATURE_TOOLS);
 
             if (card.refused())
             {
                 doAguiReset(traceId, STATUS_BAD_GATEWAY, null, null);
                 cleanup(traceId);
             }
-            else if (assembler.unacceptedMediaType() != null)
+            else if (tools && !resolveToolResults(retained))
             {
-                doAguiReset(traceId, STATUS_UNSUPPORTED_MEDIA, CODE_UNSUPPORTED_MEDIA, MESSAGE_UNSUPPORTED_MEDIA);
+                events.handleRejected(traceId, binding.id, agent, CODE_HANDLE_UNKNOWN);
+                doAguiReset(traceId, STATUS_CONFLICT, CODE_HANDLE_UNKNOWN, MESSAGE_TOOL_HANDLE_UNKNOWN);
                 cleanup(traceId);
+            }
+            else if (!tools && retained.indexOf(Kind.MESSAGE) == -1 && retained.indexOf(Kind.RESUME) == -1)
+            {
+                onRequestRejected(traceId, AguiA2aRejection.NO_USER_MESSAGE);
             }
             else
             {
-                final A2aMessage message = new A2aMessage(this, card.operation(), contentLength);
-                a2aStreams.add(message);
-                message.doA2aBegin(traceId);
+                final String contextId = resumeTaskId == null ? rememberedContextId : null;
+                assembler.wrap(retained, runId, contextId, resumeTaskId, resumeInterruptId, card.acceptsAdvisory())
+                    .extension(offered)
+                    .toolCalls(toolCalls::get)
+                    .accepting(card::acceptsInput);
+
+                final int contentLength = assembler.contentLength();
+
+                if (assembler.unacceptedMediaType() != null)
+                {
+                    doAguiReset(traceId, STATUS_UNSUPPORTED_MEDIA, CODE_UNSUPPORTED_MEDIA, MESSAGE_UNSUPPORTED_MEDIA);
+                    cleanup(traceId);
+                }
+                else
+                {
+                    final A2aMessage message = new A2aMessage(this, card.operation(), contentLength);
+                    a2aStreams.add(message);
+                    message.doA2aBegin(traceId);
+                }
             }
+        }
+
+        private boolean resolveToolResults(
+            AguiA2aRetained retained)
+        {
+            final int results = retained.toolResultCount();
+
+            boolean resolved = true;
+            String taskId = resumeTaskId;
+
+            for (int index = 0; resolved && index < results; index++)
+            {
+                final String handle = retained.toolCallHandle(index);
+                final AguiA2aHandleTarget target = owners.resolveTarget(key, AguiA2aHandleKind.TOOL, handle);
+
+                resolved = target != null && (taskId == null || taskId.equals(target.taskId()));
+
+                if (resolved)
+                {
+                    taskId = target.taskId();
+                    toolCalls.put(handle, target.subject());
+                }
+            }
+
+            resumeTaskId = resolved ? taskId : resumeTaskId;
+
+            return resolved;
         }
 
         private void onExtensionEcho(
@@ -790,6 +838,14 @@ public final class AguiA2aProxyFactory implements BindingHandler
         {
             events.runFailed(eventTraceId, binding.id, agent, mapper.taskId(), AguiResponseMapper.CODE_PROTOCOL,
                 String.format("Malformed %s tag: %s", tag, detail));
+        }
+
+        @Override
+        public String toolCallHandle(
+            String taskId,
+            String callId)
+        {
+            return owners.issueHandle(key, AguiA2aHandleKind.TOOL, taskId, callId);
         }
 
         @Override

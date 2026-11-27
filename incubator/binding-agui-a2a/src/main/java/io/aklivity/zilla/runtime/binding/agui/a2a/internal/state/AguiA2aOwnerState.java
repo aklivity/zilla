@@ -26,10 +26,29 @@ public interface AguiA2aOwnerState
     String issueHandle(
         AguiA2aThreadKey key,
         AguiA2aHandleKind kind,
-        String taskId);
+        String taskId,
+        String subject);
 
-    String resolveHandle(
+    AguiA2aHandleTarget resolveTarget(
         AguiA2aThreadKey key,
         AguiA2aHandleKind kind,
         String handle);
+
+    default String issueHandle(
+        AguiA2aThreadKey key,
+        AguiA2aHandleKind kind,
+        String taskId)
+    {
+        return issueHandle(key, kind, taskId, null);
+    }
+
+    default String resolveHandle(
+        AguiA2aThreadKey key,
+        AguiA2aHandleKind kind,
+        String handle)
+    {
+        final AguiA2aHandleTarget target = resolveTarget(key, kind, handle);
+
+        return target != null ? target.taskId() : null;
+    }
 }

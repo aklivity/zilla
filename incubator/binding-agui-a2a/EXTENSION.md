@@ -222,7 +222,7 @@ message the proxy writes one `data` part in the continuation message:
 
 ```json
 {
-  "data": { "type": "tool-result", "toolCallId": "call-7", "payload": { "lat": 40.7, "lon": -74.0 } },
+  "data": { "type": "tool-result", "toolCallId": "call-7", "payload": "{\"lat\":40.7,\"lon\":-74.0}" },
   "mediaType": "application/json",
   "metadata": { "agui": { "event": "toolResult" } }
 }
@@ -232,7 +232,7 @@ message the proxy writes one `data` part in the continuation message:
 | --- | --- |
 | `data.type` | `tool-result` |
 | `data.toolCallId` | **the agent's own call id**, not the handle the AG-UI client saw |
-| `data.payload` | the `tool` message content |
+| `data.payload` | the `tool` message content, copied verbatim as a JSON string; an agent that expects an object parses it |
 | `data.error` | present only when the AG-UI `tool` message carries an error |
 
 The message is `ROLE_USER` and carries the `taskId` of the interrupted task and **no** `contextId`, because A2A requires the
@@ -357,7 +357,11 @@ The proxy decodes the A2A event once, as it arrives, and finds a part's tag befo
 3. `reasoning` and `reasoning.encrypted` map the `text` of the part; `step` maps no content.
 4. A tag for a feature that is not enabled is plain data (section 9). The features the proxy enables are the ones it
    implements: `subagents` and `interrupts` are not enabled yet, so their tags map as `agent.data`. An unknown `event`
-   and a client-executed `toolCall` are dropped and recorded by the Zilla event `binding.agui.a2a.tag.dropped`.
+   is dropped and recorded by the Zilla event `binding.agui.a2a.tag.dropped`.
+5. A `toolCall` with `executor` `client` (the default) maps to `TOOL_CALL_START`, `TOOL_CALL_ARGS` and `TOOL_CALL_END`
+   with a handle as `toolCallId`. When the task then reaches `INPUT_REQUIRED` with no untagged text in its status message,
+   the run ends `SUCCESS` and the end detail is `{"pendingToolCallIds": [...]}`, the handles in call order. With untagged
+   text the run ends as an interrupt.
 
 ## 9. Error handling
 
