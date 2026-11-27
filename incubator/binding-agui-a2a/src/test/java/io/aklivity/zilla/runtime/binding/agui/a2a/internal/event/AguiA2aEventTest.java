@@ -116,6 +116,13 @@ public class AguiA2aEventTest
     }
 
     @Test
+    public void shouldFormatHistoryOmitted()
+    {
+        assertThat(format(e -> e.historyOmitted(1L, 42L, "agent0", "too_large")),
+            equalTo("History omitted for agent (agent0): too_large."));
+    }
+
+    @Test
     public void shouldFormatNullFieldsAsEmpty()
     {
         assertThat(format(e -> e.runRouted(1L, 42L, "agent0", null)),
