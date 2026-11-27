@@ -18,18 +18,17 @@ import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 import io.aklivity.zilla.runtime.common.agrona.buffer.MutableDirectBufferEx;
+import io.aklivity.zilla.runtime.common.agrona.buffer.UnsafeBufferEx;
 import io.aklivity.zilla.runtime.engine.buffer.BufferPool;
 
 /**
  * Accumulates the values of a response so that they can be repeated by later events, such as a completion
  * event that repeats every output item.
  * <p>
- * All values share a single pool slot, so the bound is the slot capacity of the pool. Each value is a record
- * of a kind byte, a length and its bytes, so the slot describes itself and nothing is kept on the heap.
- * A value is found by walking the records from the last one found.
- * A value that does not fit within the remaining capacity of the slot is truncated: it stores nothing and
- * is repeated as empty, while later values that still fit remain stored. A value whose record header does
- * not fit is not opened.
+ * Values are stored in one pool slot while they fit, so the common response keeps nothing on the heap. Content is
+ * unbounded by protocol, so when the slot cannot hold what is accumulated the records move to a heap region that
+ * grows as needed, and no value is ever truncated. Each value is a record of a kind byte, a length and its bytes,
+ * so the storage describes itself. A value is found by walking the records from the last one found.
  */
 final class LlmContentAccumulator
 {
@@ -38,12 +37,12 @@ final class LlmContentAccumulator
     private static final int LENGTH_OFFSET = Byte.BYTES;
     private static final int HEADER = Byte.BYTES + Integer.BYTES;
     private static final int KIND_MASK = 0x7f;
-    private static final int TRUNCATED = 0x80;
 
     private final BufferPool pool;
     private final long streamId;
 
     private int slot = NO_SLOT;
+    private MutableDirectBufferEx spill;
     private int limit;
     private int count;
     private int current = NONE;
@@ -58,11 +57,6 @@ final class LlmContentAccumulator
         this.streamId = streamId;
     }
 
-    int bound()
-    {
-        return pool.slotCapacity();
-    }
-
     int open()
     {
         return open(0);
@@ -71,30 +65,22 @@ final class LlmContentAccumulator
     int open(
         int kind)
     {
-        int value = NONE;
-
-        if (slot == NO_SLOT)
+        if (slot == NO_SLOT && spill == null)
         {
             slot = pool.acquire(streamId);
         }
 
-        if (slot != NO_SLOT && limit + HEADER <= pool.slotCapacity())
-        {
-            final MutableDirectBufferEx buffer = pool.buffer(slot);
+        ensure(HEADER);
 
-            buffer.putByte(limit, (byte) (kind & KIND_MASK));
-            buffer.putInt(limit + LENGTH_OFFSET, 0);
+        final MutableDirectBufferEx buffer = storage();
 
-            current = limit;
-            limit += HEADER;
-            value = count++;
-        }
-        else
-        {
-            current = NONE;
-        }
+        buffer.putByte(limit, (byte) (kind & KIND_MASK));
+        buffer.putInt(limit + LENGTH_OFFSET, 0);
 
-        return value;
+        current = limit;
+        limit += HEADER;
+
+        return count++;
     }
 
     void append(
@@ -104,7 +90,7 @@ final class LlmContentAccumulator
     {
         if (length > 0 && reserve(length))
         {
-            pool.buffer(slot).putBytes(limit, source, offset, length);
+            storage().putBytes(limit, source, offset, length);
             commit(length);
         }
     }
@@ -114,7 +100,7 @@ final class LlmContentAccumulator
     {
         if (reserve(Integer.BYTES))
         {
-            pool.buffer(slot).putInt(limit, data);
+            storage().putInt(limit, data);
             commit(Integer.BYTES);
         }
     }
@@ -132,7 +118,7 @@ final class LlmContentAccumulator
 
             if (reserve(Integer.BYTES + length))
             {
-                final MutableDirectBufferEx buffer = pool.buffer(slot);
+                final MutableDirectBufferEx buffer = storage();
 
                 buffer.putInt(limit, length);
                 buffer.putStringWithoutLengthUtf8(limit + Integer.BYTES, text, 0, text.length());
@@ -154,19 +140,19 @@ final class LlmContentAccumulator
     int kind(
         int value)
     {
-        return exists(value) ? pool.buffer(slot).getByte(locate(value)) & KIND_MASK : 0;
+        return exists(value) ? storage().getByte(locate(value)) & KIND_MASK : 0;
     }
 
-    boolean truncated(
+    boolean absent(
         int value)
     {
-        return !exists(value) || (pool.buffer(slot).getByte(locate(value)) & TRUNCATED) != 0;
+        return !exists(value);
     }
 
     int length(
         int value)
     {
-        return exists(value) ? pool.buffer(slot).getInt(locate(value) + LENGTH_OFFSET) : 0;
+        return exists(value) ? storage().getInt(locate(value) + LENGTH_OFFSET) : 0;
     }
 
     int offset(
@@ -182,7 +168,7 @@ final class LlmContentAccumulator
     {
         if (within(value, position))
         {
-            pool.buffer(slot).putInt(locate(value) + HEADER + position, data);
+            storage().putInt(locate(value) + HEADER + position, data);
         }
     }
 
@@ -190,12 +176,12 @@ final class LlmContentAccumulator
         int value,
         int position)
     {
-        return within(value, position) ? pool.buffer(slot).getInt(locate(value) + HEADER + position) : 0;
+        return within(value, position) ? storage().getInt(locate(value) + HEADER + position) : 0;
     }
 
     MutableDirectBufferEx buffer()
     {
-        return slot != NO_SLOT ? pool.buffer(slot) : null;
+        return slot != NO_SLOT || spill != null ? storage() : null;
     }
 
     void release()
@@ -206,6 +192,7 @@ final class LlmContentAccumulator
             slot = NO_SLOT;
         }
 
+        spill = null;
         limit = 0;
         count = 0;
         current = NONE;
@@ -216,35 +203,55 @@ final class LlmContentAccumulator
     private boolean reserve(
         int length)
     {
-        boolean reserved = false;
+        final boolean reserved = current != NONE;
 
-        if (current != NONE)
+        if (reserved)
         {
-            final MutableDirectBufferEx buffer = pool.buffer(slot);
-            final int flags = buffer.getByte(current);
-
-            if ((flags & TRUNCATED) == 0)
-            {
-                if (limit + length > pool.slotCapacity())
-                {
-                    buffer.putByte(current, (byte) (flags | TRUNCATED));
-                    buffer.putInt(current + LENGTH_OFFSET, 0);
-                    limit = current + HEADER;
-                }
-                else
-                {
-                    reserved = true;
-                }
-            }
+            ensure(length);
         }
 
         return reserved;
     }
 
+    private void ensure(
+        int length)
+    {
+        final int required = limit + length;
+
+        if (required > capacity())
+        {
+            final MutableDirectBufferEx grown =
+                new UnsafeBufferEx(new byte[Math.max(required, Math.max(capacity(), 1) << 1)]);
+
+            if (limit > 0)
+            {
+                grown.putBytes(0, storage(), 0, limit);
+            }
+
+            if (slot != NO_SLOT)
+            {
+                pool.release(slot);
+                slot = NO_SLOT;
+            }
+
+            spill = grown;
+        }
+    }
+
+    private int capacity()
+    {
+        return spill != null ? spill.capacity() : slot != NO_SLOT ? pool.slotCapacity() : 0;
+    }
+
+    private MutableDirectBufferEx storage()
+    {
+        return spill != null ? spill : pool.buffer(slot);
+    }
+
     private void commit(
         int length)
     {
-        final MutableDirectBufferEx buffer = pool.buffer(slot);
+        final MutableDirectBufferEx buffer = storage();
 
         buffer.putInt(current + LENGTH_OFFSET, buffer.getInt(current + LENGTH_OFFSET) + length);
         limit += length;
@@ -260,13 +267,13 @@ final class LlmContentAccumulator
     private boolean exists(
         int value)
     {
-        return slot != NO_SLOT && value >= 0 && value < count;
+        return (slot != NO_SLOT || spill != null) && value >= 0 && value < count;
     }
 
     private int locate(
         int value)
     {
-        final MutableDirectBufferEx buffer = pool.buffer(slot);
+        final MutableDirectBufferEx buffer = storage();
 
         int index = cursorValue;
         int offset = cursorOffset;

@@ -53,18 +53,17 @@ public class LlmContentAccumulatorTest
         accumulator.close();
 
         assertThat(accumulator.count(), is(2));
-        assertThat(accumulator.bound(), is(CAPACITY));
         assertThat(accumulator.length(first), is(6));
         assertThat(accumulator.length(second), is(2));
         assertThat(accumulator.offset(first), is(HEADER));
         assertThat(accumulator.offset(second), is(HEADER + 6 + HEADER));
-        assertThat(accumulator.truncated(first), is(false));
+        assertThat(accumulator.absent(first), is(false));
         assertThat(text(accumulator, first), equalTo("abcdef"));
         assertThat(text(accumulator, second), equalTo("yz"));
     }
 
     @Test
-    public void shouldTruncateValueBeyondBoundAndKeepLaterValues()
+    public void shouldSpillValuesBeyondSlotToHeap()
     {
         final LlmContentAccumulator bounded = new LlmContentAccumulator(new TestBufferPool(28, 1), 1L);
 
@@ -81,9 +80,10 @@ public class LlmContentAccumulatorTest
         bounded.append(buffer("xyz"), 0, 3);
         bounded.close();
 
-        assertThat(bounded.truncated(second), is(true));
-        assertThat(bounded.length(second), is(0));
+        assertThat(bounded.absent(second), is(false));
+        assertThat(bounded.length(second), is(11));
         assertThat(text(bounded, first), equalTo("0123456789"));
+        assertThat(text(bounded, second), equalTo("abcdefghijk"));
         assertThat(text(bounded, third), equalTo("xyz"));
     }
 
@@ -118,29 +118,34 @@ public class LlmContentAccumulatorTest
     }
 
     @Test
-    public void shouldOpenNothingWhenNoSlotAvailable()
+    public void shouldStoreOnHeapWhenNoSlotAvailable()
     {
         final LlmContentAccumulator exhausted = new LlmContentAccumulator(new TestBufferPool(CAPACITY, 0), 1L);
 
         final int value = exhausted.open();
         exhausted.append(buffer("abc"), 0, 3);
+        exhausted.close();
 
-        assertThat(value, is(LlmContentAccumulator.NONE));
-        assertThat(exhausted.count(), is(0));
+        assertThat(value, is(0));
+        assertThat(exhausted.count(), is(1));
+        assertThat(text(exhausted, value), equalTo("abc"));
     }
 
     @Test
-    public void shouldOpenNothingWhenHeaderDoesNotFit()
+    public void shouldStoreOnHeapWhenHeaderDoesNotFit()
     {
         final LlmContentAccumulator bounded = new LlmContentAccumulator(new TestBufferPool(8, 1), 1L);
 
         final int first = bounded.open();
         bounded.close();
         final int second = bounded.open();
+        bounded.append(buffer("abc"), 0, 3);
+        bounded.close();
 
         assertThat(first, is(0));
-        assertThat(second, is(LlmContentAccumulator.NONE));
-        assertThat(bounded.count(), is(1));
+        assertThat(second, is(1));
+        assertThat(bounded.count(), is(2));
+        assertThat(text(bounded, second), equalTo("abc"));
     }
 
     @Test
@@ -190,7 +195,7 @@ public class LlmContentAccumulatorTest
     }
 
     @Test
-    public void shouldNotPatchBeyondTruncatedValue()
+    public void shouldPatchValueAfterSpill()
     {
         final LlmContentAccumulator bounded = new LlmContentAccumulator(new TestBufferPool(14, 1), 1L);
 
@@ -203,8 +208,7 @@ public class LlmContentAccumulatorTest
 
         bounded.putInt(value, 0, 99);
 
-        assertThat(bounded.truncated(value), is(true));
-        assertThat(bounded.getInt(value, 0), is(0));
+        assertThat(bounded.getInt(value, 0), is(99));
         assertThat(bounded.getInt(next, 0), is(5));
     }
 
@@ -213,7 +217,7 @@ public class LlmContentAccumulatorTest
     {
         assertThat(accumulator.length(LlmContentAccumulator.NONE), is(0));
         assertThat(accumulator.offset(LlmContentAccumulator.NONE), is(0));
-        assertThat(accumulator.truncated(LlmContentAccumulator.NONE), is(true));
+        assertThat(accumulator.absent(LlmContentAccumulator.NONE), is(true));
         assertThat(accumulator.kind(LlmContentAccumulator.NONE), is(0));
     }
 

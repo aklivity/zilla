@@ -30,5 +30,18 @@ scope internal
             int32 payloadLength;
             octets[payloadLength] payload = null;
         }
+
+        struct LlmReplyFrame
+        {
+            int64 traceId;
+            int64 authorization;
+            int64 budgetId;
+            int32 reserved;
+            uint8 flags;
+            int32 extensionLength;
+            octets[extensionLength] extension = null;
+            int32 payloadLength;
+            octets[payloadLength] payload = null;
+        }
     }
 }

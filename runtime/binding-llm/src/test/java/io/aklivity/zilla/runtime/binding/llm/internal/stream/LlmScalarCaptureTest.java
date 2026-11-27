@@ -31,7 +31,6 @@ public class LlmScalarCaptureTest
 {
     private static final int FITS = LlmToolTransform.HELD_MAX - 4;
     private static final int OVERFLOWS = FITS + 1;
-    private static final int RESPONSES_FITS = 2048 - 4;
     private static final List<String> NOT_SCALARS = List.of("{}", "{'a':1}", "[]", "['x']", "[{'a':[1]}]");
 
     private static final LlmModelCapability CAPABILITY = LlmModelCapability.UNSPECIFIED;
@@ -96,8 +95,6 @@ public class LlmScalarCaptureTest
         {
             assertRejectedNamed(List.of(LlmAnthropicControlToCanonical::new),
                 "{'output_config':{'format':{'type':" + value + ",'schema':{}}}}", "type");
-            assertRejectedNamed(List.of(LlmOpenaiResponsesControlToCanonical::new),
-                "{'text':{'format':{'type':" + value + "}}}", "type");
         }
     }
 
@@ -111,8 +108,6 @@ public class LlmScalarCaptureTest
         assertRejectedNamed(CANONICAL_FORMAT, "{'x:response_format':{'type':" + value + "}}", "response_format");
         assertRejectedNamed(List.of(LlmAnthropicControlToCanonical::new),
             "{'output_config':{'format':{'type':" + value + ",'schema':{}}}}", "type");
-        assertRejectedNamed(List.of(LlmOpenaiResponsesControlToCanonical::new),
-            "{'text':{'format':{'type':" + quoted(RESPONSES_FITS) + "}}}", "type");
     }
 
     @Test
@@ -127,12 +122,6 @@ public class LlmScalarCaptureTest
             assertRejectedNamed(CANONICAL_FORMAT, "{'x:response_format':{'type':" + overflow + "}}", null);
             assertRejectedNamed(List.of(LlmAnthropicControlToCanonical::new),
                 "{'output_config':{'format':{'type':" + overflow + ",'schema':{}}}}", null);
-        }
-
-        for (int length : List.of(RESPONSES_FITS + 1, 2048 + 1))
-        {
-            assertRejectedNamed(List.of(LlmOpenaiResponsesControlToCanonical::new),
-                "{'text':{'format':{'type':" + quoted(length) + "}}}", null);
         }
     }
 

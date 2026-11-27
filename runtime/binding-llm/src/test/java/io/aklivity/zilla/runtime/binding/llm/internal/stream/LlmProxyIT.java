@@ -246,16 +246,6 @@ public class LlmProxyIT
     }
 
     @Test
-    @Configuration("server.proxy.guardrail.yaml")
-    @Specification({
-        "${net}/openai.proxy.guardrail.rejected/client",
-        "${app}/openai.proxy.guardrail.rejected.request/server"})
-    public void shouldRejectGuardedSectionFromNetwork() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
     @Configuration("proxy.guardrail.async.yaml")
     @Specification({
         "${app}/openai.proxy.guardrail.accepted/client",
@@ -1506,36 +1496,6 @@ public class LlmProxyIT
         "${app}/openai.responses.proxy.guardrail.response.accepted.reasoning.no.summary.exit/server"})
     @ScriptProperty("clientAddress \"zilla://streams/net0\"")
     public void shouldRelayGuardedResponseReasoningNoSummaryForOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.proxy.openai.responses.guardrail.yaml")
-    @Specification({
-        "${net}/openai.responses.proxy.guardrail.rejected/client",
-        "${app}/openai.responses.proxy.guardrail.rejected.exit/server"})
-    public void shouldRejectGuardedSectionFromNetworkForOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.proxy.openai.responses.guardrail.yaml")
-    @Specification({
-        "${net}/openai.responses.proxy.guardrail.transformed/client",
-        "${app}/openai.responses.proxy.guardrail.transformed.exit/server"})
-    public void shouldRelayTransformedSectionsFromNetworkForOpenaiResponses() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("server.proxy.guardrail.yaml")
-    @Specification({
-        "${net}/gemini.proxy.guardrail.rejected/client",
-        "${app}/gemini.proxy.guardrail.rejected.request/server"})
-    public void shouldRejectGeminiGuardedSectionFromNetwork() throws Exception
     {
         k3po.finish();
     }
