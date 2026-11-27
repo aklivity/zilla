@@ -54,6 +54,7 @@ public class KafkaConfigurationTest
     public static final String KAFKA_CLIENT_PRODUCE_MAX_REQUEST_MILLIS_NAME =
             "zilla.binding.kafka.client.produce.max.request.millis";
     public static final String KAFKA_CLIENT_PRODUCE_MAX_BYTES_NAME = "zilla.binding.kafka.client.produce.max.bytes";
+    public static final String KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT_NAME = "zilla.binding.kafka.client.produce.max.in.flight";
     public static final String KAFKA_CLIENT_CONNECTION_POOL_CLEANUP_MILLIS_NAME =
         "zilla.binding.kafka.client.connection.pool.cleanup.millis";
     public static final String KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME = "zilla.binding.kafka.cache.server.reconnect";

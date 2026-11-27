@@ -247,6 +247,24 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${net}/message.values.producer.id.pipelined/client",
+        "${net}/message.values.producer.id.pipelined/server"})
+    public void shouldSendMessageValuesWithProducerIdPipelined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/message.values.producer.id.pipelined.error/client",
+        "${net}/message.values.producer.id.pipelined.error/server"})
+    public void shouldRejectMessageValuesWithProducerIdPipelinedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/message.values.producer.id.replay/client",
         "${net}/message.values.producer.id.replay/server"})
     public void shouldReplyMessageValuesWithProducerId() throws Exception

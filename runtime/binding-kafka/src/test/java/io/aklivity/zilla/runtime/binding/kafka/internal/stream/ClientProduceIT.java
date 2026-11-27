@@ -278,6 +278,28 @@ public class ClientProduceIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/message.values.producer.id.pipelined/client",
+        "${net}/message.values.producer.id.pipelined/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT_NAME, value = "2")
+    public void shouldSendMessageValuesWithProducerIdPipelined() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
+        "${app}/message.values.producer.id.pipelined.error/client",
+        "${net}/message.values.producer.id.pipelined.error/server"})
+    @Configure(name = KafkaConfigurationTest.KAFKA_CLIENT_PRODUCE_MAX_IN_FLIGHT_NAME, value = "3")
+    public void shouldRejectMessageValuesWithProducerIdPipelinedError() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/message.value/client",
         "${net}/message.value/server"})
     public void shouldSendMessageValue() throws Exception
