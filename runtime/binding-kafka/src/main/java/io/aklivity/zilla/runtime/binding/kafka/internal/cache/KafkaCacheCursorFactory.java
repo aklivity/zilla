@@ -127,8 +127,9 @@ public final class KafkaCacheCursorFactory
                 KafkaCacheSegment newSegment = null;
                 while (newSegment == null)
                 {
-                    newSegment = segmentNode.segment().acquire();
-                    if (newSegment == null)
+                    final KafkaCacheSegment candidate = segmentNode.segment();
+                    newSegment = candidate.acquire();
+                    if (newSegment == null && segmentNode.segment() == candidate)
                     {
                         segmentNode = segmentNode.next();
                     }
@@ -171,8 +172,9 @@ public final class KafkaCacheCursorFactory
                     KafkaCacheSegment newSegment;
                     do
                     {
-                        newSegment = segmentNext.segment().acquire();
-                        if (newSegment == null)
+                        final KafkaCacheSegment candidate = segmentNext.segment();
+                        newSegment = candidate.acquire();
+                        if (newSegment == null && segmentNext.segment() == candidate)
                         {
                             segmentNext = segmentNext.next();
                         }
@@ -317,8 +319,9 @@ public final class KafkaCacheCursorFactory
                     newSegment = newSegment.acquire();
                     while (newSegment == null)
                     {
-                        newSegment = newSegmentNode.segment().acquire();
-                        if (newSegment == null)
+                        final KafkaCacheSegment candidate = newSegmentNode.segment();
+                        newSegment = candidate.acquire();
+                        if (newSegment == null && newSegmentNode.segment() == candidate)
                         {
                             newSegmentNode = newSegmentNode.next();
                         }

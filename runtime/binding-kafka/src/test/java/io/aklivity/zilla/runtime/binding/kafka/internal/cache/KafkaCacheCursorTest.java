@@ -24,6 +24,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.agrona.collections.MutableInteger;
 import org.junit.Rule;
@@ -137,6 +138,58 @@ public class KafkaCacheCursorTest
 
             partition.deleteAll();
         }
+    }
+
+    @Test(timeout = 60_000L)
+    public void shouldNeverSkipSegmentNodeWhileItsSegmentIsReplaced() throws Exception
+    {
+        final int swaps = 1_000;
+        final KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = 4096;
+        config.segmentIndexBytes = 4096;
+        final MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocateDirect(4096));
+        final KafkaCachePartition partition =
+            new KafkaCachePartition(Clock.systemUTC(), tempFolder.newFolder().toPath(), config, "cache", "test", 0, 65536,
+                long[]::new);
+        final Node replaced = partition.append(0L);
+        final Node following = partition.append(1_000_000L);
+
+        final List<KafkaCacheSegment> replacements = new ArrayList<>();
+        for (int i = 0; i < swaps; i++)
+        {
+            replacements.add(new KafkaCacheSegment(Clock.systemUTC(), tempFolder.newFolder().toPath(), config, "test", 0, 0L,
+                appendBuf, long[]::new));
+        }
+
+        final AtomicBoolean done = new AtomicBoolean();
+        final Thread swapper = new Thread(() ->
+        {
+            for (KafkaCacheSegment replacement : replacements)
+            {
+                replaced.segment(replacement);
+            }
+            done.set(true);
+        });
+
+        final KafkaFilterCondition condition = cursorFactory.asCondition(newFilters(new ArrayList<>()), KafkaEvaluation.EAGER);
+        long skipped = 0L;
+        long cursors = 0L;
+        swapper.start();
+        while (!done.get())
+        {
+            final KafkaCacheCursor cursor = cursorFactory.newCursor(condition, KafkaDeltaType.NONE);
+            cursor.init(replaced, 0L, -1L);
+            skipped += following.segment().references() > 1 ? 1 : 0;
+            cursors++;
+            cursor.close();
+        }
+        swapper.join(10_000L);
+
+        System.out.printf("CURSOR cursors=%d skipped=%d%n", cursors, skipped);
+        assertEquals(0L, skipped);
+
+        replaced.segment().close();
+        following.segment().close();
     }
 
     private void appendEntry(
