@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.a2a.internal;
 
+import java.util.List;
+
 import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
@@ -23,6 +25,7 @@ import jakarta.json.JsonString;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfig;
 import io.aklivity.zilla.config.binding.a2a.A2aOptionsConfigBuilder;
 import io.aklivity.zilla.config.engine.ConfigAdapter;
+import io.aklivity.zilla.config.engine.ConfigExtAdapter;
 import io.aklivity.zilla.config.engine.OptionsConfig;
 
 public final class A2aOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, JsonObject>
@@ -40,8 +43,19 @@ public final class A2aOptionsConfigAdapter extends ConfigAdapter<OptionsConfig, 
     private final A2aAuthorizationConfigAdapter authorization =
         new A2aAuthorizationConfigAdapter(AUTHORIZATION_CREDENTIALS_DEFAULT);
     private final A2aCacheConfigAdapter cache = new A2aCacheConfigAdapter();
-    private final A2aDiscoveryConfigAdapter discovery = new A2aDiscoveryConfigAdapter();
+    private final A2aDiscoveryConfigAdapter discovery;
     private final A2aProxyPushConfigAdapter proxyPush = new A2aProxyPushConfigAdapter();
+
+    public A2aOptionsConfigAdapter()
+    {
+        this(List.of());
+    }
+
+    public A2aOptionsConfigAdapter(
+        List<ConfigExtAdapter<OptionsConfig>> extensions)
+    {
+        this.discovery = new A2aDiscoveryConfigAdapter(extensions);
+    }
 
     @Override
     public JsonObject adaptToJson(

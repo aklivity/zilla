@@ -116,6 +116,42 @@ public class A2aAgentCacheTest
     }
 
     @Test
+    public void shouldAdvanceRevisionWhenCardAdopted()
+    {
+        final A2aAgentCache cache = cache(Duration.ofMinutes(5));
+        final long before = cache.revision();
+
+        cache.start();
+
+        assertThat(cache.revision() > before, equalTo(true));
+    }
+
+    @Test
+    public void shouldBeReadyOnceEveryCardSettled()
+    {
+        final A2aAgentCache cache = cache(Duration.ofMinutes(5));
+        final List<String> ready = new ArrayList<>();
+
+        cache.ready(() -> ready.add("ready"));
+
+        assertThat(hydrated, contains("weather"));
+        assertThat(ready, hasSize(1));
+    }
+
+    @Test
+    public void shouldBeReadyWithoutHydratingWhenFresh()
+    {
+        final A2aAgentCache cache = cache(Duration.ofMinutes(5));
+        cache.start();
+        final List<String> ready = new ArrayList<>();
+
+        cache.ready(() -> ready.add("ready"));
+
+        assertThat(hydrated, hasSize(1));
+        assertThat(ready, hasSize(1));
+    }
+
+    @Test
     public void shouldNotRefreshBeforeTtl()
     {
         final A2aAgentCache cache = cache(Duration.ofMinutes(5));

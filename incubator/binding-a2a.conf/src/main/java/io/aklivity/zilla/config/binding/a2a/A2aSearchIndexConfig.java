@@ -14,6 +14,8 @@
  */
 package io.aklivity.zilla.config.binding.a2a;
 
+import java.util.List;
+
 import io.aklivity.zilla.config.engine.Config;
 
 public abstract class A2aSearchIndexConfig extends Config
@@ -24,5 +26,10 @@ public abstract class A2aSearchIndexConfig extends Config
         String type)
     {
         this.type = type;
+    }
+
+    public List<Config.Reference> refs()
+    {
+        return List.of();
     }
 }
