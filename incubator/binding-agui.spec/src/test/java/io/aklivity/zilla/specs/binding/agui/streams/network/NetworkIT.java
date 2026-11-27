@@ -47,6 +47,15 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/run.client.routed/client",
+        "${net}/run.client.routed/server"})
+    public void shouldRunClientRouted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/run.text.chunks/client",
         "${net}/run.text.chunks/server"})
     public void shouldRunTextChunks() throws Exception

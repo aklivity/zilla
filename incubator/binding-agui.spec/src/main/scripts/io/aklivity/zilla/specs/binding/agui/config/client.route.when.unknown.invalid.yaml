@@ -26,3 +26,5 @@ bindings:
       - exit: net1
         when:
           - path: /agent
+        with:
+          path: /routed
