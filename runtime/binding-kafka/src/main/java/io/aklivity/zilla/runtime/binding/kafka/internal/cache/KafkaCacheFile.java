@@ -22,6 +22,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -85,7 +86,23 @@ public class KafkaCacheFile implements AutoCloseable
         this.location = location;
         this.mappedByteBuf = mapCreateAppend(location, capacity);
         this.mappedBuf = new UnsafeBufferEx(mappedByteBuf);
-        this.appender = openAppender(location);
+        this.appender = openAppender(location, mappedByteBuf);
+        this.appendBuf = requireNonNull(appendBuf);
+        this.appendByteBuf = requireNonNull(appendBuf.byteBuffer());
+        this.capacity = 0;
+        this.maxCapacity = capacity;
+    }
+
+    KafkaCacheFile(
+        Path location,
+        int capacity,
+        MutableDirectBufferEx appendBuf,
+        FileChannel appender)
+    {
+        this.location = location;
+        this.mappedByteBuf = mapCreateAppend(location, capacity);
+        this.mappedBuf = new UnsafeBufferEx(mappedByteBuf);
+        this.appender = appender;
         this.appendBuf = requireNonNull(appendBuf);
         this.appendByteBuf = requireNonNull(appendBuf.byteBuffer());
         this.capacity = 0;
@@ -199,6 +216,12 @@ public class KafkaCacheFile implements AutoCloseable
         mappedBuf.putInt(position, value);
     }
 
+    public boolean reserve(
+        int length)
+    {
+        return length <= available() && tryExtend(capacity + length);
+    }
+
     public void advance(
         int position)
     {
@@ -229,11 +252,10 @@ public class KafkaCacheFile implements AutoCloseable
         int srcIndex,
         int length)
     {
-        final boolean writable = available() >= length;
+        final boolean writable = available() >= length && tryExtend(capacity + length);
 
         if (writable)
         {
-            extend(capacity + length);
             mappedBuf.putBytes(capacity, srcBuffer, srcIndex, length);
             capacity += length;
         }
@@ -244,11 +266,10 @@ public class KafkaCacheFile implements AutoCloseable
     public boolean appendLong(
         long value)
     {
-        final boolean writable = available() >= Long.BYTES;
+        final boolean writable = available() >= Long.BYTES && tryExtend(capacity + Long.BYTES);
 
         if (writable)
         {
-            extend(capacity + Long.BYTES);
             mappedBuf.putLong(capacity, value);
             capacity += Long.BYTES;
         }
@@ -259,11 +280,10 @@ public class KafkaCacheFile implements AutoCloseable
     public boolean appendInt(
         int value)
     {
-        final boolean writable = available() >= Integer.BYTES;
+        final boolean writable = available() >= Integer.BYTES && tryExtend(capacity + Integer.BYTES);
 
         if (writable)
         {
-            extend(capacity + Integer.BYTES);
             mappedBuf.putInt(capacity, value);
             capacity += Integer.BYTES;
         }
@@ -324,6 +344,36 @@ public class KafkaCacheFile implements AutoCloseable
     private void extend(
         int end)
     {
+        try
+        {
+            extendZeroFill(end);
+        }
+        catch (IOException ex)
+        {
+            LangUtil.rethrowUnchecked(ex);
+        }
+    }
+
+    private boolean tryExtend(
+        int end)
+    {
+        boolean extended = true;
+
+        try
+        {
+            extendZeroFill(end);
+        }
+        catch (IOException ex)
+        {
+            extended = false;
+        }
+
+        return extended;
+    }
+
+    private void extendZeroFill(
+        int end) throws IOException
+    {
         if (end > extent)
         {
             final int step = appendBuf.capacity();
@@ -331,27 +381,20 @@ public class KafkaCacheFile implements AutoCloseable
 
             appendBuf.setMemory(0, step, (byte) 0);
 
-            try
+            while (extent < target)
             {
-                while (extent < target)
+                final int length = Math.min(target - extent, step);
+                appendByteBuf.clear();
+                appendByteBuf.limit(length);
+
+                int written = 0;
+                while (written < length)
                 {
-                    final int length = Math.min(target - extent, step);
-                    appendByteBuf.clear();
-                    appendByteBuf.limit(length);
-
-                    int written = 0;
-                    while (written < length)
-                    {
-                        written += appender.write(appendByteBuf);
-                        appendCount++;
-                    }
-
-                    extent += length;
+                    written += appender.write(appendByteBuf);
+                    appendCount++;
                 }
-            }
-            catch (IOException ex)
-            {
-                LangUtil.rethrowUnchecked(ex);
+
+                extent += length;
             }
         }
     }
@@ -371,7 +414,8 @@ public class KafkaCacheFile implements AutoCloseable
         }
         catch (IOException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            IoUtil.delete(file.toFile(), true);
+            throw new UncheckedIOException(ex);
         }
 
         assert mapped != null;
@@ -397,7 +441,8 @@ public class KafkaCacheFile implements AutoCloseable
     }
 
     private static FileChannel openAppender(
-        Path file)
+        Path file,
+        MappedByteBuffer mapped)
     {
         FileChannel channel = null;
 
@@ -407,7 +452,9 @@ public class KafkaCacheFile implements AutoCloseable
         }
         catch (IOException ex)
         {
-            LangUtil.rethrowUnchecked(ex);
+            IoUtil.unmap(mapped);
+            IoUtil.delete(file.toFile(), true);
+            throw new UncheckedIOException(ex);
         }
 
         assert channel != null;
