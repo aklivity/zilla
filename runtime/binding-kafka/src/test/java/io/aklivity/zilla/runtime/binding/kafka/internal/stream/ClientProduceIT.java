@@ -268,6 +268,16 @@ public class ClientProduceIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/message.values.producer.id.changes/client",
+        "${net}/message.values.producer.id.acknowledged/server"})
+    public void shouldSendMessageValuesWithProducerIdAcknowledged() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/message.value/client",
         "${net}/message.value/server"})
     public void shouldSendMessageValue() throws Exception

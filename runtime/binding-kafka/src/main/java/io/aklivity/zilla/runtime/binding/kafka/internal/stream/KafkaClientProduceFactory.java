@@ -2067,7 +2067,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert flushableRequestBytes == 0;
                 flushableRequestBytes = requestSize + FIELD_OFFSET_API_KEY;
                 encodedAckMode = encodeableAckMode;
-                encodeableAckMode = KafkaAckMode.NONE;
 
                 requestHeaderRW.wrap(encodeBuffer, requestHeader.offset(), requestHeader.limit())
                         .length(requestSize)
@@ -2494,6 +2493,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotOffset = 0;
                     encodeSlotLimit = 0;
                     encodeSlotTraceId = 0;
+                    encodeableAckMode = KafkaAckMode.NONE;
                 }
             }
         }
