@@ -39,6 +39,7 @@ import static java.util.Objects.requireNonNull;
 import static org.agrona.BitUtil.SIZE_OF_INT;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -155,6 +156,7 @@ public final class KafkaCachePartition
 
     private KafkaCacheEntryFW ancestorEntry;
     private final AtomicLong produceCapacity;
+    private final long maxProduceCapacity;
     private final KafkaCacheDoorbell replyDoorbell = new KafkaCacheDoorbell();
     private final KafkaCacheAckRecord ackRecord = new KafkaCacheAckRecord();
     private volatile long committedOffset = -1L;
@@ -184,6 +186,7 @@ public final class KafkaCachePartition
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
         this.produceCapacity = new AtomicLong(0);
+        this.maxProduceCapacity = Long.MAX_VALUE;
     }
 
     public KafkaCachePartition(
@@ -211,6 +214,7 @@ public final class KafkaCachePartition
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
         this.produceCapacity = new AtomicLong(0);
+        this.maxProduceCapacity = Long.MAX_VALUE;
     }
 
     public KafkaCachePartition(
@@ -231,6 +235,7 @@ public final class KafkaCachePartition
         this.config = config;
         this.cache = cache;
         this.produceCapacity = produceCapacity;
+        this.maxProduceCapacity = maxProduceCapacity;
         this.topic = topic;
         this.id = id;
         this.appendBuf = new UnsafeBufferEx(allocateDirect(appendCapacity));
@@ -417,8 +422,84 @@ public final class KafkaCachePartition
         final int hashHeadersMax = headersSizeMax + trailersSizeMax;
 
         return fitsFreshSegment(key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
-            ? rollHeadIfNecessary(offset, key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
+            ? rollProduceHeadIfNecessary(offset, key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
             : null;
+    }
+
+    public boolean fitsProduceSegment(
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int headersSizeMax,
+        int trailersSizeMax)
+    {
+        final int logHeadersMax = headersSizeMax + produceTrailersClaimMax(trailersSizeMax);
+        final int hashHeadersMax = headersSizeMax + trailersSizeMax;
+
+        return fitsFreshSegment(key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax);
+    }
+
+    private Node rollProduceHeadIfNecessary(
+        long offset,
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int logHeadersMax,
+        int hashHeadersMax)
+    {
+        final int logRequired = logRequired(key, valueLength, valuePaddingMax, logHeadersMax);
+        final int hashRequiredMax = hashRequiredMax(key, hashHeadersMax);
+
+        Node head = sentinel.previous;
+
+        if (head == sentinel || !fits(head.segment, logRequired, hashRequiredMax))
+        {
+            head = appendProduceHead(offset);
+        }
+
+        return head != null && reserve(head.segment, logRequired, hashRequiredMax) ? head : null;
+    }
+
+    private Node appendProduceHead(
+        long offset)
+    {
+        Node head = null;
+
+        if (produceCapacity.get() < maxProduceCapacity)
+        {
+            try
+            {
+                head = append(offset);
+            }
+            catch (UncheckedIOException ex)
+            {
+                // the segment removed whatever it created, the head is unchanged and the next write retries
+            }
+        }
+
+        return head;
+    }
+
+    private static boolean fits(
+        KafkaCacheSegment segment,
+        int logRequired,
+        int hashRequiredMax)
+    {
+        return segment.logFile().available() >= logRequired &&
+            segment.indexFile().available() >= SIZEOF_INDEX_RECORD &&
+            segment.hashFile().available() >= hashRequiredMax &&
+            segment.nullsFile().available() >= SIZEOF_INDEX_RECORD;
+    }
+
+    private static boolean reserve(
+        KafkaCacheSegment segment,
+        int logRequired,
+        int hashRequiredMax)
+    {
+        return segment.logFile().reserve(logRequired) &&
+            segment.indexFile().reserve(SIZEOF_INDEX_RECORD) &&
+            segment.hashFile().reserve(hashRequiredMax) &&
+            segment.nullsFile().reserve(SIZEOF_INDEX_RECORD);
     }
 
     private boolean fitsFreshSegment(

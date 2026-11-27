@@ -335,6 +335,18 @@ public class KafkaCachePartitionTest
             produceCapacity, Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
     }
 
+    private KafkaCachePartition newProducePartition(
+        Path location,
+        int segmentBytes,
+        AtomicLong produceCapacity,
+        long maxProduceCapacity) throws Exception
+    {
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = segmentBytes;
+        return new KafkaCachePartition(Clock.systemUTC(), location, config, "cache",
+            produceCapacity, maxProduceCapacity, "test", 0, 65536, long[]::new, 0);
+    }
+
     private void assertProduceEntriesReadableAcrossRolls(
         KafkaKeyFW key,
         Array32FW<KafkaHeaderFW> headers,
@@ -390,6 +402,73 @@ public class KafkaCachePartitionTest
         assertNull(head);
         assertTrue(partition.head().sentinel());
         assertEquals(0L, produceCapacity.get());
+    }
+
+    @Test
+    public void shouldNotCreateProduceHeadWhenProduceCapacityExhausted() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong(1024L);
+        KafkaCachePartition partition = newProducePartition(tempFolder.newFolder().toPath(), 1024, produceCapacity, 1024L);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+
+        assertNull(head);
+        assertTrue(partition.head().sentinel());
+        assertEquals(1024L, produceCapacity.get());
+    }
+
+    @Test
+    public void shouldRollProduceHeadOnlyWhileProduceCapacityRemains() throws Exception
+    {
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCachePartition partition = newProducePartition(tempFolder.newFolder().toPath(), 4096, produceCapacity, 8192L);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        Node first = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+        first.segment().logFile().appendBytes(new UnsafeBufferEx(new byte[3500]));
+
+        Node second = partition.newProduceHeadIfNecessary(1L, key, 1000, 0, headers.sizeof(), 256);
+        second.segment().logFile().appendBytes(new UnsafeBufferEx(new byte[3500]));
+        Node third = partition.newProduceHeadIfNecessary(2L, key, 1000, 0, headers.sizeof(), 256);
+
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNotSame(first, second);
+        assertNull(third);
+        assertSame(second, partition.head());
+        assertEquals(8192L, produceCapacity.get());
+    }
+
+    @Test
+    public void shouldRejectProduceHeadWhenSegmentCannotBeCreatedThenRecover() throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        AtomicLong produceCapacity = new AtomicLong();
+        KafkaCachePartition partition = newProducePartition(location, 4096, produceCapacity, Long.MAX_VALUE);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+        Path directory = KafkaCachePartition.produceDirectory(location, "test", 0, 0);
+        Files.delete(directory);
+        Files.createFile(directory);
+
+        Node rejected = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+
+        assertNull(rejected);
+        assertTrue(partition.head().sentinel());
+        assertEquals(0L, produceCapacity.get());
+
+        Files.delete(directory);
+        Files.createDirectory(directory);
+
+        Node recovered = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+
+        assertNotNull(recovered);
+        assertEquals(4096L, produceCapacity.get());
     }
 
     @Test

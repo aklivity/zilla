@@ -19,11 +19,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,6 +55,55 @@ public class KafkaCacheFileTest
             byte[] appended = new byte[file.capacity()];
             file.buffer().getBytes(0, appended);
             assertEquals("Hello, world", new String(appended, UTF_8));
+        }
+    }
+
+    @Test
+    public void shouldReserveBytesWithoutAdvancingCapacity() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, 4096, appendBuf))
+        {
+            assertTrue(file.reserve(100));
+            final int reservedWrites = file.appendCount();
+
+            assertEquals(0, file.capacity());
+            assertTrue(file.appendBytes(new UnsafeBufferEx("Hello, world".getBytes(UTF_8))));
+            assertEquals(reservedWrites, file.appendCount());
+            assertEquals(12, file.capacity());
+        }
+    }
+
+    @Test
+    public void shouldNotReserveBytesBeyondMaxCapacity() throws Exception
+    {
+        Path location = tempFolder.newFile().toPath();
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+
+        try (KafkaCacheFile file = new KafkaCacheFile(location, 64, appendBuf))
+        {
+            assertFalse(file.reserve(65));
+            assertEquals(0, file.capacity());
+        }
+    }
+
+    @Test
+    public void shouldNotReserveBytesWhenFileSystemIsFull() throws Exception
+    {
+        Path full = Path.of("/dev/full");
+        assumeTrue(Files.exists(full));
+        Path location = tempFolder.newFile().toPath();
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocate(1024));
+
+        try (FileChannel appender = FileChannel.open(full, StandardOpenOption.WRITE);
+             KafkaCacheFile file = new KafkaCacheFile(location, 4096, appendBuf, appender))
+        {
+            assertFalse(file.reserve(100));
+            assertEquals(0, file.capacity());
+            assertFalse(file.appendBytes(new UnsafeBufferEx("Hello, world".getBytes(UTF_8))));
+            assertEquals(0, file.capacity());
         }
     }
 

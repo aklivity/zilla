@@ -118,6 +118,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final int PRODUCE_API_VERSION = 3;
 
     private static final int ERROR_RECORD_LIST_TOO_LARGE = 18;
+    private static final int ERROR_KAFKA_STORAGE_ERROR = 56;
     private static final int NO_ERROR = -1;
     private static final int UNKNOWN_ERROR = -2;
     private static final int ERROR_INVALID_RECORD = 87;
@@ -788,7 +789,8 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
                 else
                 {
-                    error = ERROR_RECORD_LIST_TOO_LARGE;
+                    error = partition.fitsProduceSegment(key, valueLength, stream.valuePaddingMax, headers.sizeof(),
+                        trailersSizeMax) ? ERROR_KAFKA_STORAGE_ERROR : ERROR_RECORD_LIST_TOO_LARGE;
                 }
             }
 
@@ -842,14 +844,14 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 markEntryAborted(stream.partitionOffset);
             }
 
+            creditor.credit(traceId, partitionIndex, reserved);
+
             if (error != NO_ERROR)
             {
                 event.produceError(traceId, originId, PRODUCE_API_KEY, PRODUCE_API_VERSION, error, topicName);
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
-
-            creditor.credit(traceId, partitionIndex, reserved);
         }
 
         private void onClientInitialFlush(
@@ -893,9 +895,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
             else
             {
-                error = ERROR_RECORD_LIST_TOO_LARGE;
+                error = partition.fitsProduceSegment(EMPTY_KEY, 0, valuePaddingMax, EMPTY_TRAILERS.sizeof(), trailersSizeMax)
+                    ? ERROR_KAFKA_STORAGE_ERROR : ERROR_RECORD_LIST_TOO_LARGE;
                 markEntryAborted(stream.partitionOffset);
             }
+
+            creditor.credit(traceId, partitionIndex, reserved);
 
             if (error != NO_ERROR)
             {
@@ -903,7 +908,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 stream.cleanupClient(traceId, error);
                 onClientFanMemberClosed(traceId, stream);
             }
-            creditor.credit(traceId, partitionIndex, reserved);
         }
 
         private void flushClientFanInitialIfNecessary(

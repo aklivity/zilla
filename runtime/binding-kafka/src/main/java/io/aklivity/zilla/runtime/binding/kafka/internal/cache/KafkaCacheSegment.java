@@ -18,9 +18,12 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.ADVISORY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType.AUTHORITATIVE;
 
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.function.IntFunction;
+
+import org.agrona.IoUtil;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetType;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaTimestampType;
@@ -87,12 +90,50 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         this.baseOffset = baseOffset;
         this.lastOffset = OFFSET_LIVE;
         this.timestamp = clock.millis();
-        this.logFile = new KafkaCacheFile.Log(location, baseOffset, config.effectiveSegmentBytes(), appendBuf);
-        this.deltaFile = new KafkaCacheFile.Delta(location, baseOffset, config.effectiveSegmentBytes(), appendBuf);
-        this.indexFile = new KafkaCacheFile.Index(location, baseOffset, config.segmentIndexBytes, appendBuf);
-        this.hashFile = new KafkaCacheFile.HashScan(location, baseOffset, config.segmentIndexBytes, appendBuf, sortSpaceRef);
-        this.keysFile = new KafkaCacheFile.KeysScan(location, baseOffset, config.segmentIndexBytes, appendBuf, sortSpaceRef);
-        this.nullsFile = new KafkaCacheFile.NullsScan(location, baseOffset, config.segmentIndexBytes, appendBuf, sortSpaceRef);
+
+        final int segmentBytes = config.effectiveSegmentBytes();
+        final int indexBytes = config.segmentIndexBytes;
+        KafkaCacheFile log = null;
+        KafkaCacheFile delta = null;
+        KafkaCacheIndexFile index = null;
+        KafkaCacheIndexFile hash = null;
+        KafkaCacheIndexFile keys = null;
+        KafkaCacheIndexFile nulls = null;
+
+        try
+        {
+            log = new KafkaCacheFile.Log(location, baseOffset, segmentBytes, appendBuf);
+            delta = new KafkaCacheFile.Delta(location, baseOffset, segmentBytes, appendBuf);
+            index = new KafkaCacheFile.Index(location, baseOffset, indexBytes, appendBuf);
+            hash = new KafkaCacheFile.HashScan(location, baseOffset, indexBytes, appendBuf, sortSpaceRef);
+            keys = new KafkaCacheFile.KeysScan(location, baseOffset, indexBytes, appendBuf, sortSpaceRef);
+            nulls = new KafkaCacheFile.NullsScan(location, baseOffset, indexBytes, appendBuf, sortSpaceRef);
+        }
+        catch (UncheckedIOException ex)
+        {
+            discard(log, delta, index, hash, keys, nulls);
+            throw ex;
+        }
+
+        this.logFile = log;
+        this.deltaFile = delta;
+        this.indexFile = index;
+        this.hashFile = hash;
+        this.keysFile = keys;
+        this.nullsFile = nulls;
+    }
+
+    private static void discard(
+        KafkaCacheFile... files)
+    {
+        for (KafkaCacheFile file : files)
+        {
+            if (file != null)
+            {
+                file.close();
+                IoUtil.delete(file.location().toFile(), true);
+            }
+        }
     }
 
     public KafkaCacheSegment(

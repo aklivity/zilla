@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_CAPACITY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_DIRECTORY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_SEGMENT_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES;
@@ -84,6 +85,7 @@ public class KafkaConfigurationTest
         "zilla.binding.kafka.cache.server.share.lock.margin.percent";
 
     public static final String KAFKA_CACHE_PRODUCE_DIRECTORY_NAME = "zilla.binding.kafka.cache.produce.directory";
+    public static final String KAFKA_CACHE_PRODUCE_CAPACITY_NAME = "zilla.binding.kafka.cache.produce.capacity";
     public static final String KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME = "zilla.binding.kafka.cache.produce.segment.bytes";
     public static final String KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME = "zilla.binding.kafka.cache.max.message.bytes";
     public static final String KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES_NAME =
@@ -105,6 +107,7 @@ public class KafkaConfigurationTest
         assertEquals(KAFKA_CLIENT_SASL_SCRAM_NONCE.name(), KAFKA_CLIENT_SASL_SCRAM_NONCE_NAME);
         assertEquals(KAFKA_CLIENT_INSTANCE_ID.name(), KAFKA_CLIENT_INSTANCE_ID_NAME);
         assertEquals(KAFKA_CACHE_PRODUCE_DIRECTORY.name(), KAFKA_CACHE_PRODUCE_DIRECTORY_NAME);
+        assertEquals(KAFKA_CACHE_PRODUCE_CAPACITY.name(), KAFKA_CACHE_PRODUCE_CAPACITY_NAME);
         assertEquals(KAFKA_CACHE_PRODUCE_SEGMENT_BYTES.name(), KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME);
         assertEquals(KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES.name(), KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES_NAME);
         assertEquals(KAFKA_CACHE_RETENTION_MILLIS_MAX.name(), KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME);
