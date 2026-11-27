@@ -26,6 +26,7 @@ import java.util.function.LongUnaryOperator;
 
 import org.agrona.collections.Long2ObjectHashMap;
 
+import io.aklivity.zilla.config.binding.agui.a2a.AguiA2aOptionsConfig;
 import io.aklivity.zilla.config.engine.BindingConfig;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.AguiA2aConfiguration;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.card.AguiA2aAgentCard;
@@ -56,6 +57,7 @@ import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aHandleTa
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aKeyHash;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aLocalOwnerState;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aOwnerState;
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aStoredOwnerState;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.state.AguiA2aThreadKey;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.Flyweight;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.OctetsFW;
@@ -158,7 +160,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
     private final LongUnaryOperator supplyReplyId;
     private final Long2ObjectHashMap<AguiA2aBindingConfig> bindings;
     private final AguiA2aEventContext events;
-    private final AguiA2aOwnerState owners;
+    private final AguiA2aLocalOwnerState owners;
     private final int aguiTypeId;
     private final int a2aTypeId;
     private final long affinity;
@@ -198,7 +200,13 @@ public final class AguiA2aProxyFactory implements BindingHandler
     public void attach(
         BindingConfig binding)
     {
-        bindings.put(binding.id, new AguiA2aBindingConfig(binding, context::supplyGuard));
+        final AguiA2aOptionsConfig options = binding.options instanceof AguiA2aOptionsConfig stored ? stored : null;
+        final AguiA2aOwnerState bound = options == null
+            ? owners
+            : new AguiA2aStoredOwnerState(owners, context.supplyStore(binding.resolveId.applyAsLong(options.store)),
+                config.threadTtl(), config.handleTtl());
+
+        bindings.put(binding.id, new AguiA2aBindingConfig(binding, context::supplyGuard, bound));
     }
 
     public void detach(
@@ -627,33 +635,74 @@ public final class AguiA2aProxyFactory implements BindingHandler
             long traceId)
         {
             final AguiA2aRetained retained = requestDecoder.retained();
-            final int resumes = retained.resumeCount();
 
-            boolean cancelled = false;
-            boolean rejected = false;
-
-            if (resumes > 0)
+            if (retained.resumeCount() > 0)
             {
-                for (int index = 0; resumeTaskId == null && index < resumes; index++)
-                {
-                    final String interruptId = retained.resumeInterruptId(index);
-                    final String taskId = owners.resolveHandle(key, AguiA2aHandleKind.INTERRUPT, interruptId);
-
-                    if (taskId != null)
-                    {
-                        resumeTaskId = taskId;
-                        resumeInterruptId = interruptId;
-                        cancelled = retained.resumeStatus(index) == ResumeStatus.CANCELLED;
-                    }
-                }
-
-                rejected = resumeTaskId == null;
+                restoreResume(traceId, 0);
             }
             else
             {
-                rememberedContextId = owners.lookupContext(key);
+                binding.owners.restoreContext(key, () -> onContextRestored(traceId));
             }
+        }
 
+        private void restoreResume(
+            long traceId,
+            int index)
+        {
+            final AguiA2aRetained retained = requestDecoder.retained();
+
+            if (index < retained.resumeCount())
+            {
+                final String interruptId = retained.resumeInterruptId(index);
+
+                binding.owners.restoreHandle(key, AguiA2aHandleKind.INTERRUPT, interruptId,
+                    () -> onResumeRestored(traceId, index));
+            }
+            else
+            {
+                onRequestAccepted(traceId, false, true);
+            }
+        }
+
+        private void onResumeRestored(
+            long traceId,
+            int index)
+        {
+            if (!AguiA2aState.initialClosed(state))
+            {
+                final AguiA2aRetained retained = requestDecoder.retained();
+                final String interruptId = retained.resumeInterruptId(index);
+                final String taskId = binding.owners.resolveHandle(key, AguiA2aHandleKind.INTERRUPT, interruptId);
+
+                if (taskId != null)
+                {
+                    resumeTaskId = taskId;
+                    resumeInterruptId = interruptId;
+                    onRequestAccepted(traceId, retained.resumeStatus(index) == ResumeStatus.CANCELLED, false);
+                }
+                else
+                {
+                    restoreResume(traceId, index + 1);
+                }
+            }
+        }
+
+        private void onContextRestored(
+            long traceId)
+        {
+            if (!AguiA2aState.initialClosed(state))
+            {
+                rememberedContextId = binding.owners.lookupContext(key);
+                onRequestAccepted(traceId, false, false);
+            }
+        }
+
+        private void onRequestAccepted(
+            long traceId,
+            boolean cancelled,
+            boolean rejected)
+        {
             if (rejected)
             {
                 events.handleRejected(traceId, binding.id, agent, CODE_HANDLE_UNKNOWN);
@@ -714,7 +763,53 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 doAguiReset(traceId, STATUS_BAD_GATEWAY, null, null);
                 cleanup(traceId);
             }
-            else if (tools && !resolveToolResults(retained))
+            else if (tools)
+            {
+                restoreToolResults(traceId, card, 0);
+            }
+            else
+            {
+                onToolResultsRestored(traceId, card);
+            }
+        }
+
+        private void restoreToolResults(
+            long traceId,
+            AguiA2aAgentCard card,
+            int index)
+        {
+            final AguiA2aRetained retained = requestDecoder.retained();
+
+            if (index < retained.toolResultCount())
+            {
+                binding.owners.restoreHandle(key, AguiA2aHandleKind.TOOL, retained.toolCallHandle(index),
+                    () -> onToolResultRestored(traceId, card, index));
+            }
+            else
+            {
+                onToolResultsRestored(traceId, card);
+            }
+        }
+
+        private void onToolResultRestored(
+            long traceId,
+            AguiA2aAgentCard card,
+            int index)
+        {
+            if (!AguiA2aState.initialClosed(state))
+            {
+                restoreToolResults(traceId, card, index + 1);
+            }
+        }
+
+        private void onToolResultsRestored(
+            long traceId,
+            AguiA2aAgentCard card)
+        {
+            final AguiA2aRetained retained = requestDecoder.retained();
+            final boolean tools = offered != null && offered.enabled(AguiA2aExtension.FEATURE_TOOLS);
+
+            if (tools && !resolveToolResults(retained))
             {
                 events.handleRejected(traceId, binding.id, agent, CODE_HANDLE_UNKNOWN);
                 doAguiReset(traceId, STATUS_CONFLICT, CODE_HANDLE_UNKNOWN, MESSAGE_TOOL_HANDLE_UNKNOWN);
@@ -784,7 +879,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             for (int index = 0; resolved && index < results; index++)
             {
                 final String handle = retained.toolCallHandle(index);
-                final AguiA2aHandleTarget target = owners.resolveTarget(key, AguiA2aHandleKind.TOOL, handle);
+                final AguiA2aHandleTarget target = binding.owners.resolveTarget(key, AguiA2aHandleKind.TOOL, handle);
 
                 resolved = target != null && (taskId == null || taskId.equals(target.taskId()));
 
@@ -852,7 +947,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 json = snapshotOf(requestDecoder.retained());
             }
 
-            owners.rememberContext(key, contextId);
+            binding.owners.rememberContext(key, contextId);
             releaseRetention();
 
             return json;
@@ -879,7 +974,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             String taskId,
             String callId)
         {
-            return owners.issueHandle(key, AguiA2aHandleKind.TOOL, taskId, callId);
+            return binding.owners.issueHandle(key, AguiA2aHandleKind.TOOL, taskId, callId);
         }
 
         @Override
@@ -887,7 +982,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
             String taskId,
             String contextId)
         {
-            final String handle = owners.issueHandle(key, AguiA2aHandleKind.INTERRUPT, taskId);
+            final String handle = binding.owners.issueHandle(key, AguiA2aHandleKind.INTERRUPT, taskId);
 
             return new InterruptHandle(handle, context.clock().millis() + handleTtlMillis);
         }
