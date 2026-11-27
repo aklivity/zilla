@@ -47,4 +47,5 @@ write flush
 write '{"jsonrpc":"2.0","id":1,"result":{"statusUpdate":{"taskId":"t-1","contextId":"c-1","status":{"state":"TASK_STATE_WORKING"}}}}'
 write flush
 
+write await EVENTS_DELIVERED
 write abort
