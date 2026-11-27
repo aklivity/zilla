@@ -19,11 +19,20 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX_NAME;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_PRODUCE_DIRECTORY_NAME;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfigurationTest.KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Properties;
+import java.util.stream.Stream;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -35,6 +44,7 @@ import org.junit.rules.Timeout;
 import io.aklivity.k3po.runtime.junit.annotation.ScriptProperty;
 import io.aklivity.k3po.runtime.junit.annotation.Specification;
 import io.aklivity.k3po.runtime.junit.rules.K3poRule;
+import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.engine.test.EngineRule;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configuration;
 import io.aklivity.zilla.runtime.engine.test.annotation.Configure;
@@ -261,6 +271,26 @@ public class CacheProduceIT
     public void shouldSendMessageValue() throws Exception
     {
         k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.value/client",
+        "${app}/message.value/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_DIRECTORY_NAME, value = "produce-staging")
+    public void shouldStageProduceInConfiguredDirectory() throws Exception
+    {
+        k3po.finish();
+
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.directory", "target/zilla-itests");
+        properties.setProperty(KAFKA_CACHE_PRODUCE_DIRECTORY_NAME, "produce-staging");
+        KafkaConfiguration config = new KafkaConfiguration(new io.aklivity.zilla.runtime.engine.Configuration(properties));
+
+        assertTrue(hasProduceLog(config.cacheProduceDirectory()));
+        assertFalse(hasProduceLog(config.cacheDirectory()));
     }
 
     @Test
@@ -539,5 +569,20 @@ public class CacheProduceIT
     public void shouldRejectMessageValues() throws Exception
     {
         k3po.finish();
+    }
+
+    private static boolean hasProduceLog(
+        Path directory) throws IOException
+    {
+        boolean found = false;
+        if (Files.exists(directory))
+        {
+            try (Stream<Path> files = Files.walk(directory))
+            {
+                found = files.anyMatch(f -> f.getFileName().toString().endsWith(".log") &&
+                    f.getParent().getFileName().toString().equals("test-0-0"));
+            }
+        }
+        return found;
     }
 }

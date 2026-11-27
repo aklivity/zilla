@@ -112,6 +112,8 @@ public final class KafkaCachePartition
     private static final int SIZEOF_EMPTY_TRAILERS = EMPTY_TRAILERS.sizeof();
 
     private static final int SIZEOF_PADDING_LENGTH = Integer.BYTES;
+    private static final int SIZEOF_ENTRY_INFO = FIELD_OFFSET_PADDED_KEY;
+    private static final int SIZEOF_VALUE_INFO = Integer.BYTES;
 
     private final KafkaCachePaddedKeyFW paddedKeyRO = new KafkaCachePaddedKeyFW();
     private final KafkaCacheEntryFW headEntryRO = new KafkaCacheEntryFW();
@@ -119,8 +121,8 @@ public final class KafkaCachePartition
     private final KafkaCacheEntryFW logEntryRO = new KafkaCacheEntryFW();
     private final KafkaCacheDeltaFW deltaEntryRO = new KafkaCacheDeltaFW();
 
-    private final MutableDirectBufferEx entryInfo = new UnsafeBufferEx(new byte[FIELD_OFFSET_PADDED_KEY]);
-    private final MutableDirectBufferEx valueInfo = new UnsafeBufferEx(new byte[Integer.BYTES]);
+    private final MutableDirectBufferEx entryInfo = new UnsafeBufferEx(new byte[SIZEOF_ENTRY_INFO]);
+    private final MutableDirectBufferEx valueInfo = new UnsafeBufferEx(new byte[SIZEOF_VALUE_INFO]);
     private final MutableInteger entryValueLimit = new MutableInteger(0);
     private final MutableInteger entryHeadersMark = new MutableInteger(0);
 
@@ -225,7 +227,7 @@ public final class KafkaCachePartition
         int index)
     {
         this.clock = clock;
-        this.location = createDirectories(location.resolve(String.format(FORMAT_PRODUCE_PARTITION_DIRECTORY, topic, id, index)));
+        this.location = createDirectories(produceDirectory(location, topic, id, index));
         this.config = config;
         this.cache = cache;
         this.produceCapacity = produceCapacity;
@@ -236,6 +238,15 @@ public final class KafkaCachePartition
         this.sentinel = new Node();
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
+    }
+
+    static Path produceDirectory(
+        Path location,
+        String topic,
+        int id,
+        int index)
+    {
+        return location.resolve(String.format(FORMAT_PRODUCE_PARTITION_DIRECTORY, topic, id, index));
     }
 
     public String cache()
@@ -265,7 +276,21 @@ public final class KafkaCachePartition
 
     public int segmentBytes()
     {
-        return config.segmentBytes;
+        return config.effectiveSegmentBytes();
+    }
+
+    static int produceEntryOverhead(
+        int trailersSizeMax)
+    {
+        return SIZEOF_ENTRY_INFO + SIZEOF_PADDING_LENGTH + SIZEOF_VALUE_INFO + SIZEOF_PADDING_LENGTH +
+            produceTrailersClaimMax(trailersSizeMax);
+    }
+
+    private static int produceTrailersClaimMax(
+        int trailersSizeMax)
+    {
+        // writeProduceEntryStart claims the trailers twice: the merged trailers and the envelope block
+        return trailersSizeMax * 2 + SIZEOF_PADDING_LENGTH;
     }
 
     public long nextOffset(
@@ -283,7 +308,8 @@ public final class KafkaCachePartition
         final Node head = sentinel.previous;
 
         KafkaCacheSegment segment = new KafkaCacheSegment(clock, location, config, topic, id, offset, appendBuf, sortSpaceRef);
-        Node node = new Node(segment);
+        final int segmentBytes = segment.logFile().available();
+        Node node = new Node(segment, segmentBytes);
         node.previous = head;
         node.next = sentinel;
         node.previous.next = node;
@@ -295,7 +321,7 @@ public final class KafkaCachePartition
             head.segment(tail);
         }
 
-        produceCapacity.getAndAdd(segmentBytes());
+        produceCapacity.getAndAdd(segmentBytes);
 
         return node;
     }
@@ -372,10 +398,45 @@ public final class KafkaCachePartition
         int headersSizeMax,
         int trailersSizeMax)
     {
-        // writeProduceEntryStart claims the trailers twice: the merged trailers and the envelope block
-        final int trailersClaimMax = trailersSizeMax * 2 + SIZEOF_PADDING_LENGTH;
-        return rollHeadIfNecessary(offset, key, valueLength, valuePaddingMax, headersSizeMax + trailersClaimMax,
-            headersSizeMax + trailersSizeMax);
+        final int trailersClaimMax = produceTrailersClaimMax(trailersSizeMax);
+        final int logHeadersMax = headersSizeMax + trailersClaimMax;
+        final int hashHeadersMax = headersSizeMax + trailersSizeMax;
+
+        return fitsFreshSegment(key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
+            ? rollHeadIfNecessary(offset, key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
+            : null;
+    }
+
+    private boolean fitsFreshSegment(
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int logHeadersMax,
+        int hashHeadersMax)
+    {
+        final int indexBytes = config.segmentIndexBytes;
+        return logRequired(key, valueLength, valuePaddingMax, logHeadersMax) <= config.effectiveSegmentBytes() &&
+            hashRequiredMax(key, hashHeadersMax) <= indexBytes &&
+            SIZEOF_INDEX_RECORD <= indexBytes;
+    }
+
+    private int logRequired(
+        KafkaKeyFW key,
+        int valueLength,
+        int valuePaddingMax,
+        int logHeadersMax)
+    {
+        return SIZEOF_ENTRY_INFO + key.sizeof() + SIZEOF_PADDING_LENGTH + SIZEOF_VALUE_INFO +
+            Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + logHeadersMax;
+    }
+
+    private int hashRequiredMax(
+        KafkaKeyFW key,
+        int hashHeadersMax)
+    {
+        final int hashKeyRequired = key.length() != -1 ? 1 : 0;
+        final int hashHeaderRequiredMax = hashHeadersMax >> 2;
+        return (hashKeyRequired + hashHeaderRequiredMax) * SIZEOF_INDEX_RECORD;
     }
 
     private Node rollHeadIfNecessary(
@@ -394,11 +455,8 @@ public final class KafkaCachePartition
         }
         else
         {
-            final int logRequired = entryInfo.capacity() + key.sizeof() + SIZEOF_PADDING_LENGTH + valueInfo.capacity() +
-                    Math.max(valueLength, 0) + SIZEOF_PADDING_LENGTH + valuePaddingMax + logHeadersMax;
-            final int hashKeyRequired = key.length() != -1 ? 1 : 0;
-            final int hashHeaderRequiredMax = hashHeadersMax >> 2;
-            final int hashRequiredMax = (hashKeyRequired + hashHeaderRequiredMax) * SIZEOF_INDEX_RECORD;
+            final int logRequired = logRequired(key, valueLength, valuePaddingMax, logHeadersMax);
+            final int hashRequiredMax = hashRequiredMax(key, hashHeadersMax);
 
             KafkaCacheSegment headSegment = head.segment;
             int logRemaining = headSegment.logFile().available();
@@ -1244,20 +1302,24 @@ public final class KafkaCachePartition
 
     public final class Node
     {
+        private final int segmentBytes;
         private volatile KafkaCacheSegment segment;
         private volatile KafkaCachePartition.Node previous;
         private volatile KafkaCachePartition.Node next;
 
         Node()
         {
+            this.segmentBytes = 0;
             this.segment = null;
             this.previous = this;
             this.next = this;
         }
 
         Node(
-            KafkaCacheSegment segment)
+            KafkaCacheSegment segment,
+            int segmentBytes)
         {
+            this.segmentBytes = segmentBytes;
             this.segment = requireNonNull(segment);
             this.previous = sentinel;
             this.next = sentinel;

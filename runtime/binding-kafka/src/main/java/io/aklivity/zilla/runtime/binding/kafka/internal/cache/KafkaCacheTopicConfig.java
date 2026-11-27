@@ -15,6 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.SIZEOF_INDEX_RECORD;
 import static java.lang.Double.parseDouble;
 
 import java.util.HashMap;
@@ -48,6 +50,7 @@ public final class KafkaCacheTopicConfig
     public volatile int maxMessageBytes;
     public volatile int segmentBytes;
     public volatile int segmentIndexBytes;
+    public volatile int segmentEntryOverhead;
     public volatile long segmentMillis;
     public volatile long retentionBytes;
     public volatile long retentionMillis;
@@ -90,6 +93,39 @@ public final class KafkaCacheTopicConfig
         this.minCompactionLagMillis = config.cacheMinCompactionLagMillis();
         this.maxCompactionLagMillis = config.cacheMaxCompactionLagMillis();
         this.minCleanableDirtyRatio = config.cacheMinCleanableDirtyRatio();
+    }
+
+    public static KafkaCacheTopicConfig produce(
+        KafkaConfiguration config)
+    {
+        final KafkaCacheTopicConfig produce = new KafkaCacheTopicConfig(config);
+        produce.segmentBytes = config.cacheProduceSegmentBytes();
+        produce.segmentIndexBytes = config.cacheProduceSegmentIndexBytes();
+        produce.segmentEntryOverhead = KafkaCachePartition.produceEntryOverhead(config.cacheClientTrailersSizeMax());
+
+        if (produce.segmentIndexBytes < SIZEOF_INDEX_RECORD)
+        {
+            throw new IllegalArgumentException(String.format("%s=%d cannot hold one index record of %d bytes",
+                KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES.name(), produce.segmentIndexBytes, SIZEOF_INDEX_RECORD));
+        }
+
+        return produce;
+    }
+
+    public void onMaxMessageBytes(
+        String16FW configName,
+        String16FW configValue)
+    {
+        if (MAX_MESSAGE_BYTES.equals(configName))
+        {
+            onMaxMessageBytesChanged(this, configValue);
+        }
+    }
+
+    public int effectiveSegmentBytes()
+    {
+        final long entryBytesMax = segmentEntryOverhead > 0 ? (long) maxMessageBytes + segmentEntryOverhead : 0L;
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(segmentBytes, entryBytesMax));
     }
 
     public void onChanged(

@@ -87,8 +87,8 @@ public final class KafkaCacheSegment extends KafkaCacheObject<KafkaCacheSegment>
         this.baseOffset = baseOffset;
         this.lastOffset = OFFSET_LIVE;
         this.timestamp = clock.millis();
-        this.logFile = new KafkaCacheFile.Log(location, baseOffset, config.segmentBytes, appendBuf);
-        this.deltaFile = new KafkaCacheFile.Delta(location, baseOffset, config.segmentBytes, appendBuf);
+        this.logFile = new KafkaCacheFile.Log(location, baseOffset, config.effectiveSegmentBytes(), appendBuf);
+        this.deltaFile = new KafkaCacheFile.Delta(location, baseOffset, config.effectiveSegmentBytes(), appendBuf);
         this.indexFile = new KafkaCacheFile.Index(location, baseOffset, config.segmentIndexBytes, appendBuf);
         this.hashFile = new KafkaCacheFile.HashScan(location, baseOffset, config.segmentIndexBytes, appendBuf, sortSpaceRef);
         this.keysFile = new KafkaCacheFile.KeysScan(location, baseOffset, config.segmentIndexBytes, appendBuf, sortSpaceRef);

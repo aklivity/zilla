@@ -57,6 +57,7 @@ public class KafkaConfiguration extends Configuration
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_MAX_BYTES;
     public static final IntPropertyDef KAFKA_CLIENT_PRODUCE_RECORD_FRAMING_SIZE;
     public static final PropertyDef<Path> KAFKA_CACHE_DIRECTORY;
+    public static final PropertyDef<Path> KAFKA_CACHE_PRODUCE_DIRECTORY;
     public static final LongPropertyDef KAFKA_CACHE_PRODUCE_CAPACITY;
     public static final PropertyDef<KafkaCacheCleanupPolicy> KAFKA_CACHE_CLEANUP_POLICY;
     public static final IntPropertyDef KAFKA_CACHE_MAX_MESSAGE_BYTES;
@@ -70,6 +71,8 @@ public class KafkaConfiguration extends Configuration
     public static final LongPropertyDef KAFKA_CACHE_SEGMENT_MILLIS;
     public static final IntPropertyDef KAFKA_CACHE_SEGMENT_BYTES;
     public static final IntPropertyDef KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+    public static final IntPropertyDef KAFKA_CACHE_PRODUCE_SEGMENT_BYTES;
+    public static final IntPropertyDef KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES;
     public static final BooleanPropertyDef KAFKA_CACHE_SERVER_BOOTSTRAP;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_RECONNECT_DELAY;
     public static final IntPropertyDef KAFKA_CACHE_CLIENT_CLEANUP_DELAY;
@@ -145,6 +148,11 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_SEGMENT_MILLIS = config.property("cache.segment.ms", 604800000L);
         KAFKA_CACHE_SEGMENT_BYTES = config.property("cache.segment.bytes", 0x40000000);
         KAFKA_CACHE_SEGMENT_INDEX_BYTES = config.property("cache.segment.index.bytes", 0xA00000);
+        KAFKA_CACHE_PRODUCE_DIRECTORY = config.property(Path.class, "cache.produce.directory",
+            (c, v) -> cacheDirectory(c, v), c -> KAFKA_CACHE_DIRECTORY.get(c));
+        KAFKA_CACHE_PRODUCE_SEGMENT_BYTES = config.property("cache.produce.segment.bytes", 0x4000000);
+        KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES = config.property("cache.produce.segment.index.bytes",
+            KAFKA_CACHE_SEGMENT_INDEX_BYTES::getAsInt);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
         KAFKA_CACHE_SERVER_TRAILERS_SIZE_MAX = config.property("cache.server.trailers.size.max", 256);
         KAFKA_CACHE_SERVER_SHARE_STAGING_MAX_BYTES = config.property("cache.server.share.staging.max.bytes", 64 * 1024 * 1024);
@@ -250,6 +258,11 @@ public class KafkaConfiguration extends Configuration
         return KAFKA_CACHE_DIRECTORY.get(this);
     }
 
+    public Path cacheProduceDirectory()
+    {
+        return KAFKA_CACHE_PRODUCE_DIRECTORY.get(this);
+    }
+
     public boolean verbose()
     {
         return KAFKA_VERBOSE.get(this);
@@ -318,6 +331,16 @@ public class KafkaConfiguration extends Configuration
     public int cacheSegmentIndexBytes()
     {
         return KAFKA_CACHE_SEGMENT_INDEX_BYTES.getAsInt(this);
+    }
+
+    public int cacheProduceSegmentBytes()
+    {
+        return KAFKA_CACHE_PRODUCE_SEGMENT_BYTES.getAsInt(this);
+    }
+
+    public int cacheProduceSegmentIndexBytes()
+    {
+        return KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES.getAsInt(this);
     }
 
     public boolean cacheServerBootstrap()
