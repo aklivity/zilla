@@ -43,7 +43,10 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.CRC32C;
 
@@ -323,6 +326,49 @@ public class KafkaCachePartitionTest
         OctetsFW value = value(buffer, headers.limit(), "hello");
 
         assertProduceEntriesReadableAcrossRolls(key, headers, value, 5);
+    }
+
+    @Test
+    public void shouldNeverPublishClosedSegmentAsNodeSegment() throws Exception
+    {
+        final int swaps = 300;
+        KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = 4096;
+        config.segmentIndexBytes = 4096;
+        Path location = tempFolder.newFolder().toPath();
+        MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocateDirect(4096));
+        KafkaCachePartition partition = newProducePartition(4096, new AtomicLong());
+        Node node = partition.append(0L);
+        List<KafkaCacheSegment> replacements = new ArrayList<>();
+        for (int i = 0; i < swaps; i++)
+        {
+            replacements.add(new KafkaCacheSegment(Clock.systemUTC(), location, config, "test", 0, 1000L + i, appendBuf,
+                long[]::new));
+        }
+        AtomicBoolean done = new AtomicBoolean();
+        AtomicLong closedAndCurrent = new AtomicLong();
+        Thread reader = new Thread(() ->
+        {
+            while (!done.get())
+            {
+                KafkaCacheSegment segment = node.segment();
+                if (segment.closed() && node.segment() == segment)
+                {
+                    closedAndCurrent.incrementAndGet();
+                }
+            }
+        });
+        reader.start();
+
+        for (KafkaCacheSegment replacement : replacements)
+        {
+            node.segment(replacement);
+        }
+        done.set(true);
+        reader.join(10_000L);
+
+        assertEquals(0L, closedAndCurrent.get());
+        node.segment().close();
     }
 
     private KafkaCachePartition newProducePartition(
