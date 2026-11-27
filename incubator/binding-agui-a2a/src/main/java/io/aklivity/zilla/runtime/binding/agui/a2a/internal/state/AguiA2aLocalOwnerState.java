@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.LongSupplier;
-import java.util.random.RandomGenerator;
+import java.util.function.Supplier;
 
 import io.aklivity.zilla.runtime.engine.concurrent.Signaler;
 
@@ -34,7 +34,7 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
     private final Map<String, HandleEntry> handles = new LinkedHashMap<>();
     private final Signaler signaler;
     private final LongSupplier clock;
-    private final RandomGenerator random;
+    private final Supplier<String> handleIdSupplier;
     private final long threadTtlMillis;
     private final long handleTtlMillis;
     private final int capacity;
@@ -45,14 +45,14 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
     public AguiA2aLocalOwnerState(
         Signaler signaler,
         LongSupplier clock,
-        RandomGenerator random,
+        Supplier<String> handleIdSupplier,
         long threadTtlMillis,
         long handleTtlMillis,
         int capacity)
     {
         this.signaler = signaler;
         this.clock = clock;
-        this.random = random;
+        this.handleIdSupplier = handleIdSupplier;
         this.threadTtlMillis = threadTtlMillis;
         this.handleTtlMillis = handleTtlMillis;
         this.capacity = capacity;
@@ -107,7 +107,7 @@ public final class AguiA2aLocalOwnerState implements AguiA2aOwnerState
     {
         final long now = clock.getAsLong();
 
-        final String handle = String.format("%016x%016x", random.nextLong(), random.nextLong());
+        final String handle = handleIdSupplier.get();
 
         handles.put(handle, new HandleEntry(key, kind, taskId, now + handleTtlMillis));
         evictHandles();

@@ -54,6 +54,23 @@ public class A2aEventDecoderTest
     }
 
     @Test
+    public void shouldDecodeBareTask()
+    {
+        for (int window : new int[] {4096, 7, 1})
+        {
+            final Recorder recorder = new Recorder();
+            final A2aEventDecoder decoder = new A2aEventDecoder(recorder, 1024, A2aEventRoot.TASK);
+
+            decode(decoder, "{\"id\":\"t-1\",\"contextId\":\"c-1\",\"status\":{\"state\":\"TASK_STATE_CANCELED\"}," +
+                "\"artifacts\":[]}", window);
+
+            assertEquals("window " + window, List.of(
+                "started TASK t-1 c-1 CANCELED false",
+                "ended false"), recorder.log);
+        }
+    }
+
+    @Test
     public void shouldDecodeStatusAndMessage()
     {
         final Recorder recorder = new Recorder();
