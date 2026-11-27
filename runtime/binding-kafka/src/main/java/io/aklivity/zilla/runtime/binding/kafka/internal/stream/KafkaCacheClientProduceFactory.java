@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ADVANCE;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_DIRTY;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
@@ -129,7 +130,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     private static final String TRANSACTION_NONE = null;
 
-    private static final int SIGNAL_SEGMENT_COMPACT = 1;
     private static final int SIGNAL_GROUP_CLEANUP = 2;
 
     private static final int SIGNAL_RECONNECT = 3;
@@ -561,11 +561,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final Consumer<OctetsFW.Builder> flushExtension = ex -> ex.set(flushExtensionVisitor);
 
         private long lastAckOffsetHighWatermark;
+        private long reclaimOffsetNext;
         private long offsetHighWatermark = DEFAULT_LATEST_OFFSET;
         private int partitionOffset;
         private long memberLeaderId = KafkaCacheRoute.LEADER_UNKNOWN;
-        private long compactAt = Long.MAX_VALUE;
-        private long compactId = NO_CANCEL_ID;
         private long groupCleanupId = NO_CANCEL_ID;
         private long partitionIndex = NO_CREDITOR_INDEX;
         private long reconnectAt = NO_CANCEL_ID;
@@ -644,8 +643,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             members.remove(member.initialId);
 
             member.markEntriesDirty(traceId);
-
-            member.cursor.close();
 
             if (members.isEmpty())
             {
@@ -891,6 +888,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 partition.writeProduceEntryFin(stream.segment, stream.entryMark, stream.valueLimit, stream.initialSeq,
                     trailers, false);
                 markEntryDirty(traceId, stream.partitionOffset);
+                reclaimSegments();
                 flushClientFanInitialIfNecessary(traceId);
             }
             else
@@ -1045,29 +1043,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             switch (signalId)
             {
-            case SIGNAL_SEGMENT_COMPACT:
-                onClientFanInitialSignalSegmentCompact(signal);
-                break;
             case SIGNAL_GROUP_CLEANUP:
                 onClientFanInitialSignalCleanup(signal);
                 break;
             }
-        }
-
-        private void onClientFanInitialSignalSegmentCompact(
-            SignalFW signal)
-        {
-            final long now = clock.millis();
-
-            KafkaCachePartition.Node segmentNode = partition.sentinel().next();
-            while (!segmentNode.next().sentinel()) // avoid cleaning head
-            {
-                segmentNode.clean(now);
-                segmentNode = segmentNode.next();
-            }
-
-            this.compactAt = Long.MAX_VALUE;
-            this.compactId = NO_CANCEL_ID;
         }
 
         private void onClientFanInitialSignalCleanup(
@@ -1245,33 +1224,34 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 }
                 lastAckOffsetHighWatermark++;
             }
+
+            reclaimSegments();
+        }
+
+        private void reclaimSegments()
+        {
+            reclaimOffsetNext = Math.max(reclaimOffsetNext, lastAckOffsetHighWatermark);
+
+            while (reclaimOffsetNext < partitionOffset && isEntryFinal(reclaimOffsetNext))
+            {
+                reclaimOffsetNext++;
+            }
+
+            partition.removeAcknowledgedSegments(reclaimOffsetNext);
+        }
+
+        private boolean isEntryFinal(
+            long offset)
+        {
+            final KafkaCacheEntryFW entry = partition.seekNotAfter(offset).findEntry(entryRO, offset);
+            return entry != null && (entry.flags() & CACHE_ENTRY_FLAGS_DIRTY) != 0;
         }
 
         private KafkaCacheEntryFW markEntryDirty(
             long traceId,
             long partitionOffset)
         {
-            final KafkaCachePartition.Node node = this.partition.seekNotAfter(partitionOffset);
-            final KafkaCacheEntryFW dirtyEntry = node.findAndMarkDirty(entryRO, partitionOffset);
-
-            final long newCompactAt = this.partition.compactAt(node.segment());
-
-            if (newCompactAt != Long.MAX_VALUE)
-            {
-                if (compactId != NO_CANCEL_ID && newCompactAt < compactAt)
-                {
-                    signaler.cancel(compactId);
-                    this.compactId = NO_CANCEL_ID;
-                }
-
-                if (compactId == NO_CANCEL_ID)
-                {
-                    this.compactAt = newCompactAt;
-                    this.compactId = doClientFanoutInitialSignalAt(newCompactAt, traceId, SIGNAL_SEGMENT_COMPACT);
-                }
-            }
-
-            return dirtyEntry;
+            return this.partition.seekNotAfter(partitionOffset).findAndMarkDirty(entryRO, partitionOffset);
         }
 
         private void onClientFanReplyEnd(
@@ -1346,7 +1326,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final Flyweight.Builder.Visitor ackExtensionVisitor = this::writeAckExtension;
         private final Consumer<OctetsFW.Builder> ackExtension = ex -> ex.set(ackExtensionVisitor);
 
-        private final KafkaCacheCursor cursor;
         private final LongArrayQueue unackedOffsets;
         private final MutableInteger entryMark;
         private final MutableInteger valueLimit;
@@ -1365,6 +1344,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private final KafkaCacheTrailerEnvelope transformValueEnvelope;
 
         private long partitionOffset = DEFAULT_LATEST_OFFSET;
+        private long acknowledgedOffset;
 
         private KafkaCachePartition.Node segment;
 
@@ -1391,10 +1371,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             long authorization,
             KafkaTopicType topicType)
         {
-            this.cursor = cursorFactory.newCursor(
-                    cursorFactory
-                        .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
-                        KafkaDeltaType.NONE);
             this.unackedOffsets = new LongArrayQueue(NO_UNACKED_OFFSET);
             this.entryMark = new MutableInteger(0);
             this.valueMark = new MutableInteger(0);
@@ -1462,13 +1438,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             state = StreamState.openingInitial(state);
 
-            KafkaCachePartition.Node segmentNode = fan.partition.seekNotBefore(fan.partitionOffset);
-
-            if (segmentNode.sentinel())
-            {
-                segmentNode = segmentNode.next();
-            }
-            cursor.init(segmentNode, fan.partitionOffset - 1, 0);
+            acknowledgedOffset = fan.partitionOffset - 1;
 
             fan.onClientFanMemberOpening(traceId, this);
         }
@@ -1556,7 +1526,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             state = StreamState.closeInitial(state);
 
-            if (cursor.offset == partitionOffset)
+            if (acknowledgedOffset == partitionOffset)
             {
                 fan.onClientFanMemberClosed(traceId, this);
 
@@ -1742,7 +1712,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             state = StreamState.closeReply(state);
 
-            if (cursor.offset == partitionOffset)
+            if (acknowledgedOffset == partitionOffset)
             {
                 fan.onClientFanMemberClosed(traceId, this);
 
@@ -1816,7 +1786,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private void advanceAcknowledged(
             long partitionOffset)
         {
-            cursor.advance(partitionOffset);
+            acknowledgedOffset = partitionOffset;
 
             while (!unackedOffsets.isEmpty() && unackedOffsets.peekLong() <= partitionOffset)
             {

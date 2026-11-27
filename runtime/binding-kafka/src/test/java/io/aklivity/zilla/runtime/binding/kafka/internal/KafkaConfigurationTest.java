@@ -83,6 +83,7 @@ public class KafkaConfigurationTest
 
     public static final String KAFKA_CACHE_PRODUCE_DIRECTORY_NAME = "zilla.binding.kafka.cache.produce.directory";
     public static final String KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME = "zilla.binding.kafka.cache.produce.segment.bytes";
+    public static final String KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME = "zilla.binding.kafka.cache.max.message.bytes";
     public static final String KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES_NAME =
         "zilla.binding.kafka.cache.produce.segment.index.bytes";
     public static final String KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME =

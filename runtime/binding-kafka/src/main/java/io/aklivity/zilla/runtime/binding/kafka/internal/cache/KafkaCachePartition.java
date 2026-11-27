@@ -339,6 +339,20 @@ public final class KafkaCachePartition
         return node;
     }
 
+    public void removeAcknowledgedSegments(
+        long acknowledgedOffsetNext)
+    {
+        Node node = sentinel.next;
+
+        while (!node.next.sentinel() && node.next.segment.baseOffset() <= acknowledgedOffsetNext)
+        {
+            final Node removed = node;
+            node = node.next;
+            removed.remove();
+            produceCapacity.addAndGet(-removed.segmentBytes);
+        }
+    }
+
     public Node seekNotAfter(
         long offset)
     {
@@ -1503,6 +1517,27 @@ public final class KafkaCachePartition
             }
 
             return ancestor;
+        }
+
+        public KafkaCacheEntryFW findEntry(
+            KafkaCacheEntryFW entry,
+            long partitionOffset)
+        {
+            KafkaCacheEntryFW found = null;
+
+            if (!sentinel())
+            {
+                final int offsetDelta = (int)(partitionOffset - segment.baseOffset());
+                final long cursor = segment.indexFile().first(offsetDelta);
+                final int position = KafkaCacheCursorRecord.cursorValue(cursor);
+
+                if (position != NEXT_SEGMENT_VALUE && position != RETRY_SEGMENT_VALUE)
+                {
+                    found = segment.logFile().readBytes(position, entry::tryWrap);
+                }
+            }
+
+            return found;
         }
 
         public KafkaCacheEntryFW findAndMarkDirty(
