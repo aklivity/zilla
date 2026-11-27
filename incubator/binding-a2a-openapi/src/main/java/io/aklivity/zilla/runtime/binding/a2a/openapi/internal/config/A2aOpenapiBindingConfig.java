@@ -1,0 +1,92 @@
+/*
+ * Copyright 2021-2026 Aklivity Inc
+ *
+ * Licensed under the Aklivity Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ *   https://www.aklivity.io/aklivity-community-license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package io.aklivity.zilla.runtime.binding.a2a.openapi.internal.config;
+
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+import java.util.function.LongFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongBiFunction;
+import java.util.function.ToLongFunction;
+
+import io.aklivity.zilla.config.binding.a2a.openapi.A2aOpenapiAuthorizationConfig;
+import io.aklivity.zilla.config.binding.a2a.openapi.A2aOpenapiOptionsConfig;
+import io.aklivity.zilla.config.engine.BindingConfig;
+import io.aklivity.zilla.config.engine.KindConfig;
+import io.aklivity.zilla.config.engine.NamespaceConfig;
+import io.aklivity.zilla.config.engine.RouteConfig;
+import io.aklivity.zilla.runtime.engine.EngineContext;
+import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+
+public final class A2aOpenapiBindingConfig
+{
+    public final long id;
+    public final String namespace;
+    public final String qname;
+    public final KindConfig kind;
+    public final A2aOpenapiOptionsConfig options;
+    public final List<A2aOpenapiRouteConfig> routes;
+    public final String exit;
+
+    public final ToLongFunction<String> resolveId;
+    public final LongFunction<CatalogHandler> supplyCatalog;
+    public final ToIntFunction<String> supplyTypeId;
+    public final ToLongBiFunction<NamespaceConfig, BindingConfig> supplyBindingId;
+    public final LongFunction<String> supplyQName;
+
+    public transient A2aOpenapiCompositeConfig composite;
+
+    public A2aOpenapiBindingConfig(
+        EngineContext context,
+        BindingConfig binding)
+    {
+        this.id = binding.id;
+        this.namespace = binding.namespace;
+        this.qname = binding.qname;
+        this.kind = binding.kind;
+        this.options = (A2aOpenapiOptionsConfig) binding.options;
+
+        // a top-level exit: shorthand synthesizes its own catch-all last route (empty when, no with,
+        // exit set) on this same binding -- exclude it here so it never counts as a declared skill route;
+        // a declared route always has with, so with == null is what uniquely identifies the synthetic one
+        this.routes = binding.routes.stream()
+            .filter(route -> route.with != null)
+            .map(A2aOpenapiRouteConfig::new)
+            .collect(toList());
+
+        final RouteConfig exitRoute = binding.routes.stream()
+            .filter(route -> route.with == null && route.exit != null)
+            .findFirst()
+            .orElse(null);
+        this.exit = exitRoute != null ? exitRoute.qname() : null;
+
+        this.resolveId = binding.resolveId;
+        this.supplyBindingId = context::supplyBindingId;
+        this.supplyCatalog = context::supplyCatalog;
+        this.supplyTypeId = context::supplyTypeId;
+        this.supplyQName = context::supplyQName;
+
+        if (options != null)
+        {
+            final A2aOpenapiAuthorizationConfig authorization = options.authorization;
+            if (authorization != null)
+            {
+                final long namespacedId = binding.resolveId.applyAsLong(authorization.name);
+                authorization.qname = context.supplyQName(namespacedId);
+            }
+        }
+    }
+}

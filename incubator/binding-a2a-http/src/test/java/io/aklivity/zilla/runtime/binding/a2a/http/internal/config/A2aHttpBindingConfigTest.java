@@ -152,10 +152,31 @@ public class A2aHttpBindingConfigTest
 
         assertThat(card, containsString("\"name\":\"app0\""));
         assertThat(card, containsString("\"version\":\"1.0.0\""));
-        assertThat(card, containsString("\"pushNotifications\":false"));
+        assertThat(card, containsString("\"capabilities\":{\"streaming\":true,\"pushNotifications\":false}"));
         assertThat(card, containsString("\"defaultInputModes\":[\"text/plain\",\"application/json\"]"));
         assertThat(card, containsString("\"id\":\"get_item\",\"name\":\"Get item\""));
         assertThat(card, containsString("\"id\":\"create_item\",\"name\":\"create_item\""));
+    }
+
+    @Test
+    public void shouldGenerateCardWithoutStreamingWhenDisabled()
+    {
+        final A2aHttpOptionsConfig options = A2aHttpOptionsConfig.builder()
+            .embedding("embedding0")
+            .store("store0")
+            .card()
+                .streaming(false)
+                .build()
+            .skill()
+                .id("get_item")
+                .description("Look up an item by id")
+                .build()
+            .build();
+        final A2aHttpBindingConfig binding = binding(options, List.of());
+
+        final String card = new String(binding.cardJson(), StandardCharsets.UTF_8);
+
+        assertThat(card, containsString("\"capabilities\":{\"streaming\":false,\"pushNotifications\":false}"));
     }
 
     @Test

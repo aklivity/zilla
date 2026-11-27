@@ -24,6 +24,7 @@ public final class A2aHttpCardConfig extends Config
     public final String name;
     public final String description;
     public final String version;
+    public final boolean streaming;
     public final List<String> defaultInputModes;
     public final List<String> defaultOutputModes;
 
@@ -42,12 +43,14 @@ public final class A2aHttpCardConfig extends Config
         String name,
         String description,
         String version,
+        boolean streaming,
         List<String> defaultInputModes,
         List<String> defaultOutputModes)
     {
         this.name = name;
         this.description = description;
         this.version = version;
+        this.streaming = streaming;
         this.defaultInputModes = defaultInputModes;
         this.defaultOutputModes = defaultOutputModes;
     }
