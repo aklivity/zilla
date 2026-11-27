@@ -155,6 +155,24 @@ public class ApplicationIT
 
     @Test
     @Specification({
+        "${app}/run.redirect/client",
+        "${app}/run.redirect/server"})
+    public void shouldRunRedirect() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.redirect.100k/client",
+        "${app}/run.redirect.100k/server"})
+    public void shouldRunRedirect100k() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/run.state.snapshot.100k/client",
         "${app}/run.state.snapshot.100k/server"})
     public void shouldRunStateSnapshot100k() throws Exception
