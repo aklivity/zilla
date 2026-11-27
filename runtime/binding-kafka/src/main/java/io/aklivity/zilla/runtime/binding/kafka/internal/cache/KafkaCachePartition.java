@@ -46,6 +46,7 @@ import java.time.Clock;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32C;
 
 import jakarta.json.JsonArray;
@@ -103,6 +104,7 @@ public final class KafkaCachePartition
 
     private static final String FORMAT_FETCH_PARTITION_DIRECTORY = "%s-%d";
     private static final String FORMAT_PRODUCE_PARTITION_DIRECTORY = "%s-%d-%d";
+    private static final Pattern PATTERN_PRODUCE_PARTITION_DIRECTORY = Pattern.compile(".+-\\d+-\\d+");
 
     private static final long OFFSET_HISTORICAL = KafkaOffsetType.HISTORICAL.value();
 
@@ -243,6 +245,12 @@ public final class KafkaCachePartition
         this.sentinel = new Node();
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
+    }
+
+    static boolean isProducePartitionDirectory(
+        Path path)
+    {
+        return Files.isDirectory(path) && PATTERN_PRODUCE_PARTITION_DIRECTORY.matcher(path.getFileName().toString()).matches();
     }
 
     static Path produceDirectory(

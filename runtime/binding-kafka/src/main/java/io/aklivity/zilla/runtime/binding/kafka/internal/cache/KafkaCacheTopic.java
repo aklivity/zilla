@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntFunction;
 
-import org.agrona.IoUtil;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.String16FW;
@@ -139,11 +138,6 @@ public final class KafkaCacheTopic
         int id,
         int index)
     {
-        if (!produceLocation.equals(location))
-        {
-            IoUtil.delete(KafkaCachePartition.produceDirectory(produceLocation, name, id, index).toFile(), true);
-        }
-
         return new KafkaCachePartition(clock, produceLocation, produceConfig, cache, produceCapacity, maxProduceCapacity,
             name, id, appendCapacity, sortSpaceRef, index);
     }

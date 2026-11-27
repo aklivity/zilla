@@ -16,6 +16,7 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal;
 
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_VERBOSE;
 
 import java.lang.invoke.MethodHandle;
@@ -23,6 +24,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.math.BigInteger;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.UUID;
@@ -151,7 +153,7 @@ public class KafkaConfiguration extends Configuration
         KAFKA_CACHE_FETCH_SEGMENT_BYTES = config.property("cache.fetch.segment.bytes", 0x40000000);
         KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES = config.property("cache.fetch.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_PRODUCE_DIRECTORY = config.property(Path.class, "cache.produce.directory",
-            (c, v) -> cacheDirectory(c, v), c -> cacheDirectory(c, KafkaBinding.NAME));
+            KafkaConfiguration::produceDirectory, c -> produceDirectory(c, KafkaBinding.NAME + "-produce"));
         KAFKA_CACHE_PRODUCE_SEGMENT_BYTES = config.property("cache.produce.segment.bytes", 0x4000000);
         KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES = config.property("cache.produce.segment.index.bytes", 0xA00000);
         KAFKA_CACHE_CLIENT_TRAILERS_SIZE_MAX = config.property("cache.client.trailers.size.max", 256);
@@ -449,6 +451,13 @@ public class KafkaConfiguration extends Configuration
         String cacheDirectory)
     {
         return ENGINE_CACHE_DIRECTORY.get(config).resolve(cacheDirectory);
+    }
+
+    private static Path produceDirectory(
+        Configuration config,
+        String produceDirectory)
+    {
+        return Paths.get(ENGINE_DIRECTORY.get(config)).resolve(produceDirectory);
     }
 
     private static KafkaCacheCleanupPolicy cleanupPolicy(

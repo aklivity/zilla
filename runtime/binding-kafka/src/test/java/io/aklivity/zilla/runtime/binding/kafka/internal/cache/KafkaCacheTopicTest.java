@@ -80,35 +80,6 @@ public class KafkaCacheTopicTest
     }
 
     @Test
-    public void shouldPurgeProduceStagingWhenProduceLocationIsSeparate() throws Exception
-    {
-        KafkaConfiguration config = new KafkaConfiguration();
-        Path location = tempFolder.newFolder().toPath().resolve("cache");
-        Path produceLocation = tempFolder.newFolder().toPath().resolve("cache");
-        Path stale = Files.createFile(Files.createDirectories(produceLocation.resolve("test-0-1")).resolve("stale.log"));
-        KafkaCacheTopic topic =
-            new KafkaCacheTopic(location, produceLocation, config, "cache", new AtomicLong(0L), "test", long[]::new);
-
-        topic.supplyProducePartition(Clock.systemUTC(), 0, 1);
-
-        assertFalse(Files.exists(stale));
-    }
-
-    @Test
-    public void shouldKeepExistingFilesWhenProduceLocationIsShared() throws Exception
-    {
-        KafkaConfiguration config = new KafkaConfiguration();
-        Path location = tempFolder.newFolder().toPath().resolve("cache");
-        Path existing = Files.createFile(Files.createDirectories(location.resolve("test-0-1")).resolve("existing.log"));
-        KafkaCacheTopic topic =
-            new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
-
-        topic.supplyProducePartition(Clock.systemUTC(), 0, 1);
-
-        assertTrue(Files.exists(existing));
-    }
-
-    @Test
     public void shouldStageProduceWithProduceSegmentSize() throws Exception
     {
         Properties properties = new Properties();

@@ -47,7 +47,9 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguratio
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SHARE_FETCH_MAX_WAIT_MILLIS;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CLIENT_SHARE_FETCH_MIN_BYTES;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_CACHE_DIRECTORY;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DIRECTORY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.nio.file.Path;
 import java.util.Properties;
@@ -152,12 +154,32 @@ public class KafkaConfigurationTest
     public void shouldNotFollowFetchDirectoryForProduceDirectory() throws Exception
     {
         Properties properties = new Properties();
-        properties.setProperty(ENGINE_CACHE_DIRECTORY.name(), "/var/zilla");
+        properties.setProperty(ENGINE_DIRECTORY.name(), "/var/zilla");
         properties.setProperty(KAFKA_CACHE_FETCH_DIRECTORY.name(), "/var/cache/zilla");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
         assertEquals(Path.of("/var/cache/zilla"), config.cacheFetchDirectory());
-        assertEquals(Path.of("/var/zilla/kafka"), config.cacheProduceDirectory());
+        assertEquals(Path.of("/var/zilla/kafka-produce"), config.cacheProduceDirectory());
+    }
+
+    @Test
+    public void shouldNotFollowEngineCacheDirectoryForProduceDirectory() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty(ENGINE_DIRECTORY.name(), "/var/zilla");
+        properties.setProperty(ENGINE_CACHE_DIRECTORY.name(), "/var/cache/zilla");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+
+        assertEquals(Path.of("/var/cache/zilla/kafka"), config.cacheFetchDirectory());
+        assertEquals(Path.of("/var/zilla/kafka-produce"), config.cacheProduceDirectory());
+    }
+
+    @Test
+    public void shouldDefaultProduceDirectoryApartFromFetchDirectory() throws Exception
+    {
+        KafkaConfiguration config = new KafkaConfiguration();
+
+        assertNotEquals(config.cacheFetchDirectory(), config.cacheProduceDirectory());
     }
 
     @Test
@@ -182,10 +204,10 @@ public class KafkaConfigurationTest
     }
 
     @Test
-    public void shouldResolveRelativeProduceDirectoryAgainstEngineCacheDirectory() throws Exception
+    public void shouldResolveRelativeProduceDirectoryAgainstEngineDirectory() throws Exception
     {
         Properties properties = new Properties();
-        properties.setProperty(ENGINE_CACHE_DIRECTORY.name(), "/var/zilla");
+        properties.setProperty(ENGINE_DIRECTORY.name(), "/var/zilla");
         properties.setProperty(KAFKA_CACHE_PRODUCE_DIRECTORY.name(), "staging");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
