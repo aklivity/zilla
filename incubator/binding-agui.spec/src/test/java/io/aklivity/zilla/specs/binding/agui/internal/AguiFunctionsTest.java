@@ -116,6 +116,104 @@ public class AguiFunctionsTest
     }
 
     @Test
+    public void shouldGenerateBeginExWithAgent()
+    {
+        byte[] bytes = AguiFunctions.beginEx()
+            .typeId(0x01)
+            .threadId("thread-1")
+            .runId("run-1")
+            .parentRunId("run-0")
+            .agent("agent-1")
+            .build();
+
+        AguiBeginExFW beginEx = new AguiBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals("thread-1", beginEx.threadId().asString());
+        assertEquals("run-1", beginEx.runId().asString());
+        assertEquals("run-0", beginEx.parentRunId().asString());
+        assertEquals("agent-1", beginEx.agent().asString());
+    }
+
+    @Test
+    public void shouldGenerateBeginExWithAgentWithoutParentRunId()
+    {
+        byte[] bytes = AguiFunctions.beginEx()
+            .typeId(0x01)
+            .threadId("thread-1")
+            .runId("run-1")
+            .agent("agent-1")
+            .build();
+
+        AguiBeginExFW beginEx = new AguiBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertEquals("run-1", beginEx.runId().asString());
+        assertNull(beginEx.parentRunId().asString());
+        assertEquals("agent-1", beginEx.agent().asString());
+    }
+
+    @Test
+    public void shouldGenerateBeginExWithoutAgent()
+    {
+        byte[] bytes = AguiFunctions.beginEx()
+            .typeId(0x01)
+            .threadId("thread-1")
+            .runId("run-1")
+            .build();
+
+        AguiBeginExFW beginEx = new AguiBeginExFW().wrap(new UnsafeBufferEx(bytes), 0, bytes.length);
+
+        assertNull(beginEx.agent().asString());
+    }
+
+    @Test
+    public void shouldMatchBeginExWithAgent() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchBeginEx()
+            .typeId(0x01)
+            .runId("run-1")
+            .agent("agent-1")
+            .build();
+
+        ByteBuffer byteBuf = ByteBuffer.wrap(AguiFunctions.beginEx()
+            .typeId(0x01)
+            .threadId("thread-1")
+            .runId("run-1")
+            .agent("agent-1")
+            .build());
+
+        assertNotNull(matcher.match(byteBuf));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExWithDifferentAgent() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchBeginEx()
+            .agent("agent-2")
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.beginEx()
+            .typeId(0x01)
+            .threadId("thread-1")
+            .runId("run-1")
+            .agent("agent-1")
+            .build()));
+    }
+
+    @Test(expected = Exception.class)
+    public void shouldNotMatchBeginExWithoutAgent() throws Exception
+    {
+        BytesMatcher matcher = AguiFunctions.matchBeginEx()
+            .agent("agent-1")
+            .build();
+
+        matcher.match(ByteBuffer.wrap(AguiFunctions.beginEx()
+            .typeId(0x01)
+            .threadId("thread-1")
+            .runId("run-1")
+            .build()));
+    }
+
+    @Test
     public void shouldNotMatchEmptyBeginEx() throws Exception
     {
         BytesMatcher matcher = AguiFunctions.matchBeginEx().build();
