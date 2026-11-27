@@ -15,6 +15,10 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ADVANCE;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_COMPLETED;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_DIRTY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.util.Flags.COMPLETE;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
@@ -366,7 +370,7 @@ public class KafkaCachePartitionTest
             partition.writeProduceEntryFin(head, entryMark, valueLimit, 0L, noTrailers, false);
 
             assertNotNull("entry " + offset + " must be readable after write",
-                partition.seekNotAfter(offset).findAndMarkDirty(entryRO, offset));
+                partition.seekNotAfter(offset).findEntry(entryRO, offset));
         }
 
         assertTrue("expected the head to roll at least once", rolls > 0);
@@ -471,27 +475,54 @@ public class KafkaCachePartitionTest
         writeProduceEntry(partition, head, 11L);
         writeProduceEntry(partition, head, 12L);
 
-        head.findAndMarkDirty(entryRO, 11L);
+        head.markDirty(head.findEntry(entryRO, 11L));
         final double dirtyRatio = head.segment().cleanableDirtyRatio();
-        head.findAndMarkDirty(entryRO, 11L);
+        head.markDirty(head.findEntry(entryRO, 11L));
 
         assertTrue(dirtyRatio > 0.0);
         assertEquals(dirtyRatio, head.segment().cleanableDirtyRatio(), 0.0);
     }
 
     @Test
-    public void shouldMarkDirtyOnlyEntryPresentAtOffset() throws Exception
+    public void shouldFindProduceEntryWithoutMarkingDirty() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+
+        KafkaCacheEntryFW entry = head.findEntry(entryRO, 11L);
+
+        assertNotNull(entry);
+        assertEquals(11L, entry.offset$());
+        assertEquals(0, entry.flags() & CACHE_ENTRY_FLAGS_DIRTY);
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldAbortOnlyEntryPresentAtOffset() throws Exception
     {
         KafkaCachePartition partition = newPartition();
         Node head = partition.append(10L);
         writeProduceEntry(partition, head, 11L);
         writeProduceEntry(partition, head, 12L);
 
-        head.markDirtyIfPresent(entryRO, 99L);
-        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+        head.markAbortedIfPresent(entryRO, 99L);
+        assertEquals(CACHE_ENTRY_FLAGS_COMPLETED, head.findEntry(entryRO, 11L).flags());
+        assertEquals(CACHE_ENTRY_FLAGS_COMPLETED, head.findEntry(entryRO, 12L).flags());
 
-        head.markDirtyIfPresent(entryRO, 11L);
-        assertEquals(0.5, head.segment().cleanableDirtyRatio(), 0.0);
+        head.markAbortedIfPresent(entryRO, 11L);
+
+        assertEquals(CACHE_ENTRY_FLAGS_ABORTED, head.findEntry(entryRO, 11L).flags());
+        assertEquals(CACHE_ENTRY_FLAGS_COMPLETED, head.findEntry(entryRO, 12L).flags());
+        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
+    }
+
+    @Test
+    public void shouldAdvanceCursorPastCompletedAndAbortedEntriesOnly() throws Exception
+    {
+        assertTrue((CACHE_ENTRY_FLAGS_ADVANCE & CACHE_ENTRY_FLAGS_COMPLETED) != 0);
+        assertTrue((CACHE_ENTRY_FLAGS_ADVANCE & CACHE_ENTRY_FLAGS_ABORTED) != 0);
+        assertEquals(0, CACHE_ENTRY_FLAGS_ADVANCE & CACHE_ENTRY_FLAGS_DIRTY);
     }
 
     @Test
@@ -562,37 +593,6 @@ public class KafkaCachePartitionTest
 
         assertEquals(5, mappedLog.position());
         assertEquals(64, mappedLog.limit());
-    }
-
-    @Test
-    public void shouldIgnoreOffsetOlderThanOldestSegmentWhenMarkingDirtyIfPresent() throws Exception
-    {
-        KafkaCachePartition partition = newPartition();
-        Node head = partition.append(10L);
-        writeProduceEntry(partition, head, 11L);
-
-        partition.seekNotAfter(5L).markDirtyIfPresent(entryRO, 5L);
-
-        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
-    }
-
-    @Test
-    public void shouldIgnoreUnacknowledgedOffsetOfSegmentRemovedByCompaction() throws Exception
-    {
-        KafkaCachePartition partition = newPartition();
-        Node first = partition.append(10L);
-        writeProduceEntry(partition, first, 11L);
-        first.findAndMarkDirty(entryRO, 11L);
-        Node head = partition.append(20L);
-        Node tail = head.previous();
-        long now = currentTimeMillis();
-        tail.segment().cleanableAt(now);
-        tail.clean(now);
-        assertSame(head, partition.seekNotBefore(0L));
-
-        partition.seekNotAfter(11L).markDirtyIfPresent(entryRO, 11L);
-
-        assertEquals(0.0, head.segment().cleanableDirtyRatio(), 0.0);
     }
 
     @Test
@@ -681,6 +681,34 @@ public class KafkaCachePartitionTest
         final KafkaCacheEntryFW entry = held.logFile().readBytes(0, new KafkaCacheEntryFW()::wrap);
         assertEquals(11L, entry.offset$());
         held.release();
+    }
+
+    @Test
+    public void shouldIgnoreOffsetOlderThanOldestSegmentWhenAbortingIfPresent() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node head = partition.append(10L);
+        writeProduceEntry(partition, head, 11L);
+
+        partition.seekNotAfter(5L).markAbortedIfPresent(entryRO, 5L);
+
+        assertEquals(CACHE_ENTRY_FLAGS_COMPLETED, head.findEntry(entryRO, 11L).flags());
+    }
+
+    @Test
+    public void shouldIgnoreUnacknowledgedOffsetOfSegmentRemovedWhenAcknowledged() throws Exception
+    {
+        KafkaCachePartition partition = newPartition();
+        Node first = partition.append(10L);
+        writeProduceEntry(partition, first, 11L);
+        Node head = partition.append(20L);
+        writeProduceEntry(partition, head, 21L);
+        partition.removeAcknowledgedSegments(20L);
+        assertSame(head, partition.seekNotBefore(0L));
+
+        partition.seekNotAfter(11L).markAbortedIfPresent(entryRO, 11L);
+
+        assertEquals(CACHE_ENTRY_FLAGS_COMPLETED, head.findEntry(entryRO, 21L).flags());
     }
 
     @Test

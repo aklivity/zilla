@@ -15,7 +15,7 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_DIRTY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.stream.KafkaCacheRoute.LEADER_UNKNOWN;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
@@ -1469,7 +1469,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                     produce:
                     if (reserved >= initialPad)
                     {
-                        if ((entryFlags & CACHE_ENTRY_FLAGS_DIRTY) != 0)
+                        if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) != 0)
                         {
                             cursor.advance(partitionOffset + 1);
                             doFlushServerReply(NO_ERROR, traceId);
