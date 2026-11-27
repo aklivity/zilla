@@ -64,6 +64,7 @@ public final class AguiResponseMapper implements A2aEventSink
     public static final String CUSTOM_FILE = "agent.file";
 
     public static final String ACTIVITY_STATUS = "status";
+    public static final String ACTIVITY_A2UI_SURFACE = "a2ui-surface";
 
     public static final String REASON_INPUT = "input";
     public static final String REASON_AUTHORIZATION = "authorization";
@@ -125,6 +126,10 @@ public final class AguiResponseMapper implements A2aEventSink
     private final Set<String> finished = new HashSet<>();
     private final Set<String> messageIds = new HashSet<>();
     private final List<String> pendingToolCalls = new ArrayList<>();
+    private final Set<String> surfaces = new HashSet<>();
+    private final DirectBufferEx surfaceSnapshot = literal("{\"a2ui_operations\":[]}");
+    private final DirectBufferEx operationOpen = literal("[{\"op\":\"add\",\"path\":\"/a2ui_operations/-\",\"value\":");
+    private final DirectBufferEx operationClose = literal("}]");
     private final Map<String, Integer> artifacts = new HashMap<>();
     private final Runnable noop = () ->
     {
@@ -143,6 +148,8 @@ public final class AguiResponseMapper implements A2aEventSink
     private final TagContent dataTagFlowing = new DataTagFlowing();
     private final TagContent textTagNew = new TextTagNew();
     private final TagContent textTagFlowing = new TextTagFlowing();
+    private final TagContent surfaceTagNew = new SurfaceTagNew();
+    private final TagContent surfaceTagFlowing = new SurfaceTagFlowing();
 
     private ReplyEvents events = open;
     private Content content = ignoreContent;
@@ -150,6 +157,7 @@ public final class AguiResponseMapper implements A2aEventSink
     private TagContent tagContent = ignoreTag;
     private A2aPartTag tag;
     private String tagCallId;
+    private String surfaceId;
     private String metaSubagentRunId;
     private Runnable closing = noop;
     private Runnable leading = noop;
@@ -274,6 +282,13 @@ public final class AguiResponseMapper implements A2aEventSink
         A2aPartTag tag)
     {
         events.tagStarted(tag);
+    }
+
+    @Override
+    public void surfaceStarted(
+        String surfaceId)
+    {
+        events.surfaceStarted(surfaceId);
     }
 
     @Override
@@ -495,6 +510,16 @@ public final class AguiResponseMapper implements A2aEventSink
         }
 
         @Override
+        public void surfaceStarted(
+            String surfaceId)
+        {
+            AguiResponseMapper.this.surfaceId = surfaceId;
+            resumeContent = content;
+            tagContent = content == ignoreContent ? ignoreTag : surfaceTagNew;
+            content = tagContent;
+        }
+
+        @Override
         public void tagEnded()
         {
             tagContent.end();
@@ -641,6 +666,12 @@ public final class AguiResponseMapper implements A2aEventSink
         @Override
         public void tagStarted(
             A2aPartTag tag)
+        {
+        }
+
+        @Override
+        public void surfaceStarted(
+            String surfaceId)
         {
         }
 
@@ -804,6 +835,62 @@ public final class AguiResponseMapper implements A2aEventSink
         @Override
         public void end()
         {
+        }
+    }
+
+    private final class SurfaceTagNew extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (limit > offset)
+            {
+                closing.run();
+                ensureSnapshot();
+
+                if (surfaces.add(surfaceId))
+                {
+                    sink.message(INIT | FIN, surfaceEx(AguiActivityType.SNAPSHOT), surfaceSnapshot, 0,
+                        surfaceSnapshot.capacity());
+                }
+
+                sink.message(INIT, surfaceEx(AguiActivityType.DELTA), operationOpen, 0, operationOpen.capacity());
+                sink.message(0, null, buffer, offset, limit);
+
+                tagContent = surfaceTagFlowing;
+                content = tagContent;
+            }
+        }
+
+        @Override
+        public void end()
+        {
+        }
+    }
+
+    private final class SurfaceTagFlowing extends IgnoreContent implements TagContent
+    {
+        @Override
+        public void data(
+            int flags,
+            DirectBufferEx buffer,
+            int offset,
+            int limit)
+        {
+            if (limit > offset)
+            {
+                sink.message(0, null, buffer, offset, limit);
+            }
+        }
+
+        @Override
+        public void end()
+        {
+            sink.message(FIN, null, operationClose, 0, operationClose.capacity());
         }
     }
 
@@ -1052,6 +1139,22 @@ public final class AguiResponseMapper implements A2aEventSink
             .build();
 
         sink.message(flags, dataEx, buffer, offset, limit);
+    }
+
+    private AguiDataExFW surfaceEx(
+        AguiActivityType type)
+    {
+        return dataExRW.wrap(exBuffer, 0, exBuffer.capacity())
+            .typeId(aguiTypeId)
+            .activity(a -> a.meta(this::meta).type(t -> t.set(type)).messageId(surfaceId)
+                .activityType(ACTIVITY_A2UI_SURFACE))
+            .build();
+    }
+
+    private static DirectBufferEx literal(
+        String text)
+    {
+        return new UnsafeBufferEx(text.getBytes(UTF_8));
     }
 
     private TagContent tagContentOf(

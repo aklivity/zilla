@@ -125,6 +125,7 @@ AG-UI and A2A do not model the same things. What the proxy drops or approximates
 | a tagged part whose feature is not enabled, or any tagged part without the echo | `CUSTOM` `agent.data` or `agent.file`, as an untagged part | lossy |
 | a client-executed `toolCall` part | `TOOL_CALL_*` with an opaque handle id; at `INPUT_REQUIRED` the run ends `SUCCESS` with `pendingToolCallIds` | none |
 | `subagent` tags (started, finished, error) and `text` tags with a `subagentRunId`, and the `subagentRunId` of any other tag | `SUBAGENT_*` events and the `subagentRunId` on the events of that part; the scope is explicit per part, a suspended subagent carries no resumable interrupt ids | lossy |
+| an A2UI data part (`application/a2ui+json` array, or `application/json+a2ui` object), when the AG-UI request sends `a2uiClientCapabilities` for a version the agent card also declares an A2UI extension for | an `a2ui-surface` activity per surface: a snapshot `{"a2ui_operations": []}` then one append delta per message, unchanged; no transform | lossy |
 | a tag the proxy does not interpret | dropped, recorded in a Zilla event | lossy |
 | a tagged part of the wrong shape | `RUN_ERROR` 502 `agent_protocol` | n/a |
 | `COMPLETED` | `RUN_FINISHED`; the task and context ids are not placed on the stream | none |
@@ -164,10 +165,13 @@ there is no incremental text.
   restored from the store is consumed by the store's `getAndDelete`.
 - Aborting a run cancels the A2A task once its id is known. Before the first event the remote task may keep
   running. A Stop button and a closed tab look the same to Zilla.
-- The interrupt tag is not mapped yet. The proxy
-  requests the `https://a2a.aklivity.io/ext/agui/v1` extension when the agent card lists it, and interprets tags only
-  when the agent echoes it. A tagged part is recognized only when its tag is readable inside the decode window, so a
-  `data` value larger than the window must follow its `metadata` member.
+- The interrupt tag is not mapped yet. The proxy requests the `https://a2a.aklivity.io/ext/agui/v1` extension when the
+  agent card lists it, and interprets tags only when the agent echoes it. A tagged part is recognized only when its tag
+  is readable inside the decode window, so a `data` value larger than the window must follow its `metadata` member.
+- A2UI is activated per request, by the client: the proxy requests the A2UI extension only when the AG-UI request
+  carries `a2uiClientCapabilities` in `forwardedProps` for a version the agent card declares, and requests the highest common version. A
+  message must fit the decode window, the `a2uiAction` forwarded prop is not mapped to a data part, and operations are
+  not transformed between A2UI versions (CopilotKit 1.83 paints `v0.9` operations only).
 - An agent slug with no route on `agui-a2a`, such as `/agents/unknown` here, is answered 502 because nothing can be reached.
 - `routes[].when.path` on `agui` is the only way to pick an agent; CopilotKit's `/connect` and `/stop` routes are
   not AG-UI and are answered 404.

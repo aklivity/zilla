@@ -351,6 +351,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
         private String rememberedContextId;
         private AguiA2aExtension offered;
         private AguiA2aExtension active;
+        private String a2uiUri;
         private String resumeTaskId;
         private String resumeInterruptId;
         private long eventTraceId;
@@ -754,6 +755,8 @@ public final class AguiA2aProxyFactory implements BindingHandler
             AguiA2aAgentCard card)
         {
             this.offered = card.extension();
+            this.a2uiUri = card.a2ui(requestDecoder.a2uiVersions());
+            eventDecoder.activateA2ui(a2uiUri != null);
 
             final AguiA2aRetained retained = requestDecoder.retained();
             final boolean tools = offered != null && offered.enabled(AguiA2aExtension.FEATURE_TOOLS);
@@ -911,7 +914,7 @@ public final class AguiA2aProxyFactory implements BindingHandler
                 default -> null;
                 };
 
-                if (offered.uri().equals(echoed))
+                if (echoed != null && List.of(echoed.split(",")).contains(offered.uri()))
                 {
                     active = offered;
                     eventDecoder.activate(active);
@@ -921,7 +924,9 @@ public final class AguiA2aProxyFactory implements BindingHandler
 
         String extensions()
         {
-            return offered != null ? offered.uri() : null;
+            final String agui = offered != null ? offered.uri() : null;
+
+            return agui != null && a2uiUri != null ? agui + "," + a2uiUri : agui != null ? agui : a2uiUri;
         }
 
         private void onA2aReset(
