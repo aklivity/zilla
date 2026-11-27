@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.LongFunction;
 import java.util.zip.CRC32C;
 
+import org.agrona.collections.LongArrayQueue;
 import org.agrona.collections.LongLongConsumer;
 
 import io.aklivity.zilla.config.binding.kafka.KafkaSaslConfig;
@@ -95,8 +96,6 @@ import io.aklivity.zilla.runtime.engine.guard.GuardHandler;
 public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker implements BindingHandler
 {
     private static final int PRODUCE_REQUEST_RECORDS_OFFSET_MAX = 512;
-    private static final int REQUEST_END_SEQUENCES_INITIAL = 4;
-    private static final int BATCH_START_SEQUENCES_INITIAL = 16;
 
     private static final long RECORD_BATCH_PRODUCER_ID_NONE = -1;
     private static final int RECORD_BATCH_BASE_SEQUENCE_NONE = -1;
@@ -1390,10 +1389,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private int decodablePartitions;
 
             private int nextResponseId;
-            private long[] requestEndSequences = new long[REQUEST_END_SEQUENCES_INITIAL];
-            private long[] batchStartSequences = new long[BATCH_START_SEQUENCES_INITIAL];
-            private int batchStartHead;
-            private int batchStartCount;
+            private final LongArrayQueue batchStartSequences = new LongArrayQueue();
 
             private KafkaProduceClientDecoder decoder;
             private KafkaProduceClientFlusher flusher;
@@ -1853,7 +1849,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeableRecordBatchSlotOffset = encodeSlotLimit;
                     encodeSlotLimit = encodeableRecordBatch.limit();
 
-                    addBatchStartSequence(frameSequence);
+                    batchStartSequences.offerLong(frameSequence);
                 }
 
                 assert encodeableRecordBatch != null;
@@ -2092,9 +2088,7 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 assert encodeProgress <= PRODUCE_REQUEST_RECORDS_OFFSET_MAX;
 
                 final int encodeSizeOf = encodeProgress - encodeOffset;
-                growRequestEndSequences(nextRequestId - nextResponseId + 1);
                 final int requestId = nextRequestId++;
-                removeBatchStartSequence();
 
                 final int requestSize = encodeSizeOf - FIELD_OFFSET_API_KEY + recordBatchLength;
 
@@ -2273,11 +2267,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
 
                 if (flushable)
                 {
-                    if (length > 0 && flushableRequestBytes == 0)
-                    {
-                        encodeRequestEndSequence();
-                    }
-
                     if (encodedAckMode == KafkaAckMode.NONE && length > 0 && flushableRequestBytes == 0)
                     {
                         onDecodeProduceResponse(traceId);
@@ -2484,7 +2473,9 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
             private void onDecodeProduceResponse(
                 long traceId)
             {
-                final long acknowledgedSequence = requestEndSequences[nextResponseId & (requestEndSequences.length - 1)];
+                batchStartSequences.pollLong();
+                final long acknowledgedSequence =
+                    batchStartSequences.isEmpty() ? stream.initialSeq : batchStartSequences.peekLong();
                 nextResponseId++;
 
                 stream.doAppWindow(traceId, (int) (stream.initialSeq - acknowledgedSequence), encodeMaxBytes);
@@ -2492,61 +2483,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                 if (encodeSlot != NO_SLOT)
                 {
                     signaler.signalNow(originId, routedId, initialId, traceId, SIGNAL_NEXT_REQUEST, 0);
-                }
-            }
-
-            private void addBatchStartSequence(
-                long sequence)
-            {
-                if (batchStartCount == batchStartSequences.length)
-                {
-                    final long[] grown = new long[batchStartSequences.length << 1];
-                    for (int index = 0; index < batchStartCount; index++)
-                    {
-                        grown[index] = batchStartSequences[(batchStartHead + index) % batchStartSequences.length];
-                    }
-                    batchStartSequences = grown;
-                    batchStartHead = 0;
-                }
-
-                batchStartSequences[(batchStartHead + batchStartCount) % batchStartSequences.length] = sequence;
-                batchStartCount++;
-            }
-
-            private void removeBatchStartSequence()
-            {
-                if (batchStartCount > 0)
-                {
-                    batchStartHead = (batchStartHead + 1) % batchStartSequences.length;
-                    batchStartCount--;
-                }
-            }
-
-            private void encodeRequestEndSequence()
-            {
-                final long endSequence = batchStartCount > 0 ? batchStartSequences[batchStartHead] : stream.initialSeq;
-
-                requestEndSequences[(nextRequestId - 1) & (requestEndSequences.length - 1)] = endSequence;
-            }
-
-            private void growRequestEndSequences(
-                int inFlightRequests)
-            {
-                int capacity = requestEndSequences.length;
-
-                if (inFlightRequests > capacity)
-                {
-                    while (capacity < inFlightRequests)
-                    {
-                        capacity <<= 1;
-                    }
-
-                    final long[] grown = new long[capacity];
-                    for (int requestId = nextResponseId; requestId < nextRequestId; requestId++)
-                    {
-                        grown[requestId & (capacity - 1)] = requestEndSequences[requestId & (requestEndSequences.length - 1)];
-                    }
-                    requestEndSequences = grown;
                 }
             }
 
@@ -2590,8 +2526,6 @@ public final class KafkaClientProduceFactory extends KafkaClientSaslHandshaker i
                     encodeSlotLimit = 0;
                     encodeSlotTraceId = 0;
                     encodeableAckMode = KafkaAckMode.NONE;
-                    batchStartHead = 0;
-                    batchStartCount = 0;
                 }
             }
         }
