@@ -287,4 +287,76 @@ public class ApplicationIT
     {
         k3po.finish();
     }
+
+    @Test
+    @Specification({
+        "${app}/run.unauthorized/client",
+        "${app}/run.unauthorized/server"})
+    public void shouldRunUnauthorized() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.unavailable/client",
+        "${app}/run.unavailable/server"})
+    public void shouldRunUnavailable() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.event.invalid/client",
+        "${app}/run.event.invalid/server"})
+    public void shouldRunEventInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.sequence.invalid/client",
+        "${app}/run.sequence.invalid/server"})
+    public void shouldRunSequenceInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.abort/client",
+        "${app}/run.request.abort/server"})
+    public void shouldRunRequestAbort() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.text.deltas/client",
+        "${app}/run.text.deltas/server"})
+    public void shouldRunTextDeltas() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.mismatch/client",
+        "${app}/run.request.mismatch/server"})
+    public void shouldRunRequestMismatch() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/run.request.malformed/client",
+        "${app}/run.request.malformed/server"})
+    public void shouldRunRequestMalformed() throws Exception
+    {
+        k3po.finish();
+    }
 }
