@@ -642,9 +642,9 @@ public class AguiA2aProxyIT
     @Configuration("proxy.catch.all.yaml")
     @ScriptProperty("serverAddress \"zilla://streams/a2a0\"")
     @Specification({
-        "${agui}/run.status.working.fallback/client",
-        "${agent}/run.status.working.fallback/server"})
-    public void shouldRunStatusWorkingFallback() throws Exception
+        "${agui}/run.status.working.activity/client",
+        "${agent}/run.status.working.activity/server"})
+    public void shouldRunStatusWorkingActivity() throws Exception
     {
         k3po.finish();
     }

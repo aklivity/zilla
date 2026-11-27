@@ -49,7 +49,7 @@ public class AguiResponseScenarioTest
             "run.status.completed.message",
             "run.status.completed.duplicate",
             "run.status.task.resend",
-            "run.status.working.fallback",
+            "run.status.working.activity",
             "run.status.input.required",
             "run.outcome.aborted",
             "run.outcome.canceled",
