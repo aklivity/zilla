@@ -1363,7 +1363,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
 
                 KafkaCacheServerMetaWatch.open(context, supplyCacheRoute.apply(fan.routedId), fan.originId, fan.originId,
                     authorization, fan.partionTopic,
-                    context.resolveAffinityId(KafkaCacheRoute.topicPartitionKey(fan.partionTopic, fan.partitionId)), traceId);
+                    context.resolveAffinityId(KafkaCacheRoute.partitionPlacementKey(fan.partionTopic, fan.partitionId)), traceId);
 
                 fan.onServerFanMemberOpening(traceId, this);
             }

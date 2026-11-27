@@ -33,6 +33,11 @@ public final class KafkaCacheRoute
 {
     public static final int LEADER_UNKNOWN = Integer.MIN_VALUE;
 
+    private static final long FNV_OFFSET_BASIS = 0xcbf29ce484222325L;
+    private static final long FNV_PRIME = 0x100000001b3L;
+    private static final long MIX_MULTIPLIER_1 = 0xff51afd7ed558ccdL;
+    private static final long MIX_MULTIPLIER_2 = 0xc4ceb9fe1a85ec53L;
+
     public final long resolvedId;
     public final Int2ObjectHashMap<KafkaCacheClientDescribeFanout> clientDescribeFanoutsByTopic;
     public final Int2ObjectHashMap<KafkaCacheServerDescribeFanout> serverDescribeFanoutsByTopic;
@@ -89,5 +94,24 @@ public final class KafkaCacheRoute
         int partitionId)
     {
         return (((long) topicKey(topic)) << Integer.SIZE) | (partitionId & 0xFFFF_FFFFL);
+    }
+
+    public static long partitionPlacementKey(
+        String topic,
+        int partitionId)
+    {
+        long hash = FNV_OFFSET_BASIS;
+        for (int index = 0; index < topic.length(); index++)
+        {
+            hash = (hash ^ topic.charAt(index)) * FNV_PRIME;
+        }
+
+        hash ^= hash >>> 33;
+        hash *= MIX_MULTIPLIER_1;
+        hash ^= hash >>> 33;
+        hash *= MIX_MULTIPLIER_2;
+        hash ^= hash >>> 33;
+
+        return (hash >>> 2) + partitionId;
     }
 }
