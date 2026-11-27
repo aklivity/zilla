@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.A2aDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiDataExFW;
 import io.aklivity.zilla.runtime.binding.agui.a2a.internal.types.stream.AguiOutcomeType;
 import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
@@ -72,6 +73,15 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
         String json,
         int window)
     {
+        event(json, A2aExSpec.of(json), window);
+    }
+
+    void event(
+        String json,
+        A2aExSpec spec,
+        int window)
+    {
+        final A2aDataExFW dataEx = spec != null ? spec.build() : null;
         final byte[] bytes = json.getBytes(UTF_8);
         final DirectBufferEx buffer = new UnsafeBufferEx(bytes);
 
@@ -82,7 +92,7 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
             final int limit = Math.min(progress + window, bytes.length);
             final int flags = (progress == 0 ? INIT : 0) | (limit == bytes.length ? FIN : 0);
 
-            decoder.decode(flags, buffer, progress, limit);
+            decoder.decode(flags, progress == 0 ? dataEx : null, buffer, progress, limit);
             progress = limit;
         }
         while (progress < bytes.length);
@@ -181,7 +191,7 @@ final class ResponseHarness implements AguiFrameSink, AguiResponseHost
             }
             else if ((frame.flags() & FIN) != 0)
             {
-                logical.add(header + "=" + open + "|fin");
+                logical.add(header + "=" + open + frame.payloadText() + (header.startsWith("custom") ? "" : "|fin"));
                 open = null;
             }
             else
