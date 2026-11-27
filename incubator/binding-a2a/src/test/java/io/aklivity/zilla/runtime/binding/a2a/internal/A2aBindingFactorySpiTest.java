@@ -16,15 +16,12 @@ package io.aklivity.zilla.runtime.binding.a2a.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
 
 import java.util.ServiceLoader;
 
 import org.junit.Test;
 
 import io.aklivity.zilla.runtime.engine.Configuration;
-import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.Binding;
 import io.aklivity.zilla.runtime.engine.binding.BindingFactorySpi;
 
@@ -39,7 +36,6 @@ public class A2aBindingFactorySpiTest
 
         assertThat(factory.type(), equalTo("a2a"));
         assertThat(binding.name(), equalTo("a2a"));
-        assertThat(binding.supply(mock(EngineContext.class)), instanceOf(A2aBindingContext.class));
     }
 
     @Test

@@ -326,6 +326,24 @@ public class NetworkIT
 
     @Test
     @Specification({
+        "${net}/reject.bearer.invalid/client",
+        "${net}/reject.bearer.invalid/server"})
+    public void shouldRejectBearerInvalid() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${net}/reject.method.not.allowed/client",
+        "${net}/reject.method.not.allowed/server"})
+    public void shouldRejectMethodNotAllowed() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${net}/send.message/client",
         "${net}/send.message/server"})
     public void shouldSendMessage() throws Exception
