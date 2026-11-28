@@ -798,7 +798,8 @@ scope kafka
             GROUP_AUTHORIZATION_FAILED (8),
             TRANSACTIONAL_ID_AUTHORIZATION_FAILED (9),
             UNSUPPORTED_SASL_MECHANISM (10),
-            OFFSET_COMMIT_FAILED (11)
+            OFFSET_COMMIT_FAILED (11),
+            PRODUCE_STAGING_UNDERSIZED (12)
         }
 
         struct KafkaAuthorizationFailedEx extends core::stream::Extension
@@ -869,6 +870,13 @@ scope kafka
             int32 errorCode;
         }
 
+        struct KafkaProduceStagingUndersizedEx extends core::stream::Extension
+        {
+            string8 topic;
+            int64 workerBudget;
+            int32 segmentBytes;
+        }
+
         union KafkaEventEx switch (KafkaEventType)
         {
             case AUTHORIZATION_FAILED: KafkaAuthorizationFailedEx authorizationFailed;
@@ -882,6 +890,7 @@ scope kafka
             case TRANSACTIONAL_ID_AUTHORIZATION_FAILED: KafkaTransactionalIdAuthorizationFailedEx transactionalIdAuthorizationFailed;
             case UNSUPPORTED_SASL_MECHANISM: KafkaUnsupportedSaslMechanismEx unsupportedSaslMechanism;
             case OFFSET_COMMIT_FAILED: KafkaOffsetCommitFailedEx offsetCommitFailed;
+            case PRODUCE_STAGING_UNDERSIZED: KafkaProduceStagingUndersizedEx produceStagingUndersized;
         }
     }
 }

@@ -746,7 +746,7 @@ public final class KafkaCacheServerDescribeFactory implements BindingHandler
             final String16FW configName = config.name();
             final String16FW configValue = config.value();
 
-            topic.config().onChanged(configName, configValue);
+            topic.onConfigChanged(configName, configValue);
 
             configValues.put(configName.asString(), configValue.asString());
         }

@@ -25,6 +25,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventEx
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaGroupAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaOffsetCommitFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaProduceErrorExFW;
+import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaProduceStagingUndersizedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaSaslAuthenticationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaTopicAuthorizationFailedExFW;
 import io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaTransactionalIdAuthorizationFailedExFW;
@@ -102,6 +103,16 @@ public final class KafkaEventFormatter implements EventFormatterSpi
             KafkaApiKey apiKey = KafkaApiKey.of(ex.apiKey());
             result = String.format("%s (Version: %d) Produce error (%d) for topic (%s).",
                 apiKey.title(), ex.apiVersion(), ex.errorCode(), asString(ex.topic()));
+            break;
+        }
+        case PRODUCE_STAGING_UNDERSIZED:
+        {
+            final KafkaProduceStagingUndersizedExFW ex = extension.produceStagingUndersized();
+            result = ex.workerBudget() < ex.segmentBytes()
+                ? String.format("Produce staging budget (%d bytes per worker) cannot hold one segment (%d bytes) for topic (%s).",
+                    ex.workerBudget(), ex.segmentBytes(), asString(ex.topic()))
+                : String.format("Produce staging segment for topic (%s) raised to %d bytes from a budget of %d bytes per worker.",
+                    asString(ex.topic()), ex.segmentBytes(), ex.workerBudget());
             break;
         }
         case GROUP_AUTHORIZATION_FAILED:

@@ -18,7 +18,6 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ABORTED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ADVANCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
-import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
@@ -31,6 +30,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.nio.ByteBuffer;
 import java.time.Clock;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -55,6 +56,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceIdleHead;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTrailerEnvelope;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaRouteConfig;
@@ -169,6 +171,9 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
     private final int kafkaTypeId;
     private final KafkaEventContext event;
+    private final long produceWorkerBudget;
+    private final int produceSegmentBytes;
+    private final Set<String> undersizedTopics = new HashSet<>();
     private final BufferPool bufferPool;
     private final BudgetCreditor creditor;
     private final Clock clock;
@@ -228,8 +233,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.cursorFactory = new KafkaCacheCursorFactory(context.writeBuffer().capacity());
         this.trailersSizeMax = config.cacheClientTrailersSizeMax();
         this.reconnectDelay = config.cacheServerReconnect();
+        this.produceWorkerBudget = KafkaCacheTopicConfig.produceWorkerBudget(config);
+        this.produceSegmentBytes = config.cacheProduceSegmentBytes();
         this.produceBudget = new KafkaCacheClientProduceBudget(creditor, context::supplyDebitor, context.supplyBudgetId(),
-            config.cacheProduceCapacity() / ENGINE_WORKERS.getAsInt(config));
+            produceWorkerBudget);
     }
 
     public void close()
@@ -293,6 +300,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final KafkaCacheTopic topic = cache.supplyTopic(topicName);
                 final KafkaCachePartition partition = topic.supplyProducePartition(clock, partitionId, localIndex);
                 final KafkaCacheDoorbell initialDoorbell = topic.supplyProduceDoorbell(partitionId);
+                final long derivedSegmentBytes = produceWorkerBudget / KafkaCacheTopicConfig.PRODUCE_SEGMENTS_PER_WORKER_BUDGET;
+                if (derivedSegmentBytes < produceSegmentBytes && partition.segmentBytes() > derivedSegmentBytes &&
+                    undersizedTopics.add(topicName))
+                {
+                    event.produceStagingUndersized(begin.traceId(), routedId, topicName, produceWorkerBudget,
+                        partition.segmentBytes());
+                }
                 final KafkaCacheClientProduceFan newFan =
                         new KafkaCacheClientProduceFan(routedId, resolvedId, authorization, budget,
                             partition, initialDoorbell, cacheRoute, topicName);
