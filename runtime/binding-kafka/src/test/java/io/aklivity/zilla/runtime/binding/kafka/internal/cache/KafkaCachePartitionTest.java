@@ -629,6 +629,46 @@ public class KafkaCachePartitionTest
     }
 
     @Test
+    public void shouldSizeProduceSegmentsFromWorkerBudget() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.workers", "2");
+        properties.setProperty("zilla.binding.kafka.cache.produce.capacity", Integer.toString(16 * 1024 * 1024));
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+        KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
+            "cache", "test", long[]::new);
+
+        assertEquals(1024 * 1024, topic.supplyProducePartition(Clock.systemUTC(), 0, 0).segmentBytes());
+    }
+
+    @Test
+    public void shouldRaiseProduceSegmentToMessageFloorWhenWorkerBudgetIsSmall() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.workers", "1");
+        properties.setProperty("zilla.binding.kafka.cache.produce.capacity", "800000");
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+        KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
+            "cache", "test", long[]::new);
+
+        assertTrue(topic.supplyProducePartition(Clock.systemUTC(), 0, 0).segmentBytes() > config.cacheMaxMessageBytes());
+    }
+
+    @Test
+    public void shouldNotExceedConfiguredProduceSegmentBytesWhenWorkerBudgetIsLarge() throws Exception
+    {
+        Properties properties = new Properties();
+        properties.setProperty("zilla.engine.workers", "1");
+        properties.setProperty("zilla.binding.kafka.cache.produce.capacity", Long.toString(1L << 40));
+        properties.setProperty("zilla.binding.kafka.cache.produce.segment.bytes", Integer.toString(4 * 1024 * 1024));
+        KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
+        KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
+            "cache", "test", long[]::new);
+
+        assertEquals(4 * 1024 * 1024, topic.supplyProducePartition(Clock.systemUTC(), 0, 0).segmentBytes());
+    }
+
+    @Test
     public void shouldKeepConfiguredProduceSegmentBytesWhenLargerThanMaxMessageBytes() throws Exception
     {
         KafkaConfiguration config = new KafkaConfiguration();

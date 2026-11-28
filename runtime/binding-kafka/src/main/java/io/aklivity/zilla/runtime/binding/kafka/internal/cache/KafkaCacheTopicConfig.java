@@ -17,6 +17,7 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheIndexRecord.SIZEOF_INDEX_RECORD;
+import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_WORKERS;
 import static java.lang.Double.parseDouble;
 
 import java.util.HashMap;
@@ -29,6 +30,8 @@ import io.aklivity.zilla.runtime.common.agrona.buffer.DirectBufferEx;
 
 public final class KafkaCacheTopicConfig
 {
+    public static final int PRODUCE_SEGMENTS_PER_WORKER_BUDGET = 8;
+
     private static final String16FW CLEANUP_POLICY = new String16FW("cleanup.policy");
     private static final String16FW MAX_MESSAGE_BYTES = new String16FW("max.message.bytes");
     private static final String16FW SEGMENT_BYTES = new String16FW("segment.bytes");
@@ -99,7 +102,8 @@ public final class KafkaCacheTopicConfig
         KafkaConfiguration config)
     {
         final KafkaCacheTopicConfig produce = new KafkaCacheTopicConfig(config);
-        produce.segmentBytes = config.cacheProduceSegmentBytes();
+        produce.segmentBytes = (int) Math.min(config.cacheProduceSegmentBytes(),
+            Math.max(produceWorkerBudget(config) / PRODUCE_SEGMENTS_PER_WORKER_BUDGET, 1L));
         produce.segmentIndexBytes = config.cacheProduceSegmentIndexBytes();
         produce.segmentEntryOverhead = KafkaCachePartition.produceEntryOverhead(config.cacheClientTrailersSizeMax());
 
@@ -110,6 +114,12 @@ public final class KafkaCacheTopicConfig
         }
 
         return produce;
+    }
+
+    public static long produceWorkerBudget(
+        KafkaConfiguration config)
+    {
+        return config.cacheProduceCapacity() / ENGINE_WORKERS.getAsInt(config);
     }
 
     public void onMaxMessageBytes(

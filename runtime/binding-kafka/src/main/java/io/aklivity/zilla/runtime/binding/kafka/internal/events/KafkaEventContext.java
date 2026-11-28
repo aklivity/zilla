@@ -22,6 +22,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.Kafka
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.GROUP_AUTHORIZATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.OFFSET_COMMIT_FAILED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.PRODUCE_ERROR;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.PRODUCE_STAGING_UNDERSIZED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.SASL_AUTHENTICATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.TOPIC_AUTHORIZATION_FAILED;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.event.KafkaEventType.TRANSACTIONAL_ID_AUTHORIZATION_FAILED;
@@ -54,6 +55,7 @@ public class KafkaEventContext
     private final int saslAuthenticationFailedEventId;
     private final int brokerConnectionFailedEventId;
     private final int produceErrorEventId;
+    private final int produceStagingUndersizedEventId;
     private final int groupAuthorizationFailedEventId;
     private final int transactionalIdAuthorizationFailedEventId;
     private final int unsupportedSaslMechanismEventId;
@@ -72,6 +74,7 @@ public class KafkaEventContext
         this.saslAuthenticationFailedEventId = context.supplyEventId("binding.kafka.sasl.authentication.failed");
         this.brokerConnectionFailedEventId = context.supplyEventId("binding.kafka.broker.connection.failed");
         this.produceErrorEventId = context.supplyEventId("binding.kafka.produce.error");
+        this.produceStagingUndersizedEventId = context.supplyEventId("binding.kafka.produce.staging.undersized");
         this.groupAuthorizationFailedEventId = context.supplyEventId("binding.kafka.group.authorization.failed");
         this.transactionalIdAuthorizationFailedEventId =
             context.supplyEventId("binding.kafka.transactional.id.authorization.failed");
@@ -260,6 +263,33 @@ public class KafkaEventContext
         EventFW event = eventRW
             .wrap(eventBuffer, 0, eventBuffer.capacity())
             .id(produceErrorEventId)
+            .timestamp(clock.millis())
+            .traceId(traceId)
+            .namespacedId(bindingId)
+            .extension(extension.buffer(), extension.offset(), extension.limit())
+            .build();
+        eventWriter.accept(kafkaTypeId, event.buffer(), event.offset(), event.limit());
+    }
+
+    public void produceStagingUndersized(
+        long traceId,
+        long bindingId,
+        String topic,
+        long workerBudget,
+        int segmentBytes)
+    {
+        KafkaEventExFW extension = kafkaEventExRW
+            .wrap(extensionBuffer, 0, extensionBuffer.capacity())
+            .produceStagingUndersized(e -> e
+                .typeId(PRODUCE_STAGING_UNDERSIZED.value())
+                .topic(topic)
+                .workerBudget(workerBudget)
+                .segmentBytes(segmentBytes)
+            )
+            .build();
+        EventFW event = eventRW
+            .wrap(eventBuffer, 0, eventBuffer.capacity())
+            .id(produceStagingUndersizedEventId)
             .timestamp(clock.millis())
             .traceId(traceId)
             .namespacedId(bindingId)

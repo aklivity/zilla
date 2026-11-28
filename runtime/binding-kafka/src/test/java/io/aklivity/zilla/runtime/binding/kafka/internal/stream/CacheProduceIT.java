@@ -642,6 +642,22 @@ public class CacheProduceIT
     }
 
     @Test
+    @Configuration("cache.event.produce.staging.undersized.yaml")
+    @Specification({
+        "${app}/message.storage.none/client",
+        "${app}/message.storage.none.cache/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "512")
+    public void shouldReportProduceStagingUndersizedWhenProduceCapacityCannotHoldOneSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
     @Configuration("cache.yaml")
     @Specification({
         "${app}/message.value.repeated.acknowledged.reclaim/client",
