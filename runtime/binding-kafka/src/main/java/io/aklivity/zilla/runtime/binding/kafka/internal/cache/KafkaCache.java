@@ -15,12 +15,20 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_DIRECTORY;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_PRODUCE_DIRECTORY;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import org.agrona.BitUtil;
+import org.agrona.IoUtil;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 
@@ -45,6 +53,16 @@ public final class KafkaCache
         this.name = name;
         this.location = config.cacheFetchDirectory().resolve(name);
         this.produceLocation = config.cacheProduceDirectory().resolve(name);
+
+        if (location.toAbsolutePath().normalize().equals(produceLocation.toAbsolutePath().normalize()))
+        {
+            throw new IllegalArgumentException(String.format(
+                "%s and %s both resolve to %s, produce staging needs its own directory",
+                KAFKA_CACHE_PRODUCE_DIRECTORY.name(), KAFKA_CACHE_FETCH_DIRECTORY.name(), location));
+        }
+
+        purgeProduceStaging(produceLocation);
+
         this.topicsByName = new ConcurrentHashMap<>();
         this.sortSpaceRef = ThreadLocal.withInitial(() -> EMPTY_SORT_SPACE);
     }
@@ -69,6 +87,24 @@ public final class KafkaCache
     public String toString()
     {
         return String.format("[%s] %s", getClass().getSimpleName(), name);
+    }
+
+    private static void purgeProduceStaging(
+        Path produceLocation)
+    {
+        if (Files.isDirectory(produceLocation))
+        {
+            try (Stream<Path> entries = Files.list(produceLocation))
+            {
+                entries
+                    .filter(KafkaCachePartition::isProducePartitionDirectory)
+                    .forEach(directory -> IoUtil.delete(directory.toFile(), true));
+            }
+            catch (IOException ex)
+            {
+                throw new UncheckedIOException(ex);
+            }
+        }
     }
 
     private KafkaCacheTopic newTopic(
