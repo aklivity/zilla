@@ -81,6 +81,16 @@ public class TransferCodingsIT
     @Test
     @Configuration("client.yaml")
     @Specification({
+        "${app}/request.transfer.encoding.chunked.fragmented.data.frames/client",
+        "${net}/request.transfer.encoding.chunked.fragmented.data.frames/server" })
+    public void requestTransferEncodingChunkedFragmentedDataFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("client.yaml")
+    @Specification({
         "${app}/request.transfer.encoding.chunked.without.header/client",
         "${net}/request.transfer.encoding.chunked.without.header/server" })
     public void requestTransferEncodingChunkedWithoutHeader() throws Exception

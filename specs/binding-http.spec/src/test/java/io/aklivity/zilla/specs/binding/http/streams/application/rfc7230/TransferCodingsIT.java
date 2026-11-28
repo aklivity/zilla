@@ -67,6 +67,15 @@ public class TransferCodingsIT
 
     @Test
     @Specification({
+        "${app}/request.transfer.encoding.chunked.fragmented.data.frames/client",
+        "${app}/request.transfer.encoding.chunked.fragmented.data.frames/server" })
+    public void shouldRequestTransferEncodingChunkedFragmentedDataFrames() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/request.transfer.encoding.chunked.without.header/client",
         "${app}/request.transfer.encoding.chunked.without.header/server" })
     public void shouldRequestTransferEncodingChunkedWithoutHeader() throws Exception
