@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.agrona.BitUtil;
@@ -34,8 +33,6 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration;
 
 public final class KafkaCache
 {
-    private final AtomicLong produceCapacity = new AtomicLong(0L);
-
     private static final long[] EMPTY_SORT_SPACE = new long[0];
 
     private final KafkaConfiguration config;
@@ -65,11 +62,6 @@ public final class KafkaCache
 
         this.topicsByName = new ConcurrentHashMap<>();
         this.sortSpaceRef = ThreadLocal.withInitial(() -> EMPTY_SORT_SPACE);
-    }
-
-    public boolean hasAvailableProduceCapacity()
-    {
-        return produceCapacity.longValue() < config.cacheProduceCapacity();
     }
 
     public String name()
@@ -110,7 +102,7 @@ public final class KafkaCache
     private KafkaCacheTopic newTopic(
         String topic)
     {
-        return new KafkaCacheTopic(location, produceLocation, config, name, produceCapacity, topic.intern(),
+        return new KafkaCacheTopic(location, produceLocation, config, name, topic.intern(),
             this::supplySortSpace);
     }
 

@@ -43,7 +43,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.regex.Pattern;
@@ -157,8 +156,6 @@ public final class KafkaCachePartition
     private long progress;
 
     private KafkaCacheEntryFW ancestorEntry;
-    private final AtomicLong produceCapacity;
-    private final long maxProduceCapacity;
     private final KafkaCacheDoorbell replyDoorbell = new KafkaCacheDoorbell();
     private final KafkaCacheAckRecord ackRecord = new KafkaCacheAckRecord();
     private volatile long committedOffset = -1L;
@@ -187,8 +184,6 @@ public final class KafkaCachePartition
         this.sentinel = new Node();
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
-        this.produceCapacity = new AtomicLong(0);
-        this.maxProduceCapacity = Long.MAX_VALUE;
     }
 
     public KafkaCachePartition(
@@ -215,8 +210,6 @@ public final class KafkaCachePartition
         this.sentinel = new Node();
         this.checksum = new CRC32C();
         this.progress = OFFSET_HISTORICAL;
-        this.produceCapacity = new AtomicLong(0);
-        this.maxProduceCapacity = Long.MAX_VALUE;
     }
 
     public KafkaCachePartition(
@@ -224,8 +217,6 @@ public final class KafkaCachePartition
         Path location,
         KafkaCacheTopicConfig config,
         String cache,
-        AtomicLong produceCapacity,
-        long maxProduceCapacity,
         String topic,
         int id,
         int appendCapacity,
@@ -236,8 +227,6 @@ public final class KafkaCachePartition
         this.location = createDirectories(produceDirectory(location, topic, id, index));
         this.config = config;
         this.cache = cache;
-        this.produceCapacity = produceCapacity;
-        this.maxProduceCapacity = maxProduceCapacity;
         this.topic = topic;
         this.id = id;
         this.appendBuf = new UnsafeBufferEx(allocateDirect(appendCapacity));
@@ -334,8 +323,6 @@ public final class KafkaCachePartition
             head.segment(tail);
         }
 
-        produceCapacity.getAndAdd(segmentBytes);
-
         return node;
     }
 
@@ -353,7 +340,8 @@ public final class KafkaCachePartition
     }
 
     public void removeAcknowledgedSegments(
-        long acknowledgedOffsetNext)
+        long acknowledgedOffsetNext,
+        KafkaCacheProduceClaims claims)
     {
         Node node = sentinel.next;
 
@@ -362,7 +350,7 @@ public final class KafkaCachePartition
             final Node removed = node;
             node = node.next;
             removed.remove();
-            produceCapacity.addAndGet(-removed.segmentBytes);
+            claims.remove(removed.segment, removed.segmentBytes);
         }
     }
 
@@ -417,20 +405,31 @@ public final class KafkaCachePartition
             headersSizeMax + trailersSizeMax);
     }
 
+    public void newProduceHeadIfNecessary(
+        long offset,
+        KafkaCacheProduceClaims claims)
+    {
+        if (sentinel.previous.sentinel())
+        {
+            appendProduceHead(offset, claims);
+        }
+    }
+
     public Node newProduceHeadIfNecessary(
         long offset,
         KafkaKeyFW key,
         int valueLength,
         int valuePaddingMax,
         int headersSizeMax,
-        int trailersSizeMax)
+        int trailersSizeMax,
+        KafkaCacheProduceClaims claims)
     {
         final int trailersClaimMax = produceTrailersClaimMax(trailersSizeMax);
         final int logHeadersMax = headersSizeMax + trailersClaimMax;
         final int hashHeadersMax = headersSizeMax + trailersSizeMax;
 
         return fitsFreshSegment(key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
-            ? rollProduceHeadIfNecessary(offset, key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax)
+            ? rollProduceHeadIfNecessary(offset, key, valueLength, valuePaddingMax, logHeadersMax, hashHeadersMax, claims)
             : null;
     }
 
@@ -453,7 +452,8 @@ public final class KafkaCachePartition
         int valueLength,
         int valuePaddingMax,
         int logHeadersMax,
-        int hashHeadersMax)
+        int hashHeadersMax,
+        KafkaCacheProduceClaims claims)
     {
         final int logRequired = logRequired(key, valueLength, valuePaddingMax, logHeadersMax);
         final int hashRequiredMax = hashRequiredMax(key, hashHeadersMax);
@@ -462,18 +462,21 @@ public final class KafkaCachePartition
 
         if (head == sentinel || !fits(head.segment, logRequired, hashRequiredMax))
         {
-            head = appendProduceHead(offset);
+            head = appendProduceHead(offset, claims);
         }
 
         return head != null && reserve(head.segment, logRequired, hashRequiredMax) ? head : null;
     }
 
     private Node appendProduceHead(
-        long offset)
+        long offset,
+        KafkaCacheProduceClaims claims)
     {
         Node head = null;
 
-        if (produceCapacity.get() < maxProduceCapacity)
+        final int segmentBytes = config.effectiveSegmentBytes();
+
+        if (claims.claim(segmentBytes))
         {
             try
             {
@@ -481,7 +484,7 @@ public final class KafkaCachePartition
             }
             catch (UncheckedIOException ex)
             {
-                // the segment removed whatever it created, the head is unchanged and the next write retries
+                claims.unclaim(segmentBytes);
             }
         }
 

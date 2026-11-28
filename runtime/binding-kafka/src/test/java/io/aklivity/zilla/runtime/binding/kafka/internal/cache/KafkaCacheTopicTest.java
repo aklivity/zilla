@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,7 +42,7 @@ public class KafkaCacheTopicTest
     {
         KafkaConfiguration config = new KafkaConfiguration();
         Path location = config.cacheFetchDirectory().resolve("cache");
-        KafkaCacheTopic topic = new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
+        KafkaCacheTopic topic = new KafkaCacheTopic(location, location, config, "cache", "test", long[]::new);
 
         KafkaCachePartition partitionA = topic.supplyFetchPartition(Clock.systemUTC(), 0);
         KafkaCachePartition partitionB = topic.supplyFetchPartition(Clock.systemUTC(), 0);
@@ -57,7 +56,7 @@ public class KafkaCacheTopicTest
         KafkaConfiguration config = new KafkaConfiguration();
         Path location = config.cacheFetchDirectory().resolve("cache");
 
-        KafkaCacheTopic topic = new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
+        KafkaCacheTopic topic = new KafkaCacheTopic(location, location, config, "cache", "test", long[]::new);
 
         assertEquals("cache", topic.cache());
         assertEquals("test", topic.name());
@@ -71,7 +70,7 @@ public class KafkaCacheTopicTest
         Path location = tempFolder.newFolder().toPath().resolve("cache");
         Path produceLocation = tempFolder.newFolder().toPath().resolve("cache");
         KafkaCacheTopic topic =
-            new KafkaCacheTopic(location, produceLocation, config, "cache", new AtomicLong(0L), "test", long[]::new);
+            new KafkaCacheTopic(location, produceLocation, config, "cache", "test", long[]::new);
 
         topic.supplyProducePartition(Clock.systemUTC(), 0, 1);
 
@@ -87,7 +86,7 @@ public class KafkaCacheTopicTest
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
         Path location = tempFolder.newFolder().toPath().resolve("cache");
         KafkaCacheTopic topic =
-            new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
+            new KafkaCacheTopic(location, location, config, "cache", "test", long[]::new);
 
         KafkaCachePartition produce = topic.supplyProducePartition(Clock.systemUTC(), 0, 0);
         KafkaCachePartition fetch = topic.supplyFetchPartition(Clock.systemUTC(), 0);
@@ -102,7 +101,7 @@ public class KafkaCacheTopicTest
         KafkaConfiguration config = new KafkaConfiguration();
         Path location = tempFolder.newFolder().toPath().resolve("cache");
         KafkaCacheTopic topic =
-            new KafkaCacheTopic(location, location, config, "cache", new AtomicLong(0L), "test", long[]::new);
+            new KafkaCacheTopic(location, location, config, "cache", "test", long[]::new);
 
         topic.config().onChanged(new String16FW("segment.bytes"), new String16FW("4096"));
         KafkaCachePartition produce = topic.supplyProducePartition(Clock.systemUTC(), 0, 0);

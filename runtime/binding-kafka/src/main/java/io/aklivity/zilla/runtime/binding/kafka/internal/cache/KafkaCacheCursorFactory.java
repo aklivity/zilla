@@ -145,6 +145,11 @@ public final class KafkaCacheCursorFactory
             }
         }
 
+        public boolean initialized()
+        {
+            return segmentNode != null;
+        }
+
         public KafkaCacheEntryFW next(
             KafkaCacheEntryFW cacheEntry)
         {

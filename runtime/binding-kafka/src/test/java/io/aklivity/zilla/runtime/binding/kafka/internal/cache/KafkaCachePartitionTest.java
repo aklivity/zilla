@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 import java.util.zip.CRC32C;
 
 import org.agrona.collections.MutableInteger;
@@ -87,6 +88,8 @@ public class KafkaCachePartitionTest
 {
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    private final RecordingProduceClaims claims = new RecordingProduceClaims();
 
     private final MutableDirectBufferEx transformBuffer = new UnsafeBufferEx(new byte[8192]);
     private final KafkaCacheEntryFW entryRO = new KafkaCacheEntryFW();
@@ -337,7 +340,7 @@ public class KafkaCachePartitionTest
         config.segmentIndexBytes = 4096;
         Path location = tempFolder.newFolder().toPath();
         MutableDirectBufferEx appendBuf = new UnsafeBufferEx(ByteBuffer.allocateDirect(4096));
-        KafkaCachePartition partition = newProducePartition(4096, new AtomicLong());
+        KafkaCachePartition partition = newProducePartition(4096);
         Node node = partition.append(0L);
         List<KafkaCacheSegment> replacements = new ArrayList<>();
         for (int i = 0; i < swaps; i++)
@@ -371,26 +374,31 @@ public class KafkaCachePartitionTest
         node.segment().close();
     }
 
+    private Node appendClaimed(
+        KafkaCachePartition partition,
+        long offset)
+    {
+        claims.claim(partition.segmentBytes());
+        return partition.append(offset);
+    }
+
     private KafkaCachePartition newProducePartition(
-        int segmentBytes,
-        AtomicLong produceCapacity) throws Exception
+        int segmentBytes) throws Exception
     {
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         config.segmentBytes = segmentBytes;
         return new KafkaCachePartition(Clock.systemUTC(), tempFolder.newFolder().toPath(), config, "cache",
-            produceCapacity, Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
+            "test", 0, 65536, long[]::new, 0);
     }
 
     private KafkaCachePartition newProducePartition(
         Path location,
-        int segmentBytes,
-        AtomicLong produceCapacity,
-        long maxProduceCapacity) throws Exception
+        int segmentBytes) throws Exception
     {
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         config.segmentBytes = segmentBytes;
         return new KafkaCachePartition(Clock.systemUTC(), location, config, "cache",
-            produceCapacity, maxProduceCapacity, "test", 0, 65536, long[]::new, 0);
+            "test", 0, 65536, long[]::new, 0);
     }
 
     private void assertProduceEntriesReadableAcrossRolls(
@@ -403,7 +411,7 @@ public class KafkaCachePartitionTest
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         config.segmentBytes = 16 * 1024;
         KafkaCachePartition partition = new KafkaCachePartition(Clock.systemUTC(), location, config, "cache",
-            new AtomicLong(), Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
+            "test", 0, 65536, long[]::new, 0);
         MutableDirectBufferEx trailersBuffer = new UnsafeBufferEx(new byte[64]);
         Array32FW<KafkaHeaderFW> noTrailers = noHeaders(trailersBuffer, 0);
         int trailersSizeMax = 256;
@@ -412,7 +420,8 @@ public class KafkaCachePartitionTest
 
         for (long offset = 0L; offset < 200L; offset++)
         {
-            Node head = partition.newProduceHeadIfNecessary(offset, key, valueLength, 0, headers.sizeof(), trailersSizeMax);
+            Node head = partition.newProduceHeadIfNecessary(offset, key, valueLength, 0, headers.sizeof(), trailersSizeMax,
+                claims);
             rolls += previous != null && head != previous ? 1 : 0;
             previous = head;
 
@@ -437,64 +446,63 @@ public class KafkaCachePartitionTest
     @Test
     public void shouldRejectProduceEntryThatCannotFitFreshSegment() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong();
-        KafkaCachePartition partition = newProducePartition(1024, produceCapacity);
+        KafkaCachePartition partition = newProducePartition(1024);
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         KafkaKeyFW key = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
 
-        Node head = partition.newProduceHeadIfNecessary(0L, key, 2000, 0, headers.sizeof(), 256);
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 2000, 0, headers.sizeof(), 256, claims);
 
         assertNull(head);
         assertTrue(partition.head().sentinel());
-        assertEquals(0L, produceCapacity.get());
+        assertEquals(0L, claims.outstanding());
     }
 
     @Test
     public void shouldNotCreateProduceHeadWhenProduceCapacityExhausted() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong(1024L);
-        KafkaCachePartition partition = newProducePartition(tempFolder.newFolder().toPath(), 1024, produceCapacity, 1024L);
+        claims.limit(1024L);
+        claims.claim(1024);
+        KafkaCachePartition partition = newProducePartition(tempFolder.newFolder().toPath(), 1024);
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         KafkaKeyFW key = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
 
-        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
 
         assertNull(head);
         assertTrue(partition.head().sentinel());
-        assertEquals(1024L, produceCapacity.get());
+        assertEquals(1024L, claims.outstanding());
     }
 
     @Test
     public void shouldRollProduceHeadOnlyWhileProduceCapacityRemains() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong();
-        KafkaCachePartition partition = newProducePartition(tempFolder.newFolder().toPath(), 4096, produceCapacity, 8192L);
+        claims.limit(8192L);
+        KafkaCachePartition partition = newProducePartition(tempFolder.newFolder().toPath(), 4096);
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         KafkaKeyFW key = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
-        Node first = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+        Node first = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
         first.segment().logFile().appendBytes(new UnsafeBufferEx(new byte[3500]));
 
-        Node second = partition.newProduceHeadIfNecessary(1L, key, 1000, 0, headers.sizeof(), 256);
+        Node second = partition.newProduceHeadIfNecessary(1L, key, 1000, 0, headers.sizeof(), 256, claims);
         second.segment().logFile().appendBytes(new UnsafeBufferEx(new byte[3500]));
-        Node third = partition.newProduceHeadIfNecessary(2L, key, 1000, 0, headers.sizeof(), 256);
+        Node third = partition.newProduceHeadIfNecessary(2L, key, 1000, 0, headers.sizeof(), 256, claims);
 
         assertNotNull(first);
         assertNotNull(second);
         assertNotSame(first, second);
         assertNull(third);
         assertSame(second, partition.head());
-        assertEquals(8192L, produceCapacity.get());
+        assertEquals(8192L, claims.outstanding());
     }
 
     @Test
     public void shouldRejectProduceHeadWhenSegmentCannotBeCreatedThenRecover() throws Exception
     {
         Path location = tempFolder.newFolder().toPath();
-        AtomicLong produceCapacity = new AtomicLong();
-        KafkaCachePartition partition = newProducePartition(location, 4096, produceCapacity, Long.MAX_VALUE);
+        KafkaCachePartition partition = newProducePartition(location, 4096);
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         KafkaKeyFW key = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
@@ -502,37 +510,36 @@ public class KafkaCachePartitionTest
         Files.delete(directory);
         Files.createFile(directory);
 
-        Node rejected = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+        Node rejected = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
 
         assertNull(rejected);
         assertTrue(partition.head().sentinel());
-        assertEquals(0L, produceCapacity.get());
+        assertEquals(0L, claims.outstanding());
 
         Files.delete(directory);
         Files.createDirectory(directory);
 
-        Node recovered = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+        Node recovered = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
 
         assertNotNull(recovered);
-        assertEquals(4096L, produceCapacity.get());
+        assertEquals(4096L, claims.outstanding());
     }
 
     @Test
     public void shouldKeepHeadWhenProduceEntryCannotFitFreshSegment() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong();
-        KafkaCachePartition partition = newProducePartition(1024, produceCapacity);
+        KafkaCachePartition partition = newProducePartition(1024);
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         KafkaKeyFW key = key(buffer, "k1");
         Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
-        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256);
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
 
-        Node oversized = partition.newProduceHeadIfNecessary(1L, key, 2000, 0, headers.sizeof(), 256);
+        Node oversized = partition.newProduceHeadIfNecessary(1L, key, 2000, 0, headers.sizeof(), 256, claims);
 
         assertNotNull(head);
         assertNull(oversized);
         assertSame(head, partition.head());
-        assertEquals(1024L, produceCapacity.get());
+        assertEquals(1024L, claims.outstanding());
     }
 
     @Test
@@ -542,7 +549,7 @@ public class KafkaCachePartitionTest
         properties.setProperty("zilla.binding.kafka.cache.produce.segment.bytes", "65536");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
         KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
-            "cache", new AtomicLong(), "test", long[]::new);
+            "cache", "test", long[]::new);
         KafkaCachePartition partition = topic.supplyProducePartition(Clock.systemUTC(), 0, 0);
         MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
         KafkaKeyFW key = key(buffer, "k1");
@@ -550,7 +557,7 @@ public class KafkaCachePartitionTest
 
         final int valueLength = config.cacheMaxMessageBytes() - key.sizeof() - headers.sizeof();
 
-        Node head = partition.newProduceHeadIfNecessary(0L, key, valueLength, 0, headers.sizeof(), 256);
+        Node head = partition.newProduceHeadIfNecessary(0L, key, valueLength, 0, headers.sizeof(), 256, claims);
 
         assertNotNull(head);
         assertTrue(partition.segmentBytes() > config.cacheMaxMessageBytes());
@@ -561,7 +568,7 @@ public class KafkaCachePartitionTest
     {
         KafkaConfiguration config = new KafkaConfiguration();
         KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
-            "cache", new AtomicLong(), "test", long[]::new);
+            "cache", "test", long[]::new);
 
         assertEquals(64 * 1024 * 1024, topic.supplyProducePartition(Clock.systemUTC(), 0, 0).segmentBytes());
     }
@@ -573,7 +580,7 @@ public class KafkaCachePartitionTest
         properties.setProperty("zilla.binding.kafka.cache.produce.segment.bytes", "1048576");
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
         KafkaCacheTopic topic = new KafkaCacheTopic(tempFolder.newFolder().toPath(), tempFolder.newFolder().toPath(), config,
-            "cache", new AtomicLong(), "test", long[]::new);
+            "cache", "test", long[]::new);
         KafkaCachePartition partition = topic.supplyProducePartition(Clock.systemUTC(), 0, 0);
 
         topic.onConfigChanged(new String16FW("max.message.bytes"), new String16FW("104857600"));
@@ -589,7 +596,7 @@ public class KafkaCachePartitionTest
         KafkaConfiguration config = new KafkaConfiguration(new Configuration(properties));
 
         assertThrows(IllegalArgumentException.class, () -> new KafkaCacheTopic(tempFolder.newFolder().toPath(),
-            tempFolder.newFolder().toPath(), config, "cache", new AtomicLong(), "test", long[]::new));
+            tempFolder.newFolder().toPath(), config, "cache", "test", long[]::new));
     }
 
     @Test
@@ -723,85 +730,156 @@ public class KafkaCachePartitionTest
     @Test
     public void shouldRemoveAcknowledgedNonHeadSegmentsAndReleaseCapacity() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong();
-        KafkaCachePartition partition = newProducePartition(produceCapacity);
-        Node first = partition.append(10L);
+        KafkaCachePartition partition = newProducePartition();
+        Node first = appendClaimed(partition, 10L);
         writeProduceEntry(partition, first, 11L);
         writeProduceEntry(partition, first, 12L);
-        Node second = partition.append(20L);
+        Node second = appendClaimed(partition, 20L);
         writeProduceEntry(partition, second, 21L);
-        Node head = partition.append(30L);
+        Node head = appendClaimed(partition, 30L);
         Path firstLog = first.segment().logFile().location();
         Path secondLog = second.segment().logFile().location();
         long segmentBytes = partition.segmentBytes();
-        assertEquals(3 * segmentBytes, produceCapacity.get());
+        assertEquals(3 * segmentBytes, claims.outstanding());
 
-        partition.removeAcknowledgedSegments(20L);
+        partition.removeAcknowledgedSegments(20L, claims);
 
         assertFalse(Files.exists(firstLog));
         assertTrue(Files.exists(secondLog));
         assertSame(second, partition.seekNotBefore(0L));
-        assertEquals(2 * segmentBytes, produceCapacity.get());
+        assertEquals(2 * segmentBytes, claims.outstanding());
 
-        partition.removeAcknowledgedSegments(30L);
+        partition.removeAcknowledgedSegments(30L, claims);
 
         assertFalse(Files.exists(secondLog));
         assertSame(head, partition.seekNotBefore(0L));
-        assertEquals(segmentBytes, produceCapacity.get());
+        assertEquals(segmentBytes, claims.outstanding());
     }
 
     @Test
     public void shouldReleaseCapacityOfSegmentSizeAtCreationWhenMaxMessageBytesChanged() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong();
         KafkaCacheTopicConfig config = KafkaCacheTopicConfig.produce(new KafkaConfiguration());
         config.segmentBytes = 4096;
         config.maxMessageBytes = 100;
         config.segmentIndexBytes = 1 << 16;
         KafkaCachePartition partition = new KafkaCachePartition(Clock.systemUTC(), tempFolder.newFolder().toPath(), config,
-            "cache", produceCapacity, Long.MAX_VALUE, "test", 0, 65536, long[]::new, 0);
-        Node first = partition.append(10L);
+            "cache", "test", 0, 65536, long[]::new, 0);
+        Node first = appendClaimed(partition, 10L);
         writeProduceEntry(partition, first, 11L);
         config.maxMessageBytes = 100000;
-        Node second = partition.append(20L);
+        Node second = appendClaimed(partition, 20L);
         writeProduceEntry(partition, second, 21L);
-        partition.append(30L);
+        appendClaimed(partition, 30L);
         final long secondBytes = config.effectiveSegmentBytes();
 
-        partition.removeAcknowledgedSegments(20L);
-        partition.removeAcknowledgedSegments(30L);
+        partition.removeAcknowledgedSegments(20L, claims);
+        partition.removeAcknowledgedSegments(30L, claims);
 
-        assertEquals(secondBytes, produceCapacity.get());
+        assertEquals(secondBytes, claims.outstanding());
+    }
+
+    @Test
+    public void shouldClaimSegmentBytesBeforeCreatingProduceHead() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(1024);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
+
+        assertNotNull(head);
+        assertEquals(List.of(partition.segmentBytes()), claims.requests());
+    }
+
+    @Test
+    public void shouldNotCreateAnySegmentWhenClaimRefused() throws Exception
+    {
+        Path location = tempFolder.newFolder().toPath();
+        KafkaCachePartition partition = newProducePartition(location, 1024);
+        claims.limit(0L);
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = noHeaders(buffer, key.limit());
+
+        Node head = partition.newProduceHeadIfNecessary(0L, key, 5, 0, headers.sizeof(), 256, claims);
+
+        assertNull(head);
+        assertTrue(partition.head().sentinel());
+        try (Stream<Path> files = Files.list(KafkaCachePartition.produceDirectory(location, "test", 0, 0)))
+        {
+            assertEquals(0L, files.count());
+        }
+        assertEquals(0L, claims.outstanding());
+    }
+
+    @Test
+    public void shouldSupplyProduceHeadOnlyWhenClaimGranted() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(1024);
+        claims.limit(0L);
+
+        partition.newProduceHeadIfNecessary(0L, claims);
+
+        assertTrue(partition.head().sentinel());
+
+        claims.limit(1024L);
+        partition.newProduceHeadIfNecessary(0L, claims);
+        Node head = partition.head();
+        partition.newProduceHeadIfNecessary(0L, claims);
+
+        assertFalse(head.sentinel());
+        assertSame(head, partition.head());
+        assertEquals(1024L, claims.outstanding());
+    }
+
+    @Test
+    public void shouldHandRemovedSegmentToClaimsAndCreditItOnlyWhenLastReferenceDrops() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition();
+        Node first = appendClaimed(partition, 10L);
+        writeProduceEntry(partition, first, 11L);
+        appendClaimed(partition, 20L);
+        long segmentBytes = partition.segmentBytes();
+        KafkaCacheSegment held = first.segment().acquire();
+
+        partition.removeAcknowledgedSegments(20L, claims);
+
+        assertEquals(2 * segmentBytes, claims.outstanding());
+
+        held.release();
+
+        assertEquals(segmentBytes, claims.outstanding());
     }
 
     @Test
     public void shouldNotRemoveHeadSegmentWhenAllAcknowledged() throws Exception
     {
-        AtomicLong produceCapacity = new AtomicLong();
-        KafkaCachePartition partition = newProducePartition(produceCapacity);
-        Node first = partition.append(10L);
+        KafkaCachePartition partition = newProducePartition();
+        Node first = appendClaimed(partition, 10L);
         writeProduceEntry(partition, first, 11L);
-        Node head = partition.append(20L);
+        Node head = appendClaimed(partition, 20L);
         writeProduceEntry(partition, head, 21L);
         Path headLog = head.segment().logFile().location();
 
-        partition.removeAcknowledgedSegments(Long.MAX_VALUE);
+        partition.removeAcknowledgedSegments(Long.MAX_VALUE, claims);
 
         assertTrue(Files.exists(headLog));
         assertSame(head, partition.head());
-        assertEquals(partition.segmentBytes(), produceCapacity.get());
+        assertEquals(partition.segmentBytes(), claims.outstanding());
     }
 
     @Test
     public void shouldKeepRemovedSegmentReadableWhileReaderHoldsIt() throws Exception
     {
-        KafkaCachePartition partition = newProducePartition(new AtomicLong());
+        KafkaCachePartition partition = newProducePartition();
         Node first = partition.append(10L);
         writeProduceEntry(partition, first, 11L);
         partition.append(20L);
         KafkaCacheSegment held = first.segment().acquire();
 
-        partition.removeAcknowledgedSegments(20L);
+        partition.removeAcknowledgedSegments(20L, claims);
 
         final KafkaCacheEntryFW entry = held.logFile().readBytes(0, new KafkaCacheEntryFW()::wrap);
         assertEquals(11L, entry.offset$());
@@ -828,7 +906,7 @@ public class KafkaCachePartitionTest
         writeProduceEntry(partition, first, 11L);
         Node head = partition.append(20L);
         writeProduceEntry(partition, head, 21L);
-        partition.removeAcknowledgedSegments(20L);
+        partition.removeAcknowledgedSegments(20L, claims);
         assertSame(head, partition.seekNotBefore(0L));
 
         partition.seekNotAfter(11L).markAbortedIfPresent(entryRO, 11L);
@@ -1777,14 +1855,13 @@ public class KafkaCachePartitionTest
         return trailer.toString();
     }
 
-    private KafkaCachePartition newProducePartition(
-        AtomicLong produceCapacity) throws Exception
+    private KafkaCachePartition newProducePartition() throws Exception
     {
         Path location = tempFolder.newFolder().toPath();
         KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
         config.segmentBytes = 1 << 20;
         config.segmentIndexBytes = 1 << 16;
-        return new KafkaCachePartition(Clock.systemUTC(), location, config, "cache", produceCapacity, Long.MAX_VALUE,
+        return new KafkaCachePartition(Clock.systemUTC(), location, config, "cache",
             "test", 0, 65536, long[]::new, 0);
     }
 
