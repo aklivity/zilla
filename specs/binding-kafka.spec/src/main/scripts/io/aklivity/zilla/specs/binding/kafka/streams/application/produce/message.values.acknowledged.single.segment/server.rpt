@@ -15,11 +15,12 @@
 #
 
 property serverAddress "zilla://streams/app0"
+property deltaMillis 0L
+property newTimestamp ${kafka:timestamp() + deltaMillis}
 
 accept ${serverAddress}
     option zilla:window 8192
     option zilla:transmission "half-duplex"
-    option zilla:update "handshake"
 
 accepted
 
@@ -68,7 +69,20 @@ write zilla:begin.ext ${kafka:beginEx()
                                    .build()
                                .build()}
 
-write flush
+read zilla:data.ext ${kafka:matchDataEx()
+                             .typeId(zilla:id("kafka"))
+                             .produce()
+                                 .build()
+                             .build()}
+read "Hello, world"
+
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .partition(0, 1)
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}
 
 read zilla:data.ext ${kafka:matchDataEx()
                              .typeId(zilla:id("kafka"))
@@ -76,6 +90,11 @@ read zilla:data.ext ${kafka:matchDataEx()
                                  .build()
                              .build()}
 read "Hello, world"
-read notify MESSAGE_RECEIVED
 
-read abort
+write advise zilla:flush ${kafka:flushEx()
+                              .typeId(zilla:id("kafka"))
+                              .produce()
+                                  .partition(0, 2)
+                                  .timestamp(newTimestamp)
+                                  .build()
+                              .build()}

@@ -26,6 +26,7 @@ import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceClaims;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceIdleHead;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceWaiter;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -39,6 +40,8 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
     private final List<KafkaCacheSegment> removedSegments;
     private final IntArrayList removedBytes;
     private final Set<KafkaCacheProduceIdleHead> idleHeads;
+    private final Set<KafkaCacheProduceWaiter> waiters;
+    private final long capacity;
 
     public KafkaCacheClientProduceBudget(
         BudgetCreditor creditor,
@@ -53,8 +56,15 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
         this.removedSegments = new ArrayList<>();
         this.removedBytes = new IntArrayList();
         this.idleHeads = new LinkedHashSet<>();
+        this.waiters = new LinkedHashSet<>();
+        this.capacity = capacity;
 
         creditor.credit(0L, budgetIndex, capacity);
+    }
+
+    public long capacity()
+    {
+        return capacity;
     }
 
     @Override
@@ -63,6 +73,52 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
     {
         creditClosed();
 
+        return waiters.isEmpty() && claimOrRelease(bytes);
+    }
+
+    public void await(
+        KafkaCacheProduceWaiter waiter)
+    {
+        waiters.add(waiter);
+
+        serve();
+    }
+
+    public void cancel(
+        KafkaCacheProduceWaiter waiter)
+    {
+        waiters.remove(waiter);
+    }
+
+    public boolean waiting(
+        KafkaCacheProduceWaiter waiter)
+    {
+        return waiters.contains(waiter);
+    }
+
+    public void serve()
+    {
+        creditClosed();
+
+        boolean served = !waiters.isEmpty();
+        while (served)
+        {
+            final KafkaCacheProduceWaiter head = waiters.iterator().next();
+
+            served = claimOrRelease(head.bytes());
+
+            if (served)
+            {
+                waiters.remove(head);
+                head.grant();
+                served = !waiters.isEmpty();
+            }
+        }
+    }
+
+    private boolean claimOrRelease(
+        int bytes)
+    {
         boolean claimed = claimBytes(bytes);
 
         final Iterator<KafkaCacheProduceIdleHead> candidates = idleHeads.iterator();
@@ -83,6 +139,8 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
         KafkaCacheProduceIdleHead head)
     {
         idleHeads.add(head);
+
+        serve();
     }
 
     public void busy(
@@ -96,6 +154,8 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
         int bytes)
     {
         creditor.credit(0L, budgetIndex, bytes);
+
+        serve();
     }
 
     @Override
@@ -107,11 +167,17 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
         removedBytes.addInt(bytes);
 
         creditClosed();
+
+        if (!waiters.isEmpty())
+        {
+            waiters.iterator().next().poke();
+        }
     }
 
     public void close()
     {
         idleHeads.clear();
+        waiters.clear();
         removedSegments.clear();
         removedBytes.clear();
 

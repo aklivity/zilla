@@ -420,16 +420,6 @@ public final class KafkaCachePartition
             headersSizeMax + trailersSizeMax);
     }
 
-    public void newProduceHeadIfNecessary(
-        long offset,
-        KafkaCacheProduceClaims claims)
-    {
-        if (sentinel.previous.sentinel())
-        {
-            appendProduceHead(offset, claims);
-        }
-    }
-
     public Node newProduceHeadIfNecessary(
         long offset,
         KafkaKeyFW key,

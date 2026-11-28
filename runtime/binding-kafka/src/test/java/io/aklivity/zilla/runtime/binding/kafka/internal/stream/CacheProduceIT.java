@@ -612,22 +612,6 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
-        "${app}/message.storage.full/client",
-        "${app}/message.storage.full.cache/server"})
-    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    @Configure(name = KAFKA_CACHE_CLIENT_CLEANUP_DELAY_NAME, value = "0")
-    @Configure(name = KAFKA_CACHE_SERVER_RECONNECT_DELAY_NAME, value = "0")
-    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
-    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
-    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
-    public void shouldRejectMessageWhenProduceCapacityExhausted() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Configuration("cache.yaml")
-    @Specification({
         "${app}/message.storage.none/client",
         "${app}/message.storage.none.cache/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
@@ -681,6 +665,62 @@ public class CacheProduceIT
     @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
     @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
     public void shouldSendMessageValuePartitionsIdleHeadRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.values.acknowledged.single.segment/client",
+        "${app}/message.values.acknowledged.single.segment/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
+    public void shouldSendMessageValuesAcknowledgedSingleSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.values.waiting.single.segment/client",
+        "${app}/message.values.waiting.single.segment/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
+    public void shouldSendMessageValuesWaitingSingleSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.values.partitions.acknowledged.waiting/client",
+        "${app}/message.values.partitions.acknowledged.waiting/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
+    public void shouldSendMessageValuesPartitionsAcknowledgedWaiting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
+        "${app}/message.values.partitions.acknowledged.waiting.aborted/client",
+        "${app}/message.values.partitions.acknowledged.waiting.aborted.cache/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
+    public void shouldSendMessageValuesPartitionsAcknowledgedWaitingAborted() throws Exception
     {
         k3po.finish();
     }

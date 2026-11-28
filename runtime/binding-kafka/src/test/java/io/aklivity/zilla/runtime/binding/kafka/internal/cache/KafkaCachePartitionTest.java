@@ -920,26 +920,6 @@ public class KafkaCachePartitionTest
     }
 
     @Test
-    public void shouldSupplyProduceHeadOnlyWhenClaimGranted() throws Exception
-    {
-        KafkaCachePartition partition = newProducePartition(1024);
-        claims.limit(0L);
-
-        partition.newProduceHeadIfNecessary(0L, claims);
-
-        assertTrue(partition.head().sentinel());
-
-        claims.limit(1024L);
-        partition.newProduceHeadIfNecessary(0L, claims);
-        Node head = partition.head();
-        partition.newProduceHeadIfNecessary(0L, claims);
-
-        assertFalse(head.sentinel());
-        assertSame(head, partition.head());
-        assertEquals(1024L, claims.outstanding());
-    }
-
-    @Test
     public void shouldHandRemovedSegmentToClaimsAndCreditItOnlyWhenLastReferenceDrops() throws Exception
     {
         KafkaCachePartition partition = newProducePartition();

@@ -19,6 +19,7 @@ import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheP
 import static io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition.CACHE_ENTRY_FLAGS_ADVANCE;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.types.KafkaOffsetFW.Builder.DEFAULT_LATEST_OFFSET;
 import static io.aklivity.zilla.runtime.engine.budget.BudgetCreditor.NO_CREDITOR_INDEX;
+import static io.aklivity.zilla.runtime.engine.buffer.BufferPool.NO_SLOT;
 import static io.aklivity.zilla.runtime.engine.concurrent.Signaler.NO_CANCEL_ID;
 import static io.aklivity.zilla.runtime.engine.util.Flags.FIN;
 import static io.aklivity.zilla.runtime.engine.util.Flags.hasFin;
@@ -54,7 +55,10 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFa
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheDoorbell;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceClaims;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceIdleHead;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceWaiter;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopicConfig;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTrailerEnvelope;
@@ -139,6 +143,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private static final int SIGNAL_GROUP_CLEANUP = 2;
 
     private static final int SIGNAL_RECONNECT = 3;
+    private static final int SIGNAL_CLAIM_SERVE = 4;
+    private static final int SIGNAL_CLAIM_GRANTED = 5;
+
+    private static final int CLAIM_SLOT_FRAME_HEADER = 2 * Integer.BYTES;
 
     private final BeginFW beginRO = new BeginFW();
     private final DataFW dataRO = new DataFW();
@@ -175,6 +183,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
     private final int produceSegmentBytes;
     private final Set<String> undersizedTopics = new HashSet<>();
     private final BufferPool bufferPool;
+    private final MutableDirectBufferEx replayBuffer;
     private final BudgetCreditor creditor;
     private final Clock clock;
     private final Signaler signaler;
@@ -215,6 +224,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         this.transformBuffer = context.writeBuffer("transform");
         this.trailersMergeBuffer = context.writeBuffer("trailersMerge");
         this.bufferPool = context.bufferPool();
+        this.replayBuffer = new UnsafeBufferEx(new byte[bufferPool.slotCapacity()]);
         this.creditor = context.creditor();
         this.clock = context.clock();
         this.signaler = context.signaler();
@@ -622,8 +632,6 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         .asCondition(EMPTY_FILTER, KafkaEvaluation.LAZY),
                         KafkaDeltaType.NONE);
 
-            initClientFanCursor();
-            produceBudget.idle(this);
         }
 
         @Override
@@ -642,18 +650,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
         private void initClientFanCursor()
         {
-            partition.newProduceHeadIfNecessary(0L, produceBudget);
-
-            KafkaCachePartition.Node segmentNode = partition.seekNotBefore(0);
-
-            if (segmentNode.sentinel())
-            {
-                segmentNode = segmentNode.next();
-            }
+            final KafkaCachePartition.Node segmentNode = partition.seekNotBefore(cursor.offset);
 
             if (!segmentNode.sentinel())
             {
-                cursor.init(segmentNode, 0, 0);
+                cursor.init(segmentNode, cursor.offset, 0);
             }
         }
 
@@ -668,12 +669,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 groupCleanupId = NO_CANCEL_ID;
             }
 
-            if (!cursor.initialized())
-            {
-                initClientFanCursor();
-            }
-
-            if (cursor.initialized())
+            if (produceBudget.capacity() >= partition.segmentBytes())
             {
                 members.put(member.initialId, member);
                 memberLeaderId = member.leaderId;
@@ -705,6 +701,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             members.remove(member.initialId);
 
+            member.cancelClaim();
             member.markEntriesAborted();
 
             if (members.isEmpty())
@@ -825,12 +822,12 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     ? stream.transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
                     : 0;
 
-                produceBudget.busy(this);
                 stream.segment = partition.newProduceHeadIfNecessary(partitionOffset, key, valueLength,
-                    stream.valuePaddingMax, headers.sizeof(), trailersSizeMax, produceBudget);
+                    stream.valuePaddingMax, headers.sizeof(), trailersSizeMax, stream);
 
                 if (stream.segment != null)
                 {
+                    produceBudget.busy(this);
                     final long nextOffset = partition.nextOffset(defaultOffset);
                     assert partitionOffset >= 0 && partitionOffset >= nextOffset
                         : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
@@ -854,6 +851,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 {
                     error = partition.fitsProduceSegment(key, valueLength, stream.valuePaddingMax, headers.sizeof(),
                         trailersSizeMax) ? ERROR_KAFKA_STORAGE_ERROR : ERROR_RECORD_LIST_TOO_LARGE;
+
+                    if (error == ERROR_KAFKA_STORAGE_ERROR &&
+                        produceBudget.capacity() >= partition.segmentBytes() &&
+                        stream.awaitClaim(DataFW.TYPE_ID, data.buffer(), data.offset(), data.sizeof()))
+                    {
+                        return;
+                    }
                 }
             }
 
@@ -928,13 +932,13 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 ? stream.transformValue.padding(EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), 0)
                 : 0;
 
-            produceBudget.busy(this);
             stream.segment = partition.newProduceHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, valuePaddingMax,
-                EMPTY_TRAILERS.sizeof(), trailersSizeMax, produceBudget);
+                EMPTY_TRAILERS.sizeof(), trailersSizeMax, stream);
 
             int error = NO_ERROR;
             if (stream.segment != null)
             {
+                produceBudget.busy(this);
                 final long nextOffset = partition.nextOffset(defaultOffset);
                 assert partitionOffset >= 0 && partitionOffset >= nextOffset
                     : String.format("%d >= 0 && %d >= %d", partitionOffset, partitionOffset, nextOffset);
@@ -961,6 +965,14 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             {
                 error = partition.fitsProduceSegment(EMPTY_KEY, 0, valuePaddingMax, EMPTY_TRAILERS.sizeof(), trailersSizeMax)
                     ? ERROR_KAFKA_STORAGE_ERROR : ERROR_RECORD_LIST_TOO_LARGE;
+
+                if (error == ERROR_KAFKA_STORAGE_ERROR &&
+                    produceBudget.capacity() >= partition.segmentBytes() &&
+                    stream.awaitClaim(FlushFW.TYPE_ID, flush.buffer(), flush.offset(), flush.sizeof()))
+                {
+                    return;
+                }
+
                 markEntryAborted(stream.partitionOffset);
             }
 
@@ -979,6 +991,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         {
             final long oldOffsetHighWaterMark = offsetHighWatermark;
             long newOffsetHighWatermark = cursor.offset;
+
+            if (!cursor.initialized())
+            {
+                initClientFanCursor();
+            }
 
             do
             {
@@ -1308,7 +1325,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             partition.removeAcknowledgedSegments(reclaimOffsetNext, produceBudget);
 
-            if (reclaimOffsetNext >= partitionOffset)
+            if (reclaimOffsetNext >= partitionOffset && !partition.head().sentinel())
             {
                 produceBudget.idle(this);
             }
@@ -1393,7 +1410,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         }
     }
 
-    private final class KafkaCacheClientProduceStream
+    private final class KafkaCacheClientProduceStream implements KafkaCacheProduceClaims, KafkaCacheProduceWaiter
     {
         private long ackPartitionOffset;
         private long ackTimestamp;
@@ -1426,6 +1443,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         private long acknowledgedOffset;
 
         private KafkaCachePartition.Node segment;
+
+        private int claimSlot = NO_SLOT;
+        private int claimSlotOffset;
+        private int claimSlotLimit;
+        private int claimHanded;
 
         private int dataFlags = FIN;
         private int valuePaddingMax;
@@ -1505,6 +1527,10 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 final ResetFW reset = resetRO.wrap(buffer, index, index + length);
                 onClientReplyReset(reset);
                 break;
+            case SignalFW.TYPE_ID:
+                final SignalFW signal = signalRO.wrap(buffer, index, index + length);
+                onClientSignal(signal);
+                break;
             default:
                 break;
             }
@@ -1553,16 +1579,23 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 doClientReplyAbortIfNecessary(traceId);
                 fan.onClientFanMemberClosed(traceId, this);
             }
+            else if (claimSlot != NO_SLOT)
+            {
+                appendClaimSlot(DataFW.TYPE_ID, data.buffer(), data.offset(), data.sizeof());
+            }
             else if (!StreamState.initialClosed(state))
             {
                 fan.onClientInitialData(this, data);
             }
 
-            // TODO: defer initialAck until previous DATA frames acked
-            final boolean incomplete = hasIncomplete(dataFlags);
-            final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
-            final int initialMax = incomplete ? initialBudgetMax : noAck + initialBudgetMax;
-            doClientInitialWindow(traceId, noAck, initialMax);
+            if (claimSlot == NO_SLOT)
+            {
+                // TODO: defer initialAck until previous DATA frames acked
+                final boolean incomplete = hasIncomplete(dataFlags);
+                final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
+                final int initialMax = incomplete ? initialBudgetMax : noAck + initialBudgetMax;
+                doClientInitialWindow(traceId, noAck, initialMax);
+            }
         }
 
         private void onClientInitialFlush(
@@ -1588,14 +1621,21 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     doClientReplyAbortIfNecessary(traceId);
                     fan.onClientFanMemberClosed(traceId, this);
                 }
+                else if (claimSlot != NO_SLOT)
+                {
+                    appendClaimSlot(FlushFW.TYPE_ID, flush.buffer(), flush.offset(), flush.sizeof());
+                }
                 else
                 {
                     fan.onClientInitialFlush(this, flush);
                 }
             }
 
-            final int noAck = (int) (initialSeq - initialAck - reserved);
-            doClientInitialWindow(traceId, noAck, Math.max(initialMax, initialBudgetMax));
+            if (claimSlot == NO_SLOT)
+            {
+                final int noAck = (int) (initialSeq - initialAck - reserved);
+                doClientInitialWindow(traceId, noAck, Math.max(initialMax, initialBudgetMax));
+            }
         }
 
         private void onClientInitialEnd(
@@ -1605,11 +1645,179 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
 
             state = StreamState.closeInitial(state);
 
-            if (acknowledgedOffset == partitionOffset)
+            if (acknowledgedOffset == partitionOffset && claimSlot == NO_SLOT)
             {
                 fan.onClientFanMemberClosed(traceId, this);
 
                 doClientReplyEndIfNecessary(traceId);
+            }
+        }
+
+        @Override
+        public boolean claim(
+            int bytes)
+        {
+            final boolean handed = claimHanded >= bytes;
+
+            claimHanded -= handed ? bytes : 0;
+
+            return handed || produceBudget.claim(bytes);
+        }
+
+        @Override
+        public void unclaim(
+            int bytes)
+        {
+            produceBudget.unclaim(bytes);
+        }
+
+        @Override
+        public void remove(
+            KafkaCacheSegment segment,
+            int bytes)
+        {
+            produceBudget.remove(segment, bytes);
+        }
+
+        @Override
+        public int bytes()
+        {
+            return fan.partition.segmentBytes();
+        }
+
+        @Override
+        public void grant()
+        {
+            claimHanded = bytes();
+
+            signaler.signalNow(originId, routedId, replyId, supplyTraceId.getAsLong(), SIGNAL_CLAIM_GRANTED, 0);
+        }
+
+        @Override
+        public void poke()
+        {
+            signaler.signalNow(originId, routedId, replyId, supplyTraceId.getAsLong(), SIGNAL_CLAIM_SERVE, 0);
+        }
+
+        private boolean awaitClaim(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            final boolean replaying = buffer == replayBuffer;
+
+            final boolean held = replaying || appendClaimSlot(msgTypeId, buffer, index, length);
+
+            if (held)
+            {
+                doClientReplyBeginIfNecessary(supplyTraceId.getAsLong());
+                produceBudget.await(this);
+            }
+
+            return held;
+        }
+
+        private boolean appendClaimSlot(
+            int msgTypeId,
+            DirectBufferEx buffer,
+            int index,
+            int length)
+        {
+            if (claimSlot == NO_SLOT)
+            {
+                claimSlot = bufferPool.acquire(initialId);
+                claimSlotOffset = 0;
+                claimSlotLimit = 0;
+            }
+
+            final boolean held = claimSlot != NO_SLOT &&
+                claimSlotLimit + CLAIM_SLOT_FRAME_HEADER + length <= bufferPool.slotCapacity();
+
+            if (held)
+            {
+                final MutableDirectBufferEx slotBuffer = bufferPool.buffer(claimSlot);
+                slotBuffer.putInt(claimSlotLimit, msgTypeId);
+                slotBuffer.putInt(claimSlotLimit + Integer.BYTES, length);
+                slotBuffer.putBytes(claimSlotLimit + CLAIM_SLOT_FRAME_HEADER, buffer, index, length);
+                claimSlotLimit += CLAIM_SLOT_FRAME_HEADER + length;
+            }
+
+            return held;
+        }
+
+        private void onClientSignal(
+            SignalFW signal)
+        {
+            final int signalId = signal.signalId();
+
+            switch (signalId)
+            {
+            case SIGNAL_CLAIM_SERVE:
+                produceBudget.serve();
+                break;
+            case SIGNAL_CLAIM_GRANTED:
+                replayClaimSlot(signal.traceId());
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void replayClaimSlot(
+            long traceId)
+        {
+            while (claimSlot != NO_SLOT && claimSlotOffset < claimSlotLimit && !produceBudget.waiting(this))
+            {
+                final MutableDirectBufferEx slotBuffer = bufferPool.buffer(claimSlot);
+                final int frameOffset = claimSlotOffset;
+                final int msgTypeId = slotBuffer.getInt(frameOffset);
+                final int length = slotBuffer.getInt(frameOffset + Integer.BYTES);
+
+                replayBuffer.putBytes(0, slotBuffer, frameOffset + CLAIM_SLOT_FRAME_HEADER, length);
+                claimSlotOffset = frameOffset + CLAIM_SLOT_FRAME_HEADER + length;
+
+                if (msgTypeId == DataFW.TYPE_ID)
+                {
+                    fan.onClientInitialData(this, dataRO.wrap(replayBuffer, 0, length));
+                }
+                else
+                {
+                    fan.onClientInitialFlush(this, flushRO.wrap(replayBuffer, 0, length));
+                }
+
+                if (claimSlot != NO_SLOT && produceBudget.waiting(this))
+                {
+                    claimSlotOffset = frameOffset;
+                }
+            }
+
+            if (claimSlot != NO_SLOT && claimSlotOffset == claimSlotLimit)
+            {
+                cancelClaim();
+
+                final boolean incomplete = hasIncomplete(dataFlags);
+                final int noAck = incomplete ? 0 : (int) (initialSeq - initialAck);
+                doClientInitialWindow(traceId, noAck, incomplete ? initialBudgetMax : noAck + initialBudgetMax);
+            }
+        }
+
+        private void cancelClaim()
+        {
+            produceBudget.cancel(this);
+
+            if (claimHanded > 0)
+            {
+                produceBudget.unclaim(claimHanded);
+                claimHanded = 0;
+            }
+
+            if (claimSlot != NO_SLOT)
+            {
+                bufferPool.release(claimSlot);
+                claimSlot = NO_SLOT;
+                claimSlotOffset = 0;
+                claimSlotLimit = 0;
             }
         }
 
