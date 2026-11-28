@@ -17,6 +17,9 @@ package io.aklivity.zilla.runtime.binding.kafka.internal.cache;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -190,6 +193,93 @@ public class KafkaCacheCursorTest
 
         replaced.segment().close();
         following.segment().close();
+    }
+
+    @Test
+    public void shouldNotPinSegmentWhileParked() throws Exception
+    {
+        final KafkaCachePartition partition = newPartition();
+        final Node head = partition.append(0L);
+        appendEntry(partition, 0, newMessage(new Random(1L)));
+        final KafkaCacheCursor cursor = newCursor();
+        cursor.init(head, 0L, -1L);
+
+        final KafkaCacheEntryFW entry = cursor.next(entryRO);
+        cursor.advance(entry.offset$() + 1);
+        assertNull(cursor.next(entryRO));
+        assertEquals(2, head.segment().references());
+
+        cursor.park();
+
+        assertEquals(1, head.segment().references());
+        assertTrue(cursor.initialized());
+        cursor.close();
+        assertEquals(1, head.segment().references());
+    }
+
+    @Test
+    public void shouldResumeOnSameHeadWhenNotReleased() throws Exception
+    {
+        final KafkaCachePartition partition = newPartition();
+        final Node head = partition.append(0L);
+        appendEntry(partition, 0, newMessage(new Random(2L)));
+        final KafkaCacheCursor cursor = newCursor();
+        cursor.init(head, 0L, -1L);
+        cursor.advance(cursor.next(entryRO).offset$() + 1);
+        assertNull(cursor.next(entryRO));
+        cursor.park();
+
+        appendEntry(partition, 1, newMessage(new Random(3L)));
+        final KafkaCacheEntryFW entry = cursor.next(entryRO);
+
+        assertNotNull(entry);
+        assertEquals(1L, entry.offset$());
+        assertEquals(2, head.segment().references());
+        cursor.close();
+    }
+
+    @Test
+    public void shouldResumeOnNewHeadAfterIdleHeadReleased() throws Exception
+    {
+        final KafkaCachePartition partition = newPartition();
+        final RecordingProduceClaims claims = new RecordingProduceClaims();
+        final Node head = partition.append(0L);
+        appendEntry(partition, 0, newMessage(new Random(4L)));
+        final KafkaCacheCursor cursor = newCursor();
+        cursor.init(head, 0L, -1L);
+        cursor.advance(cursor.next(entryRO).offset$() + 1);
+        assertNull(cursor.next(entryRO));
+        cursor.park();
+
+        assertTrue(partition.releaseIdleHead(claims));
+        assertTrue(head.segment().closed());
+        assertNull("no head yet", cursor.next(entryRO));
+        assertTrue(cursor.initialized());
+
+        final Node next = partition.append(1L);
+        appendEntry(partition, 1, newMessage(new Random(5L)));
+        final KafkaCacheEntryFW entry = cursor.next(entryRO);
+
+        assertNotNull(entry);
+        assertEquals(1L, entry.offset$());
+        assertEquals(2, next.segment().references());
+        cursor.close();
+        assertEquals(1, next.segment().references());
+    }
+
+    private KafkaCachePartition newPartition() throws Exception
+    {
+        final KafkaCacheTopicConfig config = new KafkaCacheTopicConfig(new KafkaConfiguration());
+        config.segmentBytes = SEGMENT_BYTES;
+        config.segmentIndexBytes = SEGMENT_INDEX_BYTES;
+        return new KafkaCachePartition(Clock.systemUTC(), tempFolder.newFolder().toPath(), config, "cache", "test", 0, 65536,
+            long[]::new);
+    }
+
+    private KafkaCacheCursor newCursor()
+    {
+        final KafkaFilterCondition condition = cursorFactory.asCondition(newFilters(new ArrayList<>()), KafkaEvaluation.EAGER);
+        return cursorFactory.newCursor(condition, KafkaDeltaType.NONE);
     }
 
     private void appendEntry(

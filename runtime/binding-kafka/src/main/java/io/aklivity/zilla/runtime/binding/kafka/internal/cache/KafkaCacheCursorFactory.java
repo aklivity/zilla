@@ -150,13 +150,27 @@ public final class KafkaCacheCursorFactory
             return segmentNode != null;
         }
 
+        public void park()
+        {
+            if (segment != null)
+            {
+                segment.release();
+                segment = null;
+            }
+        }
+
         public KafkaCacheEntryFW next(
             KafkaCacheEntryFW cacheEntry)
         {
             KafkaCacheEntryFW nextEntry = null;
 
+            if (segmentNode != null && segment == null)
+            {
+                resume();
+            }
+
             next:
-            while (segmentNode != null && nextEntry == null)
+            while (segment != null && nextEntry == null)
             {
                 final int positionNext = condition.next(position);
                 if (positionNext == RETRY_SEGMENT_VALUE)
@@ -353,11 +367,33 @@ public final class KafkaCacheCursorFactory
         @Override
         public void close()
         {
-            if (segmentNode != null)
+            park();
+            segmentNode = null;
+        }
+
+        private void resume()
+        {
+            Node node = segmentNode.removed() ? segmentNode.seekNotBefore(offset) : segmentNode;
+
+            while (!node.sentinel() && segment == null)
             {
-                segment.release();
-                segmentNode = null;
-                segment = null;
+                final KafkaCacheSegment candidate = node.segment();
+                final KafkaCacheSegment acquired = candidate.acquire();
+                if (acquired != null)
+                {
+                    segmentNode = node;
+                    segment = acquired;
+                }
+                else if (node.segment() == candidate)
+                {
+                    node = node.next();
+                }
+            }
+
+            if (segment != null)
+            {
+                final int position = condition.reset(segment, offset, latestOffset, POSITION_UNSET);
+                this.position = position == RETRY_SEGMENT_VALUE || position == NEXT_SEGMENT_VALUE ? 0 : position;
             }
         }
 

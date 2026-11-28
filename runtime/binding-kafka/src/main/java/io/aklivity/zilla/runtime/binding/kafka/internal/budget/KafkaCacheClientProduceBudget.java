@@ -16,12 +16,16 @@
 package io.aklivity.zilla.runtime.binding.kafka.internal.budget;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.LongFunction;
 
 import org.agrona.collections.IntArrayList;
 
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceClaims;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceIdleHead;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheSegment;
 import io.aklivity.zilla.runtime.engine.budget.BudgetCreditor;
 import io.aklivity.zilla.runtime.engine.budget.BudgetDebitor;
@@ -34,6 +38,7 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
     private final long budgetIndex;
     private final List<KafkaCacheSegment> removedSegments;
     private final IntArrayList removedBytes;
+    private final Set<KafkaCacheProduceIdleHead> idleHeads;
 
     public KafkaCacheClientProduceBudget(
         BudgetCreditor creditor,
@@ -47,6 +52,7 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
         this.budgetIndex = creditor.acquire(budgetId);
         this.removedSegments = new ArrayList<>();
         this.removedBytes = new IntArrayList();
+        this.idleHeads = new LinkedHashSet<>();
 
         creditor.credit(0L, budgetIndex, capacity);
     }
@@ -57,11 +63,32 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
     {
         creditClosed();
 
-        final long debitorIndex = debitor.acquire(budgetId, budgetId, traceId -> {});
-        final int claimed = debitor.claim(0L, debitorIndex, budgetId, bytes, bytes, 0);
-        debitor.release(debitorIndex, budgetId);
+        boolean claimed = claimBytes(bytes);
 
-        return claimed == bytes;
+        final Iterator<KafkaCacheProduceIdleHead> candidates = idleHeads.iterator();
+        while (!claimed && candidates.hasNext())
+        {
+            if (candidates.next().release())
+            {
+                candidates.remove();
+                creditClosed();
+                claimed = claimBytes(bytes);
+            }
+        }
+
+        return claimed;
+    }
+
+    public void idle(
+        KafkaCacheProduceIdleHead head)
+    {
+        idleHeads.add(head);
+    }
+
+    public void busy(
+        KafkaCacheProduceIdleHead head)
+    {
+        idleHeads.remove(head);
     }
 
     @Override
@@ -84,10 +111,21 @@ public final class KafkaCacheClientProduceBudget implements KafkaCacheProduceCla
 
     public void close()
     {
+        idleHeads.clear();
         removedSegments.clear();
         removedBytes.clear();
 
         creditor.release(budgetIndex);
+    }
+
+    private boolean claimBytes(
+        int bytes)
+    {
+        final long debitorIndex = debitor.acquire(budgetId, budgetId, traceId -> {});
+        final int claimed = debitor.claim(0L, debitorIndex, budgetId, bytes, bytes, 0);
+        debitor.release(debitorIndex, budgetId);
+
+        return claimed == bytes;
     }
 
     public void creditClosed()
