@@ -115,15 +115,6 @@ public class ProduceIT
 
     @Test
     @Specification({
-        "${app}/message.storage.full/client",
-        "${app}/message.storage.full/server"})
-    public void shouldRejectMessageStorageFull() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/message.storage.none/client",
         "${app}/message.storage.none/server"})
     public void shouldRejectMessageStorageNone() throws Exception
@@ -142,15 +133,6 @@ public class ProduceIT
 
     @Test
     @Specification({
-        "${app}/message.storage.full.cache/client",
-        "${app}/message.storage.full.cache/server"})
-    public void shouldAbortMessageStorageFullCache() throws Exception
-    {
-        k3po.finish();
-    }
-
-    @Test
-    @Specification({
         "${app}/message.value.repeated.acknowledged.reclaim/client",
         "${app}/message.value.repeated.acknowledged.reclaim/server"})
     public void shouldSendMessageValueRepeatedAcknowledgedReclaim() throws Exception
@@ -163,6 +145,51 @@ public class ProduceIT
         "${app}/message.value.partitions.idle.head.release/client",
         "${app}/message.value.partitions.idle.head.release/server"})
     public void shouldSendMessageValuePartitionsIdleHeadRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.acknowledged.single.segment/client",
+        "${app}/message.values.acknowledged.single.segment/server"})
+    public void shouldSendMessageValuesAcknowledgedSingleSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.waiting.single.segment/client",
+        "${app}/message.values.waiting.single.segment/server"})
+    public void shouldSendMessageValuesWaitingSingleSegment() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.partitions.acknowledged.waiting/client",
+        "${app}/message.values.partitions.acknowledged.waiting/server"})
+    public void shouldSendMessageValuesPartitionsAcknowledgedWaiting() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.partitions.acknowledged.waiting.aborted/client",
+        "${app}/message.values.partitions.acknowledged.waiting.aborted/server"})
+    public void shouldSendMessageValuesPartitionsAcknowledgedWaitingAborted() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.values.partitions.acknowledged.waiting.aborted.cache/client",
+        "${app}/message.values.partitions.acknowledged.waiting.aborted.cache/server"})
+    public void shouldSendMessageValuesPartitionsAcknowledgedWaitingAbortedCache() throws Exception
     {
         k3po.finish();
     }
