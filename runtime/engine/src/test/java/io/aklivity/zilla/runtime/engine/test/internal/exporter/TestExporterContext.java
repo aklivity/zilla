@@ -23,6 +23,7 @@ import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterContext;
 import io.aklivity.zilla.runtime.engine.exporter.ExporterHandler;
 import io.aklivity.zilla.runtime.engine.metrics.Collector;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public class TestExporterContext implements ExporterContext
 {
@@ -47,5 +48,11 @@ public class TestExporterContext implements ExporterContext
     public void detach(
         long exporterId)
     {
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("exporter");
     }
 }

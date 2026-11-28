@@ -28,8 +28,22 @@ import io.aklivity.zilla.config.engine.EmbeddingConfig;
  * @see Embedding
  * @see EmbeddingHandler
  */
-public interface EmbeddingContext
+public interface EmbeddingContext extends AutoCloseable
 {
+    /**
+     * Closes this thread's context.
+     * <p>
+     * Called once when the engine worker closes, after all configuration has been detached and
+     * streams have been torn down, so that resources held for the lifetime of this context are
+     * released before the worker checks for resources that were not released. The default
+     * implementation does nothing.
+     * </p>
+     */
+    @Override
+    default void close()
+    {
+    }
+
     /**
      * Attaches an embedding configuration to this thread's context.
      *

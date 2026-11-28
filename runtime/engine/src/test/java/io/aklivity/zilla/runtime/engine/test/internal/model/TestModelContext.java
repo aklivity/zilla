@@ -20,6 +20,7 @@ import io.aklivity.zilla.config.engine.test.internal.model.config.TestModelConfi
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.model.ModelContext;
 import io.aklivity.zilla.runtime.engine.model.ModelHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public class TestModelContext implements ModelContext
 {
@@ -36,5 +37,11 @@ public class TestModelContext implements ModelContext
         ModelConfig config)
     {
         return new TestModelHandler(TestModelConfig.class.cast(config), context);
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("model");
     }
 }

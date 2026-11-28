@@ -28,8 +28,22 @@ import io.aklivity.zilla.config.engine.GuardConfig;
  * @see Guard
  * @see GuardHandler
  */
-public interface GuardContext
+public interface GuardContext extends AutoCloseable
 {
+    /**
+     * Closes this thread's context.
+     * <p>
+     * Called once when the engine worker closes, after all configuration has been detached and
+     * streams have been torn down, so that resources held for the lifetime of this context are
+     * released before the worker checks for resources that were not released. The default
+     * implementation does nothing.
+     * </p>
+     */
+    @Override
+    default void close()
+    {
+    }
+
     /**
      * Attaches a guard configuration to this thread's context.
      *

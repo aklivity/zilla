@@ -22,6 +22,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import io.aklivity.zilla.config.engine.GuardConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.guard.GuardContext;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public final class TestGuardContext implements GuardContext
 {
@@ -57,5 +58,11 @@ public final class TestGuardContext implements GuardContext
         long guardId)
     {
         return handlersById.get(guardId);
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("guard");
     }
 }
