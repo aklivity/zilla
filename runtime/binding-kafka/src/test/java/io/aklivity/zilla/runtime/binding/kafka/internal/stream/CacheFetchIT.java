@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_RECONNECT_DELAY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
@@ -60,8 +60,8 @@ public class CacheFetchIT
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(KAFKA_CACHE_SERVER_BOOTSTRAP, false)
         .configure(KAFKA_CACHE_SERVER_RECONNECT_DELAY, 0)
-        .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
-        .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
+        .configure(KAFKA_CACHE_FETCH_SEGMENT_BYTES, 1 * 1024 * 1024)
+        .configure(KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("app1")
@@ -610,7 +610,7 @@ public class CacheFetchIT
         "${app}/messages.after.retention.max/client",
         "${app}/messages.after.retention.max/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "200")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX_NAME, value = "200")
     public void shouldReceiveMessagesAfterRetentionMax() throws Exception
     {
         partition.append(10L);
@@ -1155,8 +1155,8 @@ public class CacheFetchIT
         "${app}/delete.segment.after.member.reconnect/client",
         "${app}/delete.segment.after.member.reconnect/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")
-    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_RETENTION_MILLIS_MAX_NAME, value = "200")
-    @Configure(name = "zilla.binding.kafka.cache.segment.bytes", value = "200")
+    @Configure(name = KafkaConfigurationTest.KAFKA_CACHE_FETCH_RETENTION_MILLIS_MAX_NAME, value = "200")
+    @Configure(name = "zilla.binding.kafka.cache.fetch.segment.bytes", value = "200")
     public void shouldDeleteSegmentAfterMemberReconnect() throws Exception
     {
         k3po.start();

@@ -84,11 +84,11 @@ public final class KafkaCacheTopicConfig
     {
         this.cleanupPolicy = config.cacheCleanupPolicy();
         this.maxMessageBytes = config.cacheMaxMessageBytes();
-        this.segmentBytes = config.cacheSegmentBytes();
-        this.segmentIndexBytes = config.cacheSegmentIndexBytes();
+        this.segmentBytes = config.cacheFetchSegmentBytes();
+        this.segmentIndexBytes = config.cacheFetchSegmentIndexBytes();
         this.segmentMillis = config.cacheSegmentMillis();
-        this.retentionBytes = config.cacheRetentionBytes();
-        this.retentionMillis = config.cacheRetentionMillis();
+        this.retentionBytes = config.cacheFetchRetentionBytes();
+        this.retentionMillis = config.cacheFetchRetentionMillis();
         this.deleteRetentionMillis = config.cacheDeleteRetentionMillis();
         this.minCompactionLagMillis = config.cacheMinCompactionLagMillis();
         this.maxCompactionLagMillis = config.cacheMaxCompactionLagMillis();

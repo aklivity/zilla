@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.bench;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.engine.test.EngineBench.DEFAULT_WINDOW;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -48,8 +48,8 @@ public class KafkaCacheServerFetchFlushTest
         final EngineBench bench = new EngineBench()
             .directory("target/zilla-cache-server-flush")
             .external("app1")
-            .configure(KAFKA_CACHE_SEGMENT_BYTES, SEGMENT_BYTES)
-            .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, SEGMENT_INDEX_BYTES)
+            .configure(KAFKA_CACHE_FETCH_SEGMENT_BYTES, SEGMENT_BYTES)
+            .configure(KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES, SEGMENT_INDEX_BYTES)
             .start(CONFIGURATION);
 
         try

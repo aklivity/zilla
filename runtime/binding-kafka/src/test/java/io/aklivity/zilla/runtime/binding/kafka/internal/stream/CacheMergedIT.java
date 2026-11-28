@@ -15,8 +15,8 @@
  */
 package io.aklivity.zilla.runtime.binding.kafka.internal.stream;
 
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_BYTES;
-import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SEGMENT_INDEX_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_BYTES;
+import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES;
 import static io.aklivity.zilla.runtime.binding.kafka.internal.KafkaConfiguration.KAFKA_CACHE_SERVER_BOOTSTRAP;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_BUFFER_SLOT_CAPACITY;
 import static io.aklivity.zilla.runtime.engine.EngineConfiguration.ENGINE_DRAIN_ON_CLOSE;
@@ -49,8 +49,8 @@ public class CacheMergedIT
         .countersBufferCapacity(16384)
         .configure(ENGINE_BUFFER_SLOT_CAPACITY, 8192)
         .configure(KAFKA_CACHE_SERVER_BOOTSTRAP, false)
-        .configure(KAFKA_CACHE_SEGMENT_BYTES, 1 * 1024 * 1024)
-        .configure(KAFKA_CACHE_SEGMENT_INDEX_BYTES, 256 * 1024)
+        .configure(KAFKA_CACHE_FETCH_SEGMENT_BYTES, 1 * 1024 * 1024)
+        .configure(KAFKA_CACHE_FETCH_SEGMENT_INDEX_BYTES, 256 * 1024)
         .configure(ENGINE_DRAIN_ON_CLOSE, false)
         .configurationRoot("io/aklivity/zilla/specs/binding/kafka/config")
         .external("app1")

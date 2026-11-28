@@ -207,7 +207,7 @@ public final class KafkaCacheServerFetchFactory implements BindingHandler
         this.supplyCacheRoute = supplyCacheRoute;
         this.reconnectDelay = config.cacheServerReconnect();
         this.verbose = config.verbose();
-        this.retentionMillisMaxLive = config.cacheRetentionMillisMax();
+        this.retentionMillisMaxLive = config.cacheFetchRetentionMillisMax();
         this.trailersSizeMax = config.cacheServerTrailersSizeMax();
     }
 
