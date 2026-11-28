@@ -124,9 +124,36 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.storage.none/client",
+        "${app}/message.storage.none/server"})
+    public void shouldRejectMessageStorageNone() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.storage.none.cache/client",
+        "${app}/message.storage.none.cache/server"})
+    public void shouldDescribeMetaMessageStorageNoneCache() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.storage.full.cache/client",
         "${app}/message.storage.full.cache/server"})
     public void shouldAbortMessageStorageFullCache() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
+        "${app}/message.value.repeated.acknowledged.reclaim/client",
+        "${app}/message.value.repeated.acknowledged.reclaim/server"})
+    public void shouldSendMessageValueRepeatedAcknowledgedReclaim() throws Exception
     {
         k3po.finish();
     }

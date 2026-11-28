@@ -44,6 +44,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
 
     private final int kafkaTypeId;
     private final Int2ObjectHashMap<BindingHandler> factories;
+    private final KafkaCacheClientProduceFactory cacheProduceFactory;
     private final Long2ObjectHashMap<KafkaBindingConfig> bindings;
     private final EngineContext context;
 
@@ -110,6 +111,7 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
 
         this.kafkaTypeId = context.supplyTypeId(KafkaBinding.NAME);
         this.factories = factories;
+        this.cacheProduceFactory = cacheProduceFactory;
         this.bindings = bindings;
         this.context = context;
     }
@@ -120,6 +122,12 @@ public final class KafkaCacheClientFactory implements KafkaStreamFactory
     {
         KafkaBindingConfig kafkaBinding = new KafkaBindingConfig(binding, context);
         bindings.put(binding.id, kafkaBinding);
+    }
+
+    @Override
+    public void close()
+    {
+        cacheProduceFactory.close();
     }
 
     @Override

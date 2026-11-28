@@ -88,6 +88,12 @@ final class KafkaBindingContext implements BindingContext
     }
 
     @Override
+    public void close()
+    {
+        factories.values().forEach(KafkaStreamFactory::close);
+    }
+
+    @Override
     public String toString()
     {
         return String.format("%s %s", getClass().getSimpleName(), factories);

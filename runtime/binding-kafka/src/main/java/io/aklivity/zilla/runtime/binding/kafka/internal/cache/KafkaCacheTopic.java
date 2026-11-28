@@ -21,7 +21,6 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntFunction;
 
 
@@ -33,8 +32,6 @@ public final class KafkaCacheTopic
     private final Path location;
     private final Path produceLocation;
     private final String cache;
-    private final long maxProduceCapacity;
-    private final AtomicLong produceCapacity;
     private final String name;
     private final KafkaCacheTopicConfig config;
     private final KafkaCacheTopicConfig produceConfig;
@@ -49,7 +46,6 @@ public final class KafkaCacheTopic
         Path produceLocation,
         KafkaConfiguration config,
         String cache,
-        AtomicLong produceCapacity,
         String name,
         IntFunction<long[]> sortSpaceRef)
     {
@@ -59,8 +55,6 @@ public final class KafkaCacheTopic
         this.produceConfig = KafkaCacheTopicConfig.produce(config);
         this.appendCapacity = ENGINE_BUFFER_SLOT_CAPACITY.get(config);
         this.cache = cache;
-        this.produceCapacity = produceCapacity;
-        this.maxProduceCapacity = config.cacheProduceCapacity();
         this.name = name;
         this.partitionsById = new ConcurrentHashMap<>();
         this.partitionsByIndex = new ConcurrentHashMap<>();
@@ -138,8 +132,8 @@ public final class KafkaCacheTopic
         int id,
         int index)
     {
-        return new KafkaCachePartition(clock, produceLocation, produceConfig, cache, produceCapacity, maxProduceCapacity,
-            name, id, appendCapacity, sortSpaceRef, index);
+        return new KafkaCachePartition(clock, produceLocation, produceConfig, cache, name, id, appendCapacity, sortSpaceRef,
+            index);
     }
 
 }

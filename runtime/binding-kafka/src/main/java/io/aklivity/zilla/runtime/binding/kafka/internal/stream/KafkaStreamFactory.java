@@ -25,4 +25,8 @@ public interface KafkaStreamFactory extends BindingHandler
 
     void detach(
         long bindingId);
+
+    default void close()
+    {
+    }
 }
