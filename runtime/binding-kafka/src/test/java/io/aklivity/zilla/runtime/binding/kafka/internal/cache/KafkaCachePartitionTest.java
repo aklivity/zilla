@@ -374,6 +374,71 @@ public class KafkaCachePartitionTest
         node.segment().close();
     }
 
+    @Test
+    public void shouldReleaseAcknowledgedProduceHeadAndCreditItOnce() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(4096);
+        Node head = appendClaimed(partition, 0L);
+        writeProduceEntry(partition, head, 0L);
+        assertEquals(partition.segmentBytes(), claims.outstanding());
+
+        assertTrue(partition.releaseIdleHead(claims));
+
+        assertTrue(partition.head().sentinel());
+        assertTrue(head.segment().closed());
+        assertEquals(0L, claims.outstanding());
+        assertFalse(partition.releaseIdleHead(claims));
+    }
+
+    @Test
+    public void shouldNotReleaseProduceHeadHeldByReader() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(4096);
+        Node head = appendClaimed(partition, 0L);
+        writeProduceEntry(partition, head, 0L);
+        KafkaCacheSegment reader = head.segment().acquire();
+
+        assertFalse(partition.releaseIdleHead(claims));
+        assertSame(head, partition.head());
+
+        reader.release();
+        assertTrue(partition.releaseIdleHead(claims));
+        assertEquals(0L, claims.outstanding());
+    }
+
+    @Test
+    public void shouldReleaseEmptyProduceHead() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(4096);
+        Node head = appendClaimed(partition, 0L);
+
+        assertTrue(partition.releaseIdleHead(claims));
+
+        assertTrue(partition.head().sentinel());
+        assertTrue(head.segment().closed());
+        assertEquals(0L, claims.outstanding());
+    }
+
+    @Test
+    public void shouldCreateNextProduceHeadAtNextOffsetAfterRelease() throws Exception
+    {
+        KafkaCachePartition partition = newProducePartition(4096);
+        Node head = appendClaimed(partition, 0L);
+        writeProduceEntry(partition, head, 0L);
+        partition.releaseIdleHead(claims);
+
+        MutableDirectBufferEx buffer = new UnsafeBufferEx(new byte[1024]);
+        KafkaKeyFW key = key(buffer, "k1");
+        Array32FW<KafkaHeaderFW> headers = headers(buffer, key.limit(), "h1", "v1", "h2", "v2");
+        Node next = partition.newProduceHeadIfNecessary(1L, key, 5, 0, headers.sizeof(), 32, claims);
+
+        assertNotNull(next);
+        assertEquals(1L, next.segment().baseOffset());
+        assertSame(next, partition.head());
+        assertEquals(2, claims.requests().size());
+        assertEquals(partition.segmentBytes(), claims.outstanding());
+    }
+
     private Node appendClaimed(
         KafkaCachePartition partition,
         long offset)

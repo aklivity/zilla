@@ -658,6 +658,20 @@ public class CacheProduceIT
     @Test
     @Configuration("cache.yaml")
     @Specification({
+        "${app}/message.value.partitions.idle.head.release/client",
+        "${app}/message.value.partitions.idle.head.release/server"})
+    @ScriptProperty("serverAddress \"zilla://streams/app1\"")
+    @Configure(name = KAFKA_CACHE_PRODUCE_SEGMENT_BYTES_NAME, value = "1024")
+    @Configure(name = KAFKA_CACHE_MAX_MESSAGE_BYTES_NAME, value = "100")
+    @Configure(name = KAFKA_CACHE_PRODUCE_CAPACITY_NAME, value = "1024")
+    public void shouldSendMessageValuePartitionsIdleHeadRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Configuration("cache.yaml")
+    @Specification({
         "${app}/message.value.rejected/client",
         "${app}/message.value.rejected/server"})
     @ScriptProperty("serverAddress \"zilla://streams/app1\"")

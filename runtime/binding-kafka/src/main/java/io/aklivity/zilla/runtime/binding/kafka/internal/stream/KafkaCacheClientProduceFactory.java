@@ -53,6 +53,7 @@ import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheCursorFa
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheDoorbell;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheModel;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCachePartition;
+import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheProduceIdleHead;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTopic;
 import io.aklivity.zilla.runtime.binding.kafka.internal.cache.KafkaCacheTrailerEnvelope;
 import io.aklivity.zilla.runtime.binding.kafka.internal.config.KafkaBindingConfig;
@@ -535,7 +536,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
         sender.accept(reset.typeId(), reset.buffer(), reset.offset(), reset.sizeof());
     }
 
-    final class KafkaCacheClientProduceFan
+    final class KafkaCacheClientProduceFan implements KafkaCacheProduceIdleHead
     {
         private final KafkaCachePartition partition;
         private final KafkaCacheDoorbell initialDoorbell;
@@ -608,6 +609,21 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                         KafkaDeltaType.NONE);
 
             initClientFanCursor();
+            produceBudget.idle(this);
+        }
+
+        @Override
+        public boolean release()
+        {
+            boolean released = false;
+
+            if (reclaimOffsetNext >= partitionOffset)
+            {
+                cursor.park();
+                released = partition.releaseIdleHead(produceBudget);
+            }
+
+            return released;
         }
 
         private void initClientFanCursor()
@@ -795,6 +811,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                     ? stream.transformValue.padding(valueFragment.buffer(), valueFragment.offset(), valueLength)
                     : 0;
 
+                produceBudget.busy(this);
                 stream.segment = partition.newProduceHeadIfNecessary(partitionOffset, key, valueLength,
                     stream.valuePaddingMax, headers.sizeof(), trailersSizeMax, produceBudget);
 
@@ -897,6 +914,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
                 ? stream.transformValue.padding(EMPTY_OCTETS.buffer(), EMPTY_OCTETS.offset(), 0)
                 : 0;
 
+            produceBudget.busy(this);
             stream.segment = partition.newProduceHeadIfNecessary(partitionOffset, EMPTY_KEY, 0, valuePaddingMax,
                 EMPTY_TRAILERS.sizeof(), trailersSizeMax, produceBudget);
 
@@ -962,6 +980,7 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             } while (newOffsetHighWatermark == cursor.offset);
 
             offsetHighWatermark = cursor.offset - 1;
+            cursor.park();
 
             if (offsetHighWatermark > oldOffsetHighWaterMark)
             {
@@ -1274,6 +1293,11 @@ public final class KafkaCacheClientProduceFactory implements BindingHandler
             }
 
             partition.removeAcknowledgedSegments(reclaimOffsetNext, produceBudget);
+
+            if (reclaimOffsetNext >= partitionOffset)
+            {
+                produceBudget.idle(this);
+            }
         }
 
         private boolean isEntryFinal(

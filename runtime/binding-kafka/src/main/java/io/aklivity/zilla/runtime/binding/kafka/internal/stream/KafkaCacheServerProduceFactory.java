@@ -843,6 +843,10 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                 {
                     member.doProduceInitialData(traceId);
                 }
+                else if (member.messageOffset == 0)
+                {
+                    member.cursor.park();
+                }
 
                 if (member.messageOffset != 0)
                 {
@@ -1376,13 +1380,31 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
             final KafkaProduceBeginExFW kafkaProduceBeginEx = kafkaBeginEx.produce();
             final long partitionOffset = kafkaProduceBeginEx.partition().partitionOffset() + 1;
 
-            KafkaCachePartition.Node segmentNode = partition.seekNotBefore(partitionOffset);
+            cursor.offset = partitionOffset;
+            initCursor();
+        }
 
-            if (segmentNode.sentinel())
+        private void parkCursorWhenCaughtUp()
+        {
+            if (cursor.offset > partitionOffset)
             {
-                segmentNode = segmentNode.next();
+                cursor.park();
             }
-            cursor.init(segmentNode, partitionOffset, DEFAULT_LATEST_OFFSET);
+        }
+
+        private boolean initCursor()
+        {
+            if (!cursor.initialized())
+            {
+                final KafkaCachePartition.Node segmentNode = partition.seekNotBefore(cursor.offset);
+
+                if (!segmentNode.sentinel())
+                {
+                    cursor.init(segmentNode, cursor.offset, DEFAULT_LATEST_OFFSET);
+                }
+            }
+
+            return cursor.initialized();
         }
 
         private void onServerInitialFlush(
@@ -1441,7 +1463,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
         private void doProduceInitialData(
             long traceId)
         {
-            if (cursor.offset <= partitionOffset)
+            if (cursor.offset <= partitionOffset && initCursor())
             {
                 final KafkaCacheEntryFW nextEntry = cursor.next(entryRO);
 
@@ -1472,6 +1494,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                         if ((entryFlags & CACHE_ENTRY_FLAGS_ABORTED) != 0)
                         {
                             cursor.advance(partitionOffset + 1);
+                            parkCursorWhenCaughtUp();
                             doFlushServerReply(NO_ERROR, traceId);
                             break produce;
                         }
@@ -1548,6 +1571,7 @@ public final class KafkaCacheServerProduceFactory implements BindingHandler
                             else
                             {
                                 cursor.advance(partitionOffset + 1);
+                                parkCursorWhenCaughtUp();
                             }
                         }
                     }

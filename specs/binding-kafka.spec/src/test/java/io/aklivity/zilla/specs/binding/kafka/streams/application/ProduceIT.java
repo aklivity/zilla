@@ -160,6 +160,15 @@ public class ProduceIT
 
     @Test
     @Specification({
+        "${app}/message.value.partitions.idle.head.release/client",
+        "${app}/message.value.partitions.idle.head.release/server"})
+    public void shouldSendMessageValuePartitionsIdleHeadRelease() throws Exception
+    {
+        k3po.finish();
+    }
+
+    @Test
+    @Specification({
         "${app}/message.value.repeated.acknowledged/client",
         "${app}/message.value.repeated.acknowledged/server"})
     public void shouldSendMessageValueRepeatedAcknowledged() throws Exception

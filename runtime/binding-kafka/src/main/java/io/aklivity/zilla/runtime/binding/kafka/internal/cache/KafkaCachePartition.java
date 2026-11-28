@@ -326,6 +326,21 @@ public final class KafkaCachePartition
         return node;
     }
 
+    public boolean releaseIdleHead(
+        KafkaCacheProduceClaims claims)
+    {
+        final Node head = sentinel.previous;
+        final boolean idle = head != sentinel && head.segment.references() == 1;
+
+        if (idle)
+        {
+            head.remove();
+            claims.remove(head.segment, head.segmentBytes);
+        }
+
+        return idle;
+    }
+
     public Node seekNotBefore(
         long offset)
     {
@@ -1412,6 +1427,7 @@ public final class KafkaCachePartition
         private volatile KafkaCacheSegment segment;
         private volatile KafkaCachePartition.Node previous;
         private volatile KafkaCachePartition.Node next;
+        private volatile boolean removed;
 
         Node()
         {
@@ -1451,6 +1467,17 @@ public final class KafkaCachePartition
             return segment;
         }
 
+        public boolean removed()
+        {
+            return removed;
+        }
+
+        public Node seekNotBefore(
+            long offset)
+        {
+            return KafkaCachePartition.this.seekNotBefore(offset);
+        }
+
         public Node seekAncestor(
             long baseOffset)
         {
@@ -1472,6 +1499,7 @@ public final class KafkaCachePartition
 
             next.previous = previous;
             previous.next = next;
+            removed = true;
         }
 
         public void segment(
