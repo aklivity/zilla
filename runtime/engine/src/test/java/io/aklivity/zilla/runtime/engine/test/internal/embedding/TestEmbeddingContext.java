@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.engine.EmbeddingConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingContext;
 import io.aklivity.zilla.runtime.engine.embedding.EmbeddingHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public class TestEmbeddingContext implements EmbeddingContext
 {
@@ -42,5 +43,11 @@ public class TestEmbeddingContext implements EmbeddingContext
         }
 
         return new TestEmbeddingHandler(dispatcher);
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("embedding");
     }
 }

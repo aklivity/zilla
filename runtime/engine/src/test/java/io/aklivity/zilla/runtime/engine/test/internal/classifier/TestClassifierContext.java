@@ -21,6 +21,7 @@ import io.aklivity.zilla.config.engine.ClassifierConfig;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierContext;
 import io.aklivity.zilla.runtime.engine.classifier.ClassifierHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public class TestClassifierContext implements ClassifierContext
 {
@@ -37,5 +38,11 @@ public class TestClassifierContext implements ClassifierContext
         ClassifierConfig classifier)
     {
         return new TestClassifierHandler(dispatcher);
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("classifier");
     }
 }

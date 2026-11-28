@@ -31,6 +31,7 @@ import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptio
 import io.aklivity.zilla.config.engine.test.internal.store.config.TestStoreOptionsConfig.Assertion;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.store.StoreContext;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public final class TestStoreContext implements StoreContext
 {
@@ -97,5 +98,11 @@ public final class TestStoreContext implements StoreContext
         {
             throw new AssertionError(String.format("missing %d expected store operations", assertions.size()));
         }
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("store");
     }
 }

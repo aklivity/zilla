@@ -28,8 +28,22 @@ import io.aklivity.zilla.config.engine.ClassifierConfig;
  * @see Classifier
  * @see ClassifierHandler
  */
-public interface ClassifierContext
+public interface ClassifierContext extends AutoCloseable
 {
+    /**
+     * Closes this thread's context.
+     * <p>
+     * Called once when the engine worker closes, after all configuration has been detached and
+     * streams have been torn down, so that resources held for the lifetime of this context are
+     * released before the worker checks for resources that were not released. The default
+     * implementation does nothing.
+     * </p>
+     */
+    @Override
+    default void close()
+    {
+    }
+
     /**
      * Attaches a classifier configuration to this thread's context.
      *

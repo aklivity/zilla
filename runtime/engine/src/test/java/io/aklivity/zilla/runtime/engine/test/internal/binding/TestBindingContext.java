@@ -21,6 +21,7 @@ import io.aklivity.zilla.runtime.engine.Configuration;
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingContext;
 import io.aklivity.zilla.runtime.engine.binding.BindingHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 final class TestBindingContext implements BindingContext
 {
@@ -52,5 +53,11 @@ final class TestBindingContext implements BindingContext
         BindingConfig binding)
     {
         factory.detach(binding);
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("binding");
     }
 }

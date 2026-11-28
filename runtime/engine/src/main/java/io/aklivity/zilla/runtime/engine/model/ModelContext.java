@@ -28,8 +28,22 @@ import io.aklivity.zilla.config.engine.ModelConfig;
  * @see Model
  * @see ModelHandler
  */
-public interface ModelContext
+public interface ModelContext extends AutoCloseable
 {
+    /**
+     * Closes this thread's context.
+     * <p>
+     * Called once when the engine worker closes, after all configuration has been detached and
+     * streams have been torn down, so that resources held for the lifetime of this context are
+     * released before the worker checks for resources that were not released. The default
+     * implementation does nothing.
+     * </p>
+     */
+    @Override
+    default void close()
+    {
+    }
+
     /**
      * Returns a {@link ModelHandler} that vends per-stream decode and encode pipelines for the given
      * model configuration, or {@code null} if this model does not transform values.

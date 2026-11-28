@@ -54,11 +54,16 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -276,6 +281,7 @@ public class EngineWorker implements EngineContext, Agent
     private final EngineBoss boss;
     private final Consumer<Throwable> reporter;
     private final ErrorHandler errorHandler;
+    private final List<AutoCloseable> contexts = new ArrayList<>();
     private final CountersLayout countersLayout;
     private final GaugesLayout gaugesLayout;
     private final HistogramsLayout histogramsLayout;
@@ -1195,6 +1201,17 @@ public class EngineWorker implements EngineContext, Agent
             }
         }
 
+        closeOnClose(bindingsByType.values());
+        closeOnClose(exportersByType.values());
+        closeOnClose(guardsByType.values());
+        closeOnClose(vaultsByType.values());
+        closeOnClose(catalogsByType.values());
+        closeOnClose(embeddingsByType.values());
+        closeOnClose(classifiersByType.values());
+        closeOnClose(storesByType.values());
+        closeOnClose(modelsByType.values());
+        closeOnClose(metricsByName.values());
+
         this.registry = new EngineRegistry(
                 bindingsByType::get, guardsByType::get, vaultsByType::get, catalogsByType::get, embeddingsByType::get,
                 classifiersByType::get,
@@ -1252,7 +1269,12 @@ public class EngineWorker implements EngineContext, Agent
             pending.putAll(correlations);
             correlations.clear();
             pending.forEach(this::doSyntheticAbort);
+        }
 
+        closeContexts();
+
+        if (config.syntheticAbort())
+        {
             acquiredBuffers = bufferPool.acquiredSlots();
             acquiredCreditors = creditor.acquired();
             acquiredDebitors = debitorsByIndex.values()
@@ -1278,6 +1300,33 @@ public class EngineWorker implements EngineContext, Agent
                 throw new IllegalStateException("Engine worker usage is non-zero: %d".formatted(usage));
             }
         }
+    }
+
+    private void closeOnClose(
+        Collection<? extends AutoCloseable> supplied)
+    {
+        final Set<AutoCloseable> distinct = Collections.newSetFromMap(new IdentityHashMap<>());
+        supplied.stream()
+            .filter(Objects::nonNull)
+            .forEach(distinct::add);
+        contexts.addAll(distinct);
+    }
+
+    private void closeContexts()
+    {
+        for (AutoCloseable context : contexts)
+        {
+            try
+            {
+                context.close();
+            }
+            catch (Exception ex)
+            {
+                errorHandler.onError(ex);
+            }
+        }
+
+        contexts.clear();
     }
 
     public void drain()

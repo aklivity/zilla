@@ -51,6 +51,7 @@ import io.aklivity.zilla.runtime.engine.event.EventFormatter;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtContext;
 import io.aklivity.zilla.runtime.engine.ext.EngineExtSpi;
 import io.aklivity.zilla.runtime.engine.internal.event.EngineEventContext;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public class EngineTest
 {
@@ -63,6 +64,34 @@ public class EngineTest
         properties.put(ENGINE_DIRECTORY.name(), "target/zilla-itests");
         properties.put(ENGINE_WORKERS.name(), "1");
         properties.put(ENGINE_WORKER_CAPACITY.name(), "64");
+    }
+
+    @Test
+    public void shouldCloseEachWorkerContextOnce()
+    {
+        TestContextClosures.reset();
+        EngineConfiguration config = new EngineConfiguration(properties);
+        List<Throwable> errors = new LinkedList<>();
+        try (Engine engine = Engine.builder()
+                .config(config)
+                .errorHandler(errors::add)
+                .build())
+        {
+            engine.start();
+        }
+        catch (Throwable ex)
+        {
+            errors.add(ex);
+        }
+        finally
+        {
+            assertThat(errors, empty());
+        }
+
+        for (String concept : TestContextClosures.CONCEPTS)
+        {
+            assertEquals(concept, 1, TestContextClosures.closed(concept));
+        }
     }
 
     @Test

@@ -32,8 +32,22 @@ import io.aklivity.zilla.runtime.engine.metrics.Collector;
  * @see Exporter
  * @see ExporterHandler
  */
-public interface ExporterContext
+public interface ExporterContext extends AutoCloseable
 {
+    /**
+     * Closes this thread's context.
+     * <p>
+     * Called once when the engine worker closes, after all configuration has been detached and
+     * streams have been torn down, so that resources held for the lifetime of this context are
+     * released before the worker checks for resources that were not released. The default
+     * implementation does nothing.
+     * </p>
+     */
+    @Override
+    default void close()
+    {
+    }
+
     /**
      * Attaches an exporter configuration and returns a handler that will drive the export cycle.
      * <p>

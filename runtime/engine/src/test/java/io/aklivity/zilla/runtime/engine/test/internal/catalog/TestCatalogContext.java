@@ -20,6 +20,7 @@ import io.aklivity.zilla.config.engine.test.internal.catalog.config.TestCatalogO
 import io.aklivity.zilla.runtime.engine.EngineContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogContext;
 import io.aklivity.zilla.runtime.engine.catalog.CatalogHandler;
+import io.aklivity.zilla.runtime.engine.test.internal.TestContextClosures;
 
 public class TestCatalogContext implements CatalogContext
 {
@@ -33,5 +34,11 @@ public class TestCatalogContext implements CatalogContext
         CatalogConfig catalog)
     {
         return new TestCatalogHandler(TestCatalogOptionsConfig.class.cast(catalog.options));
+    }
+
+    @Override
+    public void close()
+    {
+        TestContextClosures.record("catalog");
     }
 }
